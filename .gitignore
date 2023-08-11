@@ -1,2 +1,6 @@
 /build/
 /.gradle/
+/out/
+/lib/
+/gradle/
+/.idea/
