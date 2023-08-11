@@ -1,31 +1,28 @@
 package controller;
 
 public class FiltersForm {
-  private boolean ipv4Enabled;
-  private boolean ipv6Enabled;
+  private boolean showIpv4;
+  private boolean showIpv6;
   private boolean resolveHostnames;
 
   public FiltersForm() {
-    // default values
-    this.resolveHostnames = false;
-    this.ipv4Enabled = true;
-    this.ipv6Enabled = false;
+    restoreDefaults();
   }
 
-  public boolean isIpv4Enabled() {
-    return ipv4Enabled;
+  public boolean isShowIpv4() {
+    return showIpv4;
   }
 
-  public void setIpv4Enabled(boolean ipv4Enabled) {
-    this.ipv4Enabled = ipv4Enabled;
+  public void setShowIpv4(boolean showIpv4) {
+    this.showIpv4 = showIpv4;
   }
 
-  public boolean isIpv6Enabled() {
-    return ipv6Enabled;
+  public boolean isShowIpv6() {
+    return showIpv6;
   }
 
-  public void setIpv6Enabled(boolean ipv6Enabled) {
-    this.ipv6Enabled = ipv6Enabled;
+  public void setShowIpv6(boolean showIpv6) {
+    this.showIpv6 = showIpv6;
   }
 
   public boolean isResolveHostnames() {
@@ -34,5 +31,11 @@ public class FiltersForm {
 
   public void setResolveHostnames(boolean resolveHostnames) {
     this.resolveHostnames = resolveHostnames;
+  }
+
+  public void restoreDefaults() {
+    this.resolveHostnames = false;
+    this.showIpv4 = true;
+    this.showIpv6 = true;
   }
 }

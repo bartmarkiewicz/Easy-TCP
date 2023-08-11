@@ -1,5 +1,6 @@
 package model;
 
+import controller.FiltersForm;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.namednumber.IpVersion;
@@ -214,5 +215,17 @@ public class EasyTCPacket {
     return tcpOptions.stream()
       .map(option -> option.getKind().valueAsString())
       .collect(Collectors.joining(", "));
+  }
+
+  public boolean isVisible(FiltersForm filtersForm) {
+    var matchesFilter = true;
+
+    switch (getiPprotocol()) {
+      case IPV4 ->
+        matchesFilter = filtersForm.isShowIpv4();
+      case IPV6 ->
+        matchesFilter = filtersForm.isShowIpv6();
+    }
+    return matchesFilter;
   }
 }

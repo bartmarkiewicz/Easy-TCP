@@ -32,13 +32,14 @@ public class EasyTCP extends JFrame {
         ArrowDiagram arrowDiagram = new ArrowDiagram();
         firstRow.add(arrowDiagram);
         var filtersForm = new FiltersForm();
-        OptionsPanel optionsPanel = new OptionsPanel(filtersForm);
+        var packetLogger = new PacketLogger(filtersForm);
+
+        var optionsPanel = new OptionsPanel(filtersForm, packetLogger);
         optionsPanel.setBackground(Color.BLUE);
         firstRow.add(optionsPanel);
 
         this.getContentPane().add(firstRow);
 
-        var packetLogger = new PacketLogger();
         packetLogger.setBackground(Color.PINK);
         var packetViewScroll = new JScrollPane(packetLogger);
 

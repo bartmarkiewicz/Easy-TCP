@@ -1,6 +1,7 @@
 package controller;
 
 import model.EasyTCPacket;
+import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;
@@ -22,8 +23,14 @@ import java.util.stream.Collectors;
 public class PacketLogger extends JTextPane {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketLogger.class);
     private static final ConcurrentHashMap<String, String> resolvedHostNames = new ConcurrentHashMap<>();
-    public PacketLogger() {
+
+    private FiltersForm filtersForm;
+    private ArrayList<EasyTCPacket> packets;
+
+    public PacketLogger(FiltersForm filtersForm) {
         super();
+        this.filtersForm = filtersForm;
+        this.packets = new ArrayList<>();
         this.setEditable(false);
     }
 
@@ -36,7 +43,6 @@ public class PacketLogger extends JTextPane {
         }
         LOGGER.debug("File successfully read");
         StringBuilder textPaneText = new StringBuilder();
-        var packetList = new ArrayList<EasyTCPacket>();
         while(true) {
             try {
                 //look into transport layer packets
@@ -44,7 +50,7 @@ public class PacketLogger extends JTextPane {
                 var tcpPacket = packet.get(TcpPacket.class);
                 var ipPacket = packet.get(IpPacket.class);
                 var easyTCPacket = EasyTCPacket.fromPackets(ipPacket, tcpPacket, handle.getTimestamp(), resolvedHostNames);
-                packetList.add(easyTCPacket);
+                packets.add(easyTCPacket);
             } catch (TimeoutException e) {
                 LOGGER.debug("Timeout");
 
@@ -55,11 +61,29 @@ public class PacketLogger extends JTextPane {
         }
         var timeNow = Instant.now().toEpochMilli();
         LOGGER.debug("Setting text");
-        this.setText(packetList.stream().map(i -> i.toString() + "\n").collect(Collectors.joining("\n")));
+        this.setText(getPacketText());
         LOGGER.debug("Stream end, it took %s ms to execute set text"
           .formatted(Instant.now().toEpochMilli() - timeNow));
         repaint();
         revalidate();
         handle.close();
+    }
+
+    public void refilterPackets() {
+        var packetText = getPacketText();
+        if (Strings.isBlank(packetText)) {
+            this.setText("No packets matching your search criteria found, try changing your filters.");
+        } else {
+            this.setText(packetText);
+        }
+        repaint();
+        revalidate();
+    }
+
+    private String getPacketText() {
+        return packets.stream()
+          .filter(packet -> packet.isVisible(filtersForm))
+          .map(i -> i + "\n")
+          .collect(Collectors.joining("\n"));
     }
 }
