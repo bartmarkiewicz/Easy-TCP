@@ -1,5 +1,6 @@
 package view;
 
+import controller.FiltersForm;
 import controller.PacketLogger;
 
 import javax.swing.*;
@@ -30,7 +31,8 @@ public class EasyTCP extends JFrame {
         firstRow.setLayout(firstRowLayout);
         ArrowDiagram arrowDiagram = new ArrowDiagram();
         firstRow.add(arrowDiagram);
-        JPanel optionsPanel = new JPanel();
+        var filtersForm = new FiltersForm();
+        OptionsPanel optionsPanel = new OptionsPanel(filtersForm);
         optionsPanel.setBackground(Color.BLUE);
         firstRow.add(optionsPanel);
 

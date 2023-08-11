@@ -4,17 +4,19 @@ import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.namednumber.IpVersion;
 
-import java.net.InetAddress;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class EasyTCPacket {
+  private static AtomicInteger threadsInProgress = new AtomicInteger(0);
   private Timestamp timestamp;
   private IPprotocol iPprotocol;
-  private InetAddress sourceAddress;
-  private InetAddress destinationAddress;
+  private InternetAddress sourceAddress;
+  private InternetAddress destinationAddress;
   private Integer sequenceNumber;
   private Long ackNumber;
   private Integer windowSize;
@@ -23,7 +25,10 @@ public class EasyTCPacket {
   private Map<TCPFlag, Boolean> tcpFlags;
   private List<TcpPacket.TcpOption> tcpOptions;
 
-  public static EasyTCPacket fromPackets(IpPacket ipPacket, TcpPacket tcpPacket, Timestamp timestamp) {
+  public static EasyTCPacket fromPackets(IpPacket ipPacket,
+                                         TcpPacket tcpPacket,
+                                         Timestamp timestamp,
+                                         ConcurrentHashMap<String, String> dnsResolvedHostnames) {
     var easyTcpPacket = new EasyTCPacket();
     var ipHeader = ipPacket.getHeader();
     if (ipHeader.getVersion().equals(IpVersion.IPV4)) {
@@ -35,8 +40,10 @@ public class EasyTCPacket {
     }
     var tcpHeader = tcpPacket.getHeader();
     easyTcpPacket.setAckNumber(tcpHeader.getAcknowledgmentNumberAsLong());
-    easyTcpPacket.setDestinationAddress(ipHeader.getDstAddr());
-    easyTcpPacket.setSourceAddress(ipHeader.getSrcAddr());
+
+    setAddressesAndHostnames(ipHeader, easyTcpPacket, dnsResolvedHostnames);
+
+
     easyTcpPacket.setTimestamp(timestamp);
     easyTcpPacket.setSequenceNumber(tcpHeader.getSequenceNumber());
     easyTcpPacket.setWindowSize(tcpHeader.getWindowAsInt());
@@ -53,6 +60,38 @@ public class EasyTCPacket {
     easyTcpPacket.setTcpOptions(tcpHeader.getOptions());
     easyTcpPacket.setHeaderPayloadLength(tcpHeader.length());
     return easyTcpPacket;
+  }
+
+  private static void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
+                                               EasyTCPacket packet,
+                                               ConcurrentHashMap<String, String> resolvedHostNames) {
+    var destHostName = resolvedHostNames.get(String.valueOf(ipHeader.getDstAddr()));
+    var destinationAddress = new InternetAddress(ipHeader.getDstAddr(), destHostName);
+    packet.setDestinationAddress(destinationAddress);
+    if (destHostName == null) {
+      new Thread(() -> {
+        threadsInProgress.incrementAndGet();
+        var resolvedHostname = ipHeader.getDstAddr().getHostName();
+        resolvedHostNames.put(String.valueOf(ipHeader.getDstAddr()), resolvedHostname);
+        packet.setDestinationAddress(new InternetAddress(ipHeader.getDstAddr(), resolvedHostname));
+        threadsInProgress.decrementAndGet();
+      }).start();
+    }
+    var srcHostName = resolvedHostNames.get(String.valueOf(ipHeader.getSrcAddr()));
+    var sourceAddress = new InternetAddress(ipHeader.getSrcAddr(), srcHostName);
+    packet.setSourceAddress(sourceAddress);
+    if (srcHostName == null) {
+      new Thread(() -> {
+        threadsInProgress.incrementAndGet();
+        var resolvedHostname = ipHeader.getSrcAddr().getHostName();
+        resolvedHostNames.put(String.valueOf(ipHeader.getSrcAddr()), resolvedHostname);
+        packet.setSourceAddress(new InternetAddress(ipHeader.getDstAddr(), resolvedHostname));
+        threadsInProgress.decrementAndGet();
+      }).start();
+    }
+  }
+  public boolean allHostnamesResolved() {
+    return threadsInProgress.get() <= 0;
   }
 
   public Timestamp getTimestamp() {
@@ -103,19 +142,19 @@ public class EasyTCPacket {
     this.dataPayloadLength = dataPayloadLength;
   }
 
-  public InetAddress getSourceAddress() {
+  public InternetAddress getSourceAddress() {
     return sourceAddress;
   }
 
-  public void setSourceAddress(InetAddress sourceAddress) {
+  public void setSourceAddress(InternetAddress sourceAddress) {
     this.sourceAddress = sourceAddress;
   }
 
-  public InetAddress getDestinationAddress() {
+  public InternetAddress getDestinationAddress() {
     return destinationAddress;
   }
 
-  public void setDestinationAddress(InetAddress destinationAddress) {
+  public void setDestinationAddress(InternetAddress destinationAddress) {
     this.destinationAddress = destinationAddress;
   }
 
@@ -148,12 +187,13 @@ public class EasyTCPacket {
     return """
       %s %s %s > %s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s
       
-      """.formatted(
+      """
+        .formatted(
         timestamp.toString(),
       iPprotocol.getDisplayName(),
-      sourceAddress.getHostName(), //check if resolve hostnames enabled then resolve or print ip
-      destinationAddress.getHostName(),
-      getTcpFlagsDisplayable(),
+      sourceAddress.getAddressString(), //check if resolve hostnames enabled then resolve or print ip
+      destinationAddress.getAddressString(), // gethostname or getcanonical hostname results in huge performance impacts
+      getTcpFlagsDisplayable(),                 // best option would be to get a hashmap of ip to hostname check that then do the library call
       getSequenceNumber(),
       getAckNumber(),
       getWindowSize(),
