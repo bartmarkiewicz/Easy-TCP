@@ -1,11 +1,10 @@
 package controller;
 
+import model.CaptureStats;
 import model.EasyTCPacket;
+import model.TCPFlag;
 import org.apache.logging.log4j.util.Strings;
-import org.pcap4j.core.NotOpenException;
-import org.pcap4j.core.PcapHandle;
-import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.core.Pcaps;
+import org.pcap4j.core.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
 import org.slf4j.Logger;
@@ -24,17 +23,20 @@ public class PacketLogger extends JTextPane {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketLogger.class);
     private static final ConcurrentHashMap<String, String> resolvedHostNames = new ConcurrentHashMap<>();
 
-    private FiltersForm filtersForm;
-    private ArrayList<EasyTCPacket> packets;
+    private final FiltersForm filtersForm;
+    private final ArrayList<EasyTCPacket> packets;
+    private final CaptureStats captureStats;
 
     public PacketLogger(FiltersForm filtersForm) {
         super();
         this.filtersForm = filtersForm;
         this.packets = new ArrayList<>();
         this.setEditable(false);
+        this.captureStats = new CaptureStats();
     }
 
     public void readPacketFile(File packetFile) throws PcapNativeException, NotOpenException {
+        this.filtersForm.setReadingFromFile(true);
         PcapHandle handle;
         try {
             handle = Pcaps.openOffline(packetFile.getPath(), PcapHandle.TimestampPrecision.NANO);
@@ -64,6 +66,7 @@ public class PacketLogger extends JTextPane {
         this.setText(getPacketText());
         LOGGER.debug("Stream end, it took %s ms to execute set text"
           .formatted(Instant.now().toEpochMilli() - timeNow));
+        setCaptureStats();
         repaint();
         revalidate();
         handle.close();
@@ -80,10 +83,24 @@ public class PacketLogger extends JTextPane {
         revalidate();
     }
 
+    public CaptureStats getCaptureStats() {
+        return captureStats;
+    }
+
     private String getPacketText() {
         return packets.stream()
           .filter(packet -> packet.isVisible(filtersForm))
           .map(i -> i + "\n")
           .collect(Collectors.joining("\n"));
+    }
+
+    private void setCaptureStats() {
+        this.captureStats.setPacketsCaptured(packets.size());
+        this.captureStats.setTcpConnectionsEstablished(packets
+          .stream()
+          .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
+          .map(i -> i.getDestinationAddress().getAddressString())
+          .distinct()
+          .count());
     }
 }

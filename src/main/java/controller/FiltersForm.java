@@ -4,6 +4,7 @@ public class FiltersForm {
   private boolean showIpv4;
   private boolean showIpv6;
   private boolean resolveHostnames;
+  private Boolean readingFromFile;
 
   public FiltersForm() {
     restoreDefaults();
@@ -37,5 +38,13 @@ public class FiltersForm {
     this.resolveHostnames = false;
     this.showIpv4 = true;
     this.showIpv6 = true;
+  }
+
+  public Boolean isReadingFromFile() {
+    return readingFromFile;
+  }
+
+  public void setReadingFromFile(Boolean readingFromFile) {
+    this.readingFromFile = readingFromFile;
   }
 }
