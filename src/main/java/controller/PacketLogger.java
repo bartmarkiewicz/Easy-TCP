@@ -44,6 +44,7 @@ public class PacketLogger extends JTextPane {
             handle = Pcaps.openOffline(packetFile.getPath());
         }
         LOGGER.debug("File successfully read");
+
         StringBuilder textPaneText = new StringBuilder();
         while(true) {
             try {
@@ -51,7 +52,8 @@ public class PacketLogger extends JTextPane {
                 var packet = handle.getNextPacketEx();
                 var tcpPacket = packet.get(TcpPacket.class);
                 var ipPacket = packet.get(IpPacket.class);
-                var easyTCPacket = EasyTCPacket.fromPackets(ipPacket, tcpPacket, handle.getTimestamp(), resolvedHostNames);
+                var easyTCPacket = EasyTCPacket.fromPackets(
+                  ipPacket, tcpPacket, handle.getTimestamp(), resolvedHostNames, filtersForm);
                 packets.add(easyTCPacket);
             } catch (TimeoutException e) {
                 LOGGER.debug("Timeout");
@@ -90,7 +92,7 @@ public class PacketLogger extends JTextPane {
     private String getPacketText() {
         return packets.stream()
           .filter(packet -> packet.isVisible(filtersForm))
-          .map(i -> i + "\n")
+          .map(i -> i.prettyPrint(filtersForm) + "\n")
           .collect(Collectors.joining("\n"));
     }
 
@@ -103,4 +105,5 @@ public class PacketLogger extends JTextPane {
           .distinct()
           .count());
     }
+
 }

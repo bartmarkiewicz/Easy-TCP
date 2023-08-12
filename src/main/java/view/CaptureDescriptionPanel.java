@@ -6,8 +6,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class CaptureDescriptionPanel extends JPanel {
-  private JLabel connectionCountLabel;
-  private JLabel packetCountLabel;
+  private final JLabel connectionCountLabel;
+  private final JLabel packetCountLabel;
 
   public CaptureDescriptionPanel(CaptureStats captureStats) {
     super();

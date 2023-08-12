@@ -29,7 +29,8 @@ public class EasyTCPacket {
   public static EasyTCPacket fromPackets(IpPacket ipPacket,
                                          TcpPacket tcpPacket,
                                          Timestamp timestamp,
-                                         ConcurrentHashMap<String, String> dnsResolvedHostnames) {
+                                         ConcurrentHashMap<String, String> dnsResolvedHostnames,
+                                         FiltersForm filtersForm) {
     var easyTcpPacket = new EasyTCPacket();
     var ipHeader = ipPacket.getHeader();
     if (ipHeader.getVersion().equals(IpVersion.IPV4)) {
@@ -43,7 +44,6 @@ public class EasyTCPacket {
     easyTcpPacket.setAckNumber(tcpHeader.getAcknowledgmentNumberAsLong());
 
     setAddressesAndHostnames(ipHeader, easyTcpPacket, dnsResolvedHostnames);
-
 
     easyTcpPacket.setTimestamp(timestamp);
     easyTcpPacket.setSequenceNumber(tcpHeader.getSequenceNumber());
@@ -227,5 +227,24 @@ public class EasyTCPacket {
         matchesFilter = filtersForm.isShowIpv6();
     }
     return matchesFilter;
+  }
+
+  public String prettyPrint(FiltersForm filtersForm) {
+    return """
+      %s %s %s > %s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s
+      
+      """
+      .formatted(
+        timestamp.toString(),
+        iPprotocol.getDisplayName(),
+        filtersForm.isResolveHostnames() ? sourceAddress.getAddressString() : sourceAddress.getAlphanumericalAddress(),
+        filtersForm.isResolveHostnames() ? destinationAddress.getAddressString() : destinationAddress.getAlphanumericalAddress(),
+        getTcpFlagsDisplayable(),
+        getSequenceNumber(),
+        getAckNumber(),
+        getWindowSize(),
+        getTcpOptionsDisplayable(),
+        getDataPayloadLength()
+      );
   }
 }

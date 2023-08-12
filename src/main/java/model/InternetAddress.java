@@ -24,4 +24,12 @@ public class InternetAddress {
   public String getAddressString() {
     return !Strings.isEmpty(hostName) ? hostName : alphanumericalAddress;
   }
+
+  public String getAlphanumericalAddress() {
+    return alphanumericalAddress;
+  }
+
+  public String getHostName() {
+    return hostName;
+  }
 }

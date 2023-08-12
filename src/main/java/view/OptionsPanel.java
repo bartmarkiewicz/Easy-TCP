@@ -55,8 +55,8 @@ public class OptionsPanel extends JPanel {
     );
     var filterBt = new JButton("Filter");
     filterBt.addActionListener((event) -> {
-        descriptionPanel.updateCaptureStats(this.packetLogger.getCaptureStats());
         this.packetLogger.refilterPackets();
+        descriptionPanel.updateCaptureStats(this.packetLogger.getCaptureStats());
       }
     );
     row.add(filterBt);
