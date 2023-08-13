@@ -1,7 +1,6 @@
 package view;
 
-import controller.FiltersForm;
-import controller.PacketLogger;
+import model.FiltersForm;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,34 +29,31 @@ public class EasyTCP extends JFrame {
         firstRowLayout.setColumns(2);
         firstRow.setLayout(firstRowLayout);
         ArrowDiagram arrowDiagram = new ArrowDiagram();
-        firstRow.add(arrowDiagram);
+        firstRow.add(arrowDiagram.getArrowPanel());
         var filtersForm = new FiltersForm();
-        var packetLogger = new PacketLogger(filtersForm);
+        var packetLogger = new PacketLog(filtersForm);
 
         var optionsPanel = new OptionsPanel(filtersForm, packetLogger);
-        optionsPanel.setBackground(Color.BLUE);
-        firstRow.add(optionsPanel);
+        optionsPanel.getPanel().setBackground(Color.BLUE);
+        firstRow.add(optionsPanel.getPanel());
 
         this.getContentPane().add(firstRow);
 
-        packetLogger.setBackground(Color.PINK);
-        var packetViewScroll = new JScrollPane(packetLogger);
+        packetLogger.getPacketTextPane().setBackground(Color.PINK);
+        var packetViewScroll = new JScrollPane(packetLogger.getPacketTextPane());
 
         packetViewScroll.setVerticalScrollBarPolicy(JScrollPane. VERTICAL_SCROLLBAR_AS_NEEDED);
         packetViewScroll.setBackground(Color.pink);
 
         var menuToolbar = new MenuToolbar();
-        menuToolbar.setVisible(true);
         menuToolbar.addNewMenuItemListener((actionEvent) -> {
-            packetLogger.setText("");
-            packetLogger.revalidate();
-            packetLogger.repaint();
+            packetLogger.newLog();
         });
         var fileChooser = new JFileChooser();
         fileChooser.addActionListener(actionEvent -> {
             var fileSelected = fileChooser.getSelectedFile();
             try {
-                packetLogger.readPacketFile(fileSelected);
+                packetLogger.readSelectedFile(fileSelected, optionsPanel.getCaptureDescriptionPanel());
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(
                   this, "Error, invalid file. " +
@@ -66,13 +62,12 @@ public class EasyTCP extends JFrame {
         });
 
         menuToolbar.addOpenMenuItemListener(actionEvent -> {
-
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             fileChooser.showOpenDialog(this);
             fileChooser.setMultiSelectionEnabled(false);
         });
 
-        this.setJMenuBar(menuToolbar);
+        this.setJMenuBar(menuToolbar.getMenuBar());
 
         this.getContentPane().add(packetViewScroll);
         this.setVisible(true);

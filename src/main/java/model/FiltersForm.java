@@ -1,4 +1,4 @@
-package controller;
+package model;
 
 public class FiltersForm {
   private boolean showIpv4;
@@ -37,7 +37,7 @@ public class FiltersForm {
   public void restoreDefaults() {
     this.resolveHostnames = false;
     this.showIpv4 = true;
-    this.showIpv6 = true;
+    this.showIpv6 = false;
   }
 
   public Boolean isReadingFromFile() {

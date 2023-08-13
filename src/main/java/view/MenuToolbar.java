@@ -3,14 +3,15 @@ package view;
 import javax.swing.*;
 import java.awt.event.ActionListener;
 
-public class MenuToolbar extends JMenuBar {
-
+public class MenuToolbar {
+  private final JMenuBar menuBar;
   private final JMenuItem newMenuItem = new JMenuItem("New");;
   private final JMenuItem openMenuItem =  new JMenuItem("Open");
   private final JMenuItem saveMenuItem = new JMenuItem("Save");
 
   public MenuToolbar() {
     super();
+    this.menuBar = new JMenuBar();
     initUI();
   }
 
@@ -20,15 +21,6 @@ public class MenuToolbar extends JMenuBar {
 
     private void createMenuBar () {
       var fileMenu = new JMenu("File");
-      var impMenu = new JMenu("Import");
-
-      var newsMenuItem = new JMenuItem("Import newsfeed list...");
-      var bookmarksMenuItem = new JMenuItem("Import bookmarks...");
-      var importMailMenuItem = new JMenuItem("Import mail...");
-
-      impMenu.add(newsMenuItem);
-      impMenu.add(bookmarksMenuItem);
-      impMenu.add(importMailMenuItem);
 
       var exitMenuItem = new JMenuItem("Exit");
       exitMenuItem.setToolTipText("Exit application");
@@ -40,8 +32,10 @@ public class MenuToolbar extends JMenuBar {
       fileMenu.addSeparator();
       fileMenu.add(exitMenuItem);
 
-      this.add(fileMenu);
-  }
+      menuBar.add(fileMenu);
+      menuBar.setVisible(true);
+
+    }
 
   public void addNewMenuItemListener(ActionListener actionListener) {
     newMenuItem.addActionListener(actionListener);
@@ -53,5 +47,9 @@ public class MenuToolbar extends JMenuBar {
 
   public void addSaveMenuItemListener(ActionListener actionListener) {
     saveMenuItem.addActionListener(actionListener);
+  }
+
+  public JMenuBar getMenuBar() {
+    return this.menuBar;
   }
 }

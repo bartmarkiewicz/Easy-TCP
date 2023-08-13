@@ -1,7 +1,6 @@
 package view;
 
-import controller.FiltersForm;
-import controller.PacketLogger;
+import model.FiltersForm;
 import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
 import org.pcap4j.core.Pcaps;
@@ -11,43 +10,47 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
 
-public class OptionsPanel extends JPanel {
+public class OptionsPanel {
   private static final Logger LOGGER = LoggerFactory.getLogger(OptionsPanel.class);
 
+  private final JPanel panel;
   private final FiltersForm filtersForm;
-  private final PacketLogger packetLogger;
+  private final PacketLog packetLog;
   private final HashMap<String, PcapNetworkInterface> deviceNetworkInterfaceHashMap = new HashMap<>();
+  private CaptureDescriptionPanel captureDescriptionPanel;
 
-  public OptionsPanel(FiltersForm filtersForm, PacketLogger packetLogger) {
-    super();
-    this.packetLogger = packetLogger;
+  public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
+    this.panel = new JPanel();
+    this.packetLog = packetLog;
+    this.captureDescriptionPanel= new CaptureDescriptionPanel(this.packetLog.getCaptureData());
     this.filtersForm = filtersForm;
     var layout = new GridLayout();
     layout.setColumns(1);
     layout.setRows(3);
-    setLayout(layout);
+    panel.setLayout(layout);
     var topRow = new JPanel();
     var topRowLayout = new GridLayout();
     topRowLayout.setRows(1);
-    topRowLayout.setColumns(2);
+    topRowLayout.setColumns(3);
+    topRow.setLayout(topRowLayout);
     addFilters(topRow);
-    add(topRow);
-    add(new JPanel());
+    panel.add(topRow);
+    panel.add(new JPanel());
     var bottomRow = new JPanel();
     var bottomRowLayout = new GridLayout();
     bottomRowLayout.setColumns(3);
     bottomRowLayout.setRows(1);
     bottomRow.setLayout(bottomRowLayout);
     addButtons(bottomRow);
-    add(bottomRow);
+    panel.add(bottomRow);
   }
 
   private void addButtons(JPanel row) {
     var defaultsBt = new JButton("Restore defaults");
-    var descriptionPanel = new CaptureDescriptionPanel(this.packetLogger.getCaptureStats());
-    descriptionPanel.setBackground(Color.RED);
-    row.add(descriptionPanel);
+    captureDescriptionPanel.getDescriptionPanel().setBackground(Color.RED);
+    row.add(captureDescriptionPanel.getDescriptionPanel());
     row.setBackground(Color.CYAN);
     row.add(defaultsBt);
     defaultsBt.addActionListener((event) ->
@@ -55,8 +58,8 @@ public class OptionsPanel extends JPanel {
     );
     var filterBt = new JButton("Filter");
     filterBt.addActionListener((event) -> {
-        this.packetLogger.refilterPackets();
-        descriptionPanel.updateCaptureStats(this.packetLogger.getCaptureStats());
+        this.packetLog.refilterPackets();
+        captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
       }
     );
     row.add(filterBt);
@@ -110,5 +113,44 @@ public class OptionsPanel extends JPanel {
 
     topRow.add(checkboxContainer);
     topRow.add(interfaceList);
+    topRow.add(getStartLiveCaptureButton(interfaceList));
+  }
+
+  private JButton getStartLiveCaptureButton(JComboBox interfaceSelect) {
+    var button = new JButton("Start capture");
+    button.addActionListener((event) -> {
+      var networkInterface = deviceNetworkInterfaceHashMap.get((String) interfaceSelect.getSelectedItem());
+      var startingCapture = button.getText().equals("Start capture");
+      if (networkInterface != null) {
+        var thread = Executors.newSingleThreadExecutor();
+        thread.execute(
+          () -> {
+            try {
+              packetLog.startPacketCapture(networkInterface, !startingCapture, captureDescriptionPanel);
+              SwingUtilities.invokeLater(() -> {
+                if (startingCapture) {
+                  button.setText("Stop capture");
+                } else {
+                  button.setText("Start capture");
+                }
+              });
+            } catch (Exception e) {
+              e.printStackTrace();
+              System.out.println("Could not start packet capture");
+            }
+          });
+      } else {
+        System.out.println("Error reading interface.");
+      }
+    });
+    return button;
+  }
+
+  public JPanel getPanel() {
+    return panel;
+  }
+
+  public CaptureDescriptionPanel getCaptureDescriptionPanel() {
+    return this.captureDescriptionPanel;
   }
 }

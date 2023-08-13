@@ -1,32 +1,37 @@
 package view;
 
-import model.CaptureStats;
+import model.CaptureData;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class CaptureDescriptionPanel extends JPanel {
+public class CaptureDescriptionPanel {
+  private final JPanel descriptionPanel;
   private final JLabel connectionCountLabel;
   private final JLabel packetCountLabel;
 
-  public CaptureDescriptionPanel(CaptureStats captureStats) {
-    super();
+  public CaptureDescriptionPanel(CaptureData captureData) {
+    this.descriptionPanel = new JPanel();
     var layout = new GridLayout();
     layout.setRows(2);
     layout.setColumns(1);
-    setLayout(layout);
+    descriptionPanel.setLayout(layout);
     connectionCountLabel = new JLabel();
-    connectionCountLabel.setText("%s TCP connections".formatted(captureStats.getTcpConnectionsEstablished()));
-    add(connectionCountLabel);
+    connectionCountLabel.setText("%s TCP connections".formatted(captureData.getTcpConnectionsEstablished()));
+    descriptionPanel.add(connectionCountLabel);
     packetCountLabel = new JLabel();
-    packetCountLabel.setText("%s packets captured".formatted(captureStats.getPacketsCaptured()));
-    add(packetCountLabel);
+    packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().size()));
+    descriptionPanel.add(packetCountLabel);
   }
 
-  public void updateCaptureStats(CaptureStats captureStats) {
-    connectionCountLabel.setText("%s TCP connections".formatted(captureStats.getTcpConnectionsEstablished()));
-    packetCountLabel.setText("%s packets captured".formatted(captureStats.getPacketsCaptured()));
-    revalidate();
-    repaint();
+  public void updateCaptureStats(CaptureData captureData) {
+    connectionCountLabel.setText("%s TCP connections".formatted(captureData.getTcpConnectionsEstablished()));
+    packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().size()));
+    descriptionPanel.revalidate();
+    descriptionPanel.repaint();
+  }
+
+  public JPanel getDescriptionPanel() {
+    return descriptionPanel;
   }
 }
