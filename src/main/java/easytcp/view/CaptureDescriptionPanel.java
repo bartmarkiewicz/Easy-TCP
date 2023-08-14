@@ -1,6 +1,6 @@
-package view;
+package easytcp.view;
 
-import model.CaptureData;
+import easytcp.model.CaptureData;
 
 import javax.swing.*;
 import java.awt.*;

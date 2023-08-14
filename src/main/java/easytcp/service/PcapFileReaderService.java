@@ -1,8 +1,8 @@
-package service;
+package easytcp.service;
 
-import model.CaptureData;
-import model.FiltersForm;
-import model.TCPFlag;
+import easytcp.model.CaptureData;
+import easytcp.model.FiltersForm;
+import easytcp.model.TCPFlag;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;

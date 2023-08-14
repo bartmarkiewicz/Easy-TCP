@@ -1,6 +1,7 @@
-package view;
+package easytcp.view;
 
-import model.FiltersForm;
+import easytcp.model.FiltersForm;
+import easytcp.service.ServiceProvider;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,7 +32,7 @@ public class EasyTCP extends JFrame {
         ArrowDiagram arrowDiagram = new ArrowDiagram();
         firstRow.add(arrowDiagram.getArrowPanel());
         var filtersForm = new FiltersForm();
-        var packetLogger = new PacketLog(filtersForm);
+        var packetLogger = new PacketLog(filtersForm, ServiceProvider.getInstance());
 
         var optionsPanel = new OptionsPanel(filtersForm, packetLogger);
         optionsPanel.getPanel().setBackground(Color.BLUE);

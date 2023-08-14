@@ -1,4 +1,4 @@
-package model;
+package easytcp.model;
 
 import org.pcap4j.packet.TcpPacket;
 

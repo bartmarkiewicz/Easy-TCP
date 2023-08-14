@@ -1,43 +1,46 @@
-package service;
+package easytcp.service;
 
-import model.CaptureData;
-import model.FiltersForm;
-import model.TCPFlag;
-import org.pcap4j.core.PacketListener;
-import org.pcap4j.core.PcapHandle;
-import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.core.PcapNetworkInterface;
+import easytcp.model.CaptureData;
+import easytcp.model.FiltersForm;
+import easytcp.model.TCPFlag;
+import org.pcap4j.core.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
-import view.CaptureDescriptionPanel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import easytcp.view.CaptureDescriptionPanel;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 
 public class LiveCaptureService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(LiveCaptureService.class);
+  private final static int SNAPSHOT_LENGTH = 65536; // in bytes
+  private final static int READ_TIMEOUT = Integer.MAX_VALUE;
   private final CaptureData captureData;
   private final PacketTransformerService packetTransformerService;
   private final PacketDisplayService packetDisplayService;
-  public LiveCaptureService() {
+
+  public LiveCaptureService(ServiceProvider serviceProvider) {
     this.captureData = new CaptureData();
-    this.packetTransformerService = ServiceProvider.getPacketTransformerService();
-    this.packetDisplayService = ServiceProvider.getPacketDisplayService();
+    this.packetTransformerService = serviceProvider.getPacketTransformerService();
+    this.packetDisplayService = serviceProvider.getPacketDisplayService();
   }
 
   public PcapHandle startCapture(PcapNetworkInterface networkInterface,
                                  FiltersForm filtersForm,
                                  JTextPane textPane,
                                  CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException {
-    System.out.println("Beginning capture on " + networkInterface);
+    LOGGER.info("Beginning capture on " + networkInterface);
+
     captureData.clear();
-    int snapshotLength = 65536; // in bytes
-    int readTimeout = Integer.MAX_VALUE; // ensures it never times out
     // begin capture
     final PcapHandle handle =
-      networkInterface.openLive(snapshotLength, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, readTimeout);
+      networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, READ_TIMEOUT);
 
     try {
       int maxPackets = Integer.MAX_VALUE;
+      handle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
       handle.loop(maxPackets, (PacketListener) packet -> {
           var ipPacket = packet.get(IpPacket.class);
           if (ipPacket != null) {
@@ -46,37 +49,28 @@ public class LiveCaptureService {
               var easyTCPacket = packetTransformerService.fromPackets(
                 ipPacket, tcpPacket, handle.getTimestamp(), captureData.getResolvedHostnames(), filtersForm);
               captureData.getPackets().add(easyTCPacket);
-//              try {
                 SwingUtilities.invokeLater(() -> {
                   try {
                     var styledDocument = textPane.getStyledDocument();
                     styledDocument
                       .insertString(
                         styledDocument.getLength(),
-                        "\n" + packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm), null);
+                    "\n" + packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm), null);
                     captureDescriptionPanel.updateCaptureStats(this.captureData);
                   } catch (BadLocationException e) {
-                    e.printStackTrace();
+                    LOGGER.debug(e.getMessage());
+                    LOGGER.debug("Error updating document");
                     throw new RuntimeException(e);
                   }
-//
-//                  setText(textPane.getText() + "\n" + packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm));
-//                  textPane.revalidate();
-//                  textPane.repaint();
                 });
-//              } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//              } catch (InvocationTargetException e) {
-//                throw new RuntimeException(e);
-//              }
-
             }
           }
       });
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error sniffing packet");
+      LOGGER.debug(e.getMessage());
+      LOGGER.debug("Error sniffing packet");
     }
+    LOGGER.debug("ended capture");
     setCaptureStats();
 
     return handle;

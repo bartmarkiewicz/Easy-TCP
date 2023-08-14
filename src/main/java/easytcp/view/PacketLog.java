@@ -1,7 +1,7 @@
-package view;
+package easytcp.view;
 
-import model.CaptureData;
-import model.FiltersForm;
+import easytcp.model.CaptureData;
+import easytcp.model.FiltersForm;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
@@ -9,10 +9,10 @@ import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import service.LiveCaptureService;
-import service.PacketDisplayService;
-import service.PcapFileReaderService;
-import service.ServiceProvider;
+import easytcp.service.LiveCaptureService;
+import easytcp.service.PacketDisplayService;
+import easytcp.service.PcapFileReaderService;
+import easytcp.service.ServiceProvider;
 
 import javax.swing.*;
 import java.io.File;
@@ -31,14 +31,14 @@ public class PacketLog {
   private PcapHandle pcapHandle;
   private CaptureData captureData;
 
-  public PacketLog(FiltersForm filtersForm) {
+  public PacketLog(FiltersForm filtersForm, ServiceProvider serviceProvider) {
     this.filtersForm = filtersForm;
     this.logTextPane = new JTextPane();
     logTextPane.setEditable(false);
     this.captureData = new CaptureData();
-    this.pcapFileReaderService = ServiceProvider.getPcapFileReaderService();
-    this.packetDisplayService = ServiceProvider.getPacketDisplayService();
-    this.liveCaptureService = ServiceProvider.getLiveCaptureService();
+    this.pcapFileReaderService = serviceProvider.getPcapFileReaderService();
+    this.packetDisplayService = serviceProvider.getPacketDisplayService();
+    this.liveCaptureService = serviceProvider.getLiveCaptureService();
   }
 
   public void readSelectedFile(File selectedFile, CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException, NotOpenException, ExecutionException, InterruptedException {

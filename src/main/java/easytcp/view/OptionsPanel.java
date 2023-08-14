@@ -1,6 +1,6 @@
-package view;
+package easytcp.view;
 
-import model.FiltersForm;
+import easytcp.model.FiltersForm;
 import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
 import org.pcap4j.core.Pcaps;

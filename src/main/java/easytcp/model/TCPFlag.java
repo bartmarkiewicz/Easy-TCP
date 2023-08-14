@@ -1,4 +1,4 @@
-package model;
+package easytcp.model;
 
 public enum TCPFlag {
   URG("U"),

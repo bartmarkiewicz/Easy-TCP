@@ -1,4 +1,4 @@
-package model;
+package easytcp.model;
 
 public class FiltersForm {
   private boolean showIpv4;
@@ -46,5 +46,15 @@ public class FiltersForm {
 
   public void setReadingFromFile(Boolean readingFromFile) {
     this.readingFromFile = readingFromFile;
+  }
+
+  public String toBfpExpression() {
+    var builder = new StringBuilder();
+    if (showIpv4 && !showIpv6) {
+      builder.append(" ip ");
+    } else if (showIpv6) {
+      builder.append(" ip6 ");
+    }
+    return builder.toString();
   }
 }

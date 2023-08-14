@@ -1,4 +1,4 @@
-package view;
+package easytcp.view;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;

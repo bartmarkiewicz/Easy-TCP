@@ -1,6 +1,6 @@
-package service;
+package easytcp.service;
 
-import model.*;
+import easytcp.model.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.namednumber.IpVersion;
@@ -78,7 +78,7 @@ public class PacketTransformerService {
         threadsInProgress.decrementAndGet();
         System.out.println("thread count %s".formatted(threadsInProgress.get()));
       }).start();
-      System.out.println("thread count, on main thread %s".formatted(threadsInProgress.get()));
+      System.out.println("thread count, on easytcp.main thread %s".formatted(threadsInProgress.get()));
     }
   }
 }

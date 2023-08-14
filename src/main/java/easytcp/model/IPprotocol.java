@@ -1,4 +1,4 @@
-package model;
+package easytcp.model;
 
 public enum IPprotocol {
   IPV4("IPv4"),
