@@ -19,6 +19,8 @@ public class EasyTCPacket {
   private Integer headerPayloadLength;
   private Map<TCPFlag, Boolean> tcpFlags;
   private List<TcpPacket.TcpOption> tcpOptions;
+  private TCPConnection tcpConnection;
+  private Boolean outgoingPacket;
 
   public Timestamp getTimestamp() {
     return timestamp;
@@ -140,5 +142,21 @@ public class EasyTCPacket {
     return tcpOptions.stream()
       .map(option -> option.getKind().valueAsString())
       .collect(Collectors.joining(", "));
+  }
+
+  public TCPConnection getTcpConnection() {
+    return tcpConnection;
+  }
+
+  public void setTcpConnection(TCPConnection tcpConnection) {
+    this.tcpConnection = tcpConnection;
+  }
+
+  public Boolean getOutgoingPacket() {
+    return outgoingPacket;
+  }
+
+  public void setOutgoingPacket(Boolean outgoingPacket) {
+    this.outgoingPacket = outgoingPacket;
   }
 }

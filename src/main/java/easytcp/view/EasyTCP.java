@@ -27,6 +27,8 @@ public class EasyTCP extends JFrame {
         JPanel firstRow = new JPanel();
         GridLayout firstRowLayout = new GridLayout();
         firstRowLayout.setRows(1);
+        firstRowLayout.setVgap(25);
+        firstRowLayout.setHgap(25);
         firstRowLayout.setColumns(2);
         firstRow.setLayout(firstRowLayout);
         ArrowDiagram arrowDiagram = new ArrowDiagram();

@@ -3,10 +3,7 @@ package easytcp.view;
 import easytcp.model.CaptureData;
 import easytcp.model.FiltersForm;
 import org.apache.logging.log4j.util.Strings;
-import org.pcap4j.core.NotOpenException;
-import org.pcap4j.core.PcapHandle;
-import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.core.PcapNetworkInterface;
+import org.pcap4j.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import easytcp.service.LiveCaptureService;
@@ -35,7 +32,7 @@ public class PacketLog {
     this.filtersForm = filtersForm;
     this.logTextPane = new JTextPane();
     logTextPane.setEditable(false);
-    this.captureData = new CaptureData();
+    this.captureData = CaptureData.getInstance();
     this.pcapFileReaderService = serviceProvider.getPcapFileReaderService();
     this.packetDisplayService = serviceProvider.getPacketDisplayService();
     this.liveCaptureService = serviceProvider.getLiveCaptureService();
@@ -60,10 +57,10 @@ public class PacketLog {
   public void startPacketCapture(PcapNetworkInterface networkInterface,
                                  boolean stopCapture,
                                  CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException, NotOpenException {
-    if (pcapHandle == null) {
+    if (pcapHandle == null && !stopCapture) {
       this.pcapHandle = liveCaptureService.startCapture(
         networkInterface, filtersForm, logTextPane, captureDescriptionPanel);
-    } else if (stopCapture) {
+    } else if (stopCapture && this.pcapHandle != null) {
       pcapHandle.breakLoop();
       pcapHandle.close();
       System.out.println("Stopping live capture");

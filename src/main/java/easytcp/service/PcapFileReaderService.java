@@ -14,19 +14,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.File;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 public class PcapFileReaderService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PcapFileReaderService.class);
-  private static final ConcurrentHashMap<String, String> resolvedHostNames = new ConcurrentHashMap<>();
-
   private final PacketTransformerService packetTransformerService;
   private final CaptureData captureData;
 
   public PcapFileReaderService(PacketTransformerService packetTransformerService) {
     this.packetTransformerService = packetTransformerService;
-    this.captureData = new CaptureData();
+    this.captureData = CaptureData.getInstance();
   }
 
   public CaptureData readPacketFile(File packetFile, FiltersForm filtersForm) throws PcapNativeException, NotOpenException {
@@ -38,7 +35,6 @@ public class PcapFileReaderService {
     }
     LOGGER.debug("File successfully read");
     captureData.clear();
-
     while(true) {
       try {
         //look into transport layer packets
@@ -46,7 +42,7 @@ public class PcapFileReaderService {
         var ipPacket = packet.get(IpPacket.class);
         var tcpPacket = ipPacket.get(TcpPacket.class);
         var easyTCPacket = packetTransformerService.fromPackets(
-          ipPacket, tcpPacket, handle.getTimestamp(), captureData.getResolvedHostnames(), filtersForm);
+          ipPacket, tcpPacket, handle.getTimestamp(), captureData, filtersForm);
         captureData.getPackets().add(easyTCPacket);
       } catch (TimeoutException e) {
         LOGGER.debug("Timeout");

@@ -1,10 +1,15 @@
 package easytcp.model;
 
+import org.apache.logging.log4j.util.Strings;
+import org.pcap4j.core.PcapNetworkInterface;
+
 public class FiltersForm {
+  private PcapNetworkInterface selectedInterface;
   private boolean showIpv4;
   private boolean showIpv6;
   private boolean resolveHostnames;
-  private Boolean readingFromFile;
+  private String portRangeSelected;
+  private String hostSelected;
 
   public FiltersForm() {
     restoreDefaults();
@@ -40,21 +45,61 @@ public class FiltersForm {
     this.showIpv6 = false;
   }
 
-  public Boolean isReadingFromFile() {
-    return readingFromFile;
+  public String getPortRangeSelected() {
+    return portRangeSelected;
   }
 
-  public void setReadingFromFile(Boolean readingFromFile) {
-    this.readingFromFile = readingFromFile;
+  public void setPortRangeSelected(String portRangeSelected) {
+    this.portRangeSelected = portRangeSelected;
+  }
+
+  public String getHostSelected() {
+    return hostSelected;
+  }
+
+  public void setHostSelected(String hostSelected) {
+    this.hostSelected = hostSelected;
   }
 
   public String toBfpExpression() {
     var builder = new StringBuilder();
+    var argCount = 0;
+    builder.append(" tcp ");
     if (showIpv4 && !showIpv6) {
       builder.append(" ip ");
+      argCount++;
     } else if (showIpv6) {
+      if (argCount > 0) {
+        builder.append(" && ");
+      }
       builder.append(" ip6 ");
     }
+    if (!Strings.isBlank(hostSelected)) {
+      var temp = hostSelected.replace(" ", "");
+      if (argCount > 0) {
+        builder.append(" && ");
+      }
+      builder.append(" host %s".formatted(temp));
+    }
+    if (!Strings.isBlank(portRangeSelected)) {
+      if (argCount > 0) {
+        builder.append(" && ");
+      }
+      var temp = portRangeSelected.replace(" ", "");
+      if (portRangeSelected.contains("-")) {
+        builder.append(" dst portrange %s".formatted(temp));
+      } else {
+        builder.append(" dst port %s".formatted(temp));
+      }
+    }
     return builder.toString();
+  }
+
+  public PcapNetworkInterface getSelectedInterface() {
+    return selectedInterface;
+  }
+
+  public void setSelectedInterface(PcapNetworkInterface selectedInterface) {
+    this.selectedInterface = selectedInterface;
   }
 }

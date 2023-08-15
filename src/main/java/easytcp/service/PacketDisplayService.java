@@ -20,7 +20,6 @@ public class PacketDisplayService {
   public String prettyPrintPacket(EasyTCPacket packet, FiltersForm filtersForm) {
     return """
       %s %s %s > %s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s
-      
       """
       .formatted(
         packet.getTimestamp().toString(),
