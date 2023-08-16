@@ -3,7 +3,6 @@ package easytcp.service;
 import easytcp.model.CaptureData;
 import easytcp.model.EasyTCPacket;
 import easytcp.model.FiltersForm;
-import easytcp.model.TCPFlag;
 import easytcp.view.CaptureDescriptionPanel;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.*;
@@ -87,9 +86,7 @@ public class LiveCaptureService {
         LOGGER.debug("Error sniffing packet");
       }
     });
-
-    LOGGER.debug("ended capture");
-//    setCaptureStats();
+    //    setCaptureStats();
     return handle;
   }
 
@@ -134,12 +131,12 @@ public class LiveCaptureService {
 //    }
   }
 
-  private void setCaptureStats() {
-    this.captureData.setTcpConnectionsEstablished(captureData.getPackets()
-      .stream()
-      .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
-      .map(i -> i.getDestinationAddress().getAlphanumericalAddress())
-      .distinct()
-      .count());
-  }
+//  private void setCaptureStats() {
+//    this.captureData.setTcpConnectionsEstablished(captureData.getPackets()
+//      .stream()
+//      .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
+//      .map(i -> i.getDestinationAddress().getAlphanumericalAddress())
+//      .distinct()
+//      .count());
+//  }
 }

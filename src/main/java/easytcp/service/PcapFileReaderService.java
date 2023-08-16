@@ -2,7 +2,6 @@ package easytcp.service;
 
 import easytcp.model.CaptureData;
 import easytcp.model.FiltersForm;
-import easytcp.model.TCPFlag;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;
@@ -51,17 +50,17 @@ public class PcapFileReaderService {
         break;
       }
     }
-    setCaptureStats();
+//    setCaptureStats();
     handle.close();
     return captureData;
   }
 
-  private void setCaptureStats() {
-    this.captureData.setTcpConnectionsEstablished(captureData.getPackets()
-      .stream()
-      .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
-      .map(i -> i.getDestinationAddress().getAlphanumericalAddress())
-      .distinct()
-      .count());
-  }
+//  private void setCaptureStats() {
+//    this.captureData.setTcpConnectionsEstablished(captureData.getPackets()
+//      .stream()
+//      .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
+//      .map(i -> i.getDestinationAddress().getAlphanumericalAddress())
+//      .distinct()
+//      .count());
+//  }
 }

@@ -1,13 +1,10 @@
 package easytcp.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class TCPConnection {
   private ConnectionStatus connectionStatus;
   private InternetAddress host;
   private InternetAddress hostTwo;
-  private List<EasyTCPacket> packetList = new ArrayList<>();
+  private PacketContainer packetContainer = new PacketContainer();
 
   public ConnectionStatus getConnectionStatus() {
     return connectionStatus;
@@ -33,11 +30,11 @@ public class TCPConnection {
     this.hostTwo = hostTwo;
   }
 
-  public List<EasyTCPacket> getPacketList() {
-    return packetList;
+  public PacketContainer getPacketContainer() {
+    return packetContainer;
   }
 
-  public void setPacketList(List<EasyTCPacket> packetList) {
-    this.packetList = packetList;
+  public void setPacketContainer(PacketContainer packetContainer) {
+    this.packetContainer = packetContainer;
   }
 }

@@ -177,8 +177,12 @@ public class OptionsPanel {
     var interfaceSelect = deviceNetworkInterfaceHashMap.keySet().toArray();
 
     var interfaceList = new JComboBox<>(interfaceSelect);
+    this.filtersForm.setSelectedInterface(
+      deviceNetworkInterfaceHashMap.get(interfaceList.getSelectedItem()));
     interfaceList.addActionListener((event) -> {
       interfaceList.getSelectedItem();
+      this.filtersForm.setSelectedInterface(
+        deviceNetworkInterfaceHashMap.get(interfaceList.getSelectedItem()));
     });
 
     topRow.add(checkboxContainer);

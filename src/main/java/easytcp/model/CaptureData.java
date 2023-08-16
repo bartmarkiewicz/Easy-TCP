@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CaptureData {
   private static CaptureData captureData;
-  private long tcpConnectionsEstablished;
   private ConcurrentHashMap<String, String> resolvedHostnames = new ConcurrentHashMap<>();
   private List<EasyTCPacket> packets = new ArrayList<>();
   private HashMap<InternetAddress, TCPConnection> tcpConnectionMap = new HashMap<>();
@@ -27,11 +26,11 @@ public class CaptureData {
   }
 
   public long getTcpConnectionsEstablished() {
-    return tcpConnectionMap.size();
-  }
-
-  public void setTcpConnectionsEstablished(long tcpConnectionsEstablished) {
-    this.tcpConnectionsEstablished = tcpConnectionsEstablished;
+    return tcpConnectionMap
+      .values()
+      .stream()
+      .filter(i -> i.getConnectionStatus() != ConnectionStatus.UNKNOWN)
+      .count();
   }
 
   public ConcurrentHashMap<String, String> getResolvedHostnames() {
@@ -68,15 +67,6 @@ public class CaptureData {
 
   public void clear() {
     this.packets.clear();;
-    this.tcpConnectionsEstablished = 0L;
     this.tcpConnectionMap.clear();
-  }
-
-  public List<PcapAddress> getInterfaceInternetAddress() {
-    return interfaceInternetAddress;
-  }
-
-  public void setInterfaceInternetAddress(List<PcapAddress> interfaceInternetAddress) {
-    this.interfaceInternetAddress = interfaceInternetAddress;
   }
 }
