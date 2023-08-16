@@ -1,4 +1,4 @@
-package easytcp.model;
+package easytcp.model.application;
 
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.PcapNetworkInterface;

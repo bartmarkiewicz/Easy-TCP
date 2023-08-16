@@ -1,6 +1,6 @@
 package easytcp.view;
 
-import easytcp.model.FiltersForm;
+import easytcp.model.application.FiltersForm;
 import easytcp.service.ServiceProvider;
 
 import javax.swing.*;

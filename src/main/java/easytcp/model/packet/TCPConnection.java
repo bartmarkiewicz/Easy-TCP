@@ -1,4 +1,4 @@
-package easytcp.model;
+package easytcp.model.packet;
 
 public class TCPConnection {
   private ConnectionStatus connectionStatus;

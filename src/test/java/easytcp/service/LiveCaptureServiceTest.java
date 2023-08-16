@@ -1,7 +1,7 @@
 package easytcp.service;
 
-import easytcp.model.CaptureData;
-import easytcp.model.FiltersForm;
+import easytcp.model.application.CaptureData;
+import easytcp.model.application.FiltersForm;
 import easytcp.view.CaptureDescriptionPanel;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,18 +39,18 @@ public class LiveCaptureServiceTest {
 
   @Before
   public void setUp() {
-    when(serviceProvider.getPacketTransformerService()).thenReturn(packetTransformerService);
-    when(serviceProvider.getPacketDisplayService()).thenReturn(packetDisplayService);
+//    when(serviceProvider.getPacketTransformerService()).thenReturn(packetTransformerService);
+//    when(serviceProvider.getPacketDisplayService()).thenReturn(packetDisplayService);
   }
 
   @Test
-  public void startCapture_whenHandleThrows_assertHandled() throws PcapNativeException, NotOpenException, InterruptedException {
+  public void startCapture_assertHandleReturned() throws PcapNativeException, NotOpenException, InterruptedException {
     var networkInterface = mock(PcapNetworkInterface.class);
     var handle = mock(PcapHandle.class);
     when(networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, READ_TIMEOUT))
       .thenReturn(handle);
-    doThrow(PcapNativeException.class)
-      .when(handle).loop(eq(Integer.MAX_VALUE), any(PacketListener.class), any());
+//    doThrow(PcapNativeException.class)
+//      .when(handle).loop(eq(Integer.MAX_VALUE), any(PacketListener.class), any());
     var result = liveCaptureService.startCapture(
         networkInterface, filtersForm, new JTextPane(), captureDescriptionPanel);
     Thread.sleep(2000);

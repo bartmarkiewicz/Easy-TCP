@@ -1,7 +1,7 @@
 package easytcp.view;
 
-import easytcp.model.CaptureData;
-import easytcp.model.FiltersForm;
+import easytcp.model.application.CaptureData;
+import easytcp.model.application.FiltersForm;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.*;
 import org.slf4j.Logger;

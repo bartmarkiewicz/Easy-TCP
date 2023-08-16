@@ -1,4 +1,6 @@
-package easytcp.model;
+package easytcp.model.application;
+
+import easytcp.model.CaptureStatus;
 
 public class ApplicationStatus {
   private static ApplicationStatus currentApplicationStatus;

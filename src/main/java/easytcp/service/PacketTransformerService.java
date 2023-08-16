@@ -1,6 +1,12 @@
 package easytcp.service;
 
 import easytcp.model.*;
+import easytcp.model.application.CaptureData;
+import easytcp.model.application.FiltersForm;
+import easytcp.model.packet.ConnectionStatus;
+import easytcp.model.packet.EasyTCPacket;
+import easytcp.model.packet.InternetAddress;
+import easytcp.model.packet.TCPConnection;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.namednumber.IpVersion;

@@ -1,4 +1,7 @@
-package easytcp.model;
+package easytcp.model.packet;
+
+import easytcp.model.TCPFlag;
+import easytcp.model.packet.EasyTCPacket;
 
 import java.util.*;
 

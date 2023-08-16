@@ -1,5 +1,7 @@
-package easytcp.model;
+package easytcp.model.packet;
 
+import easytcp.model.IPprotocol;
+import easytcp.model.TCPFlag;
 import org.pcap4j.packet.TcpPacket;
 
 import java.sql.Timestamp;

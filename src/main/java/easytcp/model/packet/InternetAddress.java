@@ -1,4 +1,4 @@
-package easytcp.model;
+package easytcp.model.packet;
 
 import org.apache.logging.log4j.util.Strings;
 

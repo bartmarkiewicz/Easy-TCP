@@ -1,7 +1,7 @@
 package easytcp.service;
 
-import easytcp.model.EasyTCPacket;
-import easytcp.model.FiltersForm;
+import easytcp.model.packet.EasyTCPacket;
+import easytcp.model.application.FiltersForm;
 
 public class PacketDisplayService {
 

@@ -1,8 +1,8 @@
 package easytcp.service;
 
-import easytcp.model.CaptureData;
-import easytcp.model.EasyTCPacket;
-import easytcp.model.FiltersForm;
+import easytcp.model.application.CaptureData;
+import easytcp.model.packet.EasyTCPacket;
+import easytcp.model.application.FiltersForm;
 import easytcp.view.CaptureDescriptionPanel;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.*;
@@ -54,6 +54,7 @@ public class LiveCaptureService {
               var easyTCPacket = packetTransformerService.fromPackets(
                 ipPacket, tcpPacket, handle.getTimestamp(), captureData, filtersForm);
               captureData.getPackets().add(easyTCPacket);
+              LOGGER.info("Packet  src port - %s dst port - %s".formatted(tcpPacket.getHeader().getSrcPort(), tcpPacket.getHeader().getDstPort()));
               SwingUtilities.invokeLater(() -> {
                 if (captureData.getPackets().get(captureData.getPackets().size()-1).getTimestamp().getTime()
                   < easyTCPacket.getTimestamp().getTime()) {
@@ -111,7 +112,8 @@ public class LiveCaptureService {
       if (temp.contains("-")) {
         filterBuilder.append(" and (portrange %s)".formatted(temp));
       } else {
-        filterBuilder.append(" and (port %s)".formatted(temp));
+        filterBuilder.append(" and (dst port %s or src port %s)"
+          .formatted(temp, temp));
       }
     }
 //    and (port <specific_port>)

@@ -1,5 +1,9 @@
-package easytcp.model;
+package easytcp.model.application;
 
+import easytcp.model.packet.ConnectionStatus;
+import easytcp.model.packet.EasyTCPacket;
+import easytcp.model.packet.InternetAddress;
+import easytcp.model.packet.TCPConnection;
 import org.pcap4j.core.PcapAddress;
 
 import java.util.ArrayList;
