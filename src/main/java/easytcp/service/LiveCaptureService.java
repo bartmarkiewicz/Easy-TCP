@@ -42,10 +42,10 @@ public class LiveCaptureService {
       networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
     LOGGER.debug("Began live capture");
     Executors.newSingleThreadExecutor().execute(() -> {
+      var threadPool = Executors.newCachedThreadPool();
       try {
         int maxPackets = Integer.MAX_VALUE;
         setFilters(handle, filtersForm);
-        var threadPool = Executors.newCachedThreadPool();
         handle.loop(maxPackets, (PacketListener) packet -> {
           var ipPacket = packet.get(IpPacket.class);
           if (ipPacket != null) {
@@ -80,13 +80,13 @@ public class LiveCaptureService {
             }
           }
         }, threadPool);
-        threadPool.shutdown();
       } catch (Exception e) {
         LOGGER.debug(e.getMessage());
         LOGGER.debug("Error sniffing packet");
+      } finally {
+        threadPool.shutdown();
       }
     });
-    //    setCaptureStats();
     return handle;
   }
 
