@@ -2,6 +2,5 @@
 /.gradle/
 /out/
 /lib/
-/gradle/
 /.idea/
 *.class
