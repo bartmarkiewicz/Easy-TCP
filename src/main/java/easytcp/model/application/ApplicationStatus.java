@@ -2,12 +2,14 @@ package easytcp.model.application;
 
 import easytcp.model.CaptureStatus;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class ApplicationStatus {
   private static ApplicationStatus currentApplicationStatus;
 
   private CaptureStatus methodOfCapture;
-  private boolean isLiveCapturing;
-  private boolean isLoading;
+  private AtomicBoolean isLiveCapturing = new AtomicBoolean(false);
+  private AtomicBoolean isLoading = new AtomicBoolean(false);
 
   private ApplicationStatus() {
   }
@@ -27,19 +29,19 @@ public class ApplicationStatus {
     this.methodOfCapture = methodOfCapture;
   }
 
-  public boolean isLiveCapturing() {
+  public AtomicBoolean isLiveCapturing() {
     return isLiveCapturing;
   }
 
   public void setLiveCapturing(boolean liveCapturing) {
-    isLiveCapturing = liveCapturing;
+    isLiveCapturing.set(liveCapturing);
   }
 
-  public boolean isLoading() {
+  public AtomicBoolean isLoading() {
     return isLoading;
   }
 
   public void setLoading(boolean loading) {
-    isLoading = loading;
+    isLoading.set(loading);
   }
 }

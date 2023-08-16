@@ -17,21 +17,27 @@ public class CaptureDescriptionPanel {
     layout.setColumns(1);
     descriptionPanel.setLayout(layout);
     connectionCountLabel = new JLabel();
-    connectionCountLabel.setText("%s TCP connections".formatted(captureData.getTcpConnectionsEstablished()));
+    setConnectionCountLabel(captureData);
     descriptionPanel.add(connectionCountLabel);
     packetCountLabel = new JLabel();
-    packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().size()));
+    packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().getPackets().size()));
     descriptionPanel.add(packetCountLabel);
   }
 
   public void updateCaptureStats(CaptureData captureData) {
-    connectionCountLabel.setText("%s TCP connections".formatted(captureData.getTcpConnectionsEstablished()));
-    packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().size()));
+    setConnectionCountLabel(captureData);
+    packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().getPackets().size()));
     descriptionPanel.revalidate();
     descriptionPanel.repaint();
   }
 
   public JPanel getDescriptionPanel() {
     return descriptionPanel;
+  }
+
+  private void setConnectionCountLabel(CaptureData captureData) {
+    connectionCountLabel.setText("""
+    %s TCP connections
+    """.formatted(captureData.getTcpConnectionsEstablished()));
   }
 }

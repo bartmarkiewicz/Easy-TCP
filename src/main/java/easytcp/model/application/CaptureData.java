@@ -1,22 +1,21 @@
 package easytcp.model.application;
 
 import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.EasyTCPacket;
 import easytcp.model.packet.InternetAddress;
+import easytcp.model.packet.PacketContainer;
 import easytcp.model.packet.TCPConnection;
-import org.pcap4j.core.PcapAddress;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CaptureData {
   private static CaptureData captureData;
   private ConcurrentHashMap<String, String> resolvedHostnames = new ConcurrentHashMap<>();
-  private List<EasyTCPacket> packets = new ArrayList<>();
+  private PacketContainer packets = new PacketContainer();
   private HashMap<InternetAddress, TCPConnection> tcpConnectionMap = new HashMap<>();
-  private List<PcapAddress> interfaceInternetAddress;
+
   private CaptureData() {
   }
 
@@ -30,11 +29,15 @@ public class CaptureData {
   }
 
   public long getTcpConnectionsEstablished() {
-    return tcpConnectionMap
-      .values()
+    return tcpConnectionMap.size();
+  }
+
+  public List<TCPConnection> getTcpConnectionsWithStatus(Set<ConnectionStatus> statusSet) {
+    return tcpConnectionMap.values()
       .stream()
-      .filter(i -> i.getConnectionStatus() != ConnectionStatus.UNKNOWN)
-      .count();
+      .filter(tcpConnection ->
+        tcpConnection.getConnectionStatus() != null && statusSet.contains(tcpConnection.getConnectionStatus()))
+      .toList();
   }
 
   public ConcurrentHashMap<String, String> getResolvedHostnames() {
@@ -45,11 +48,11 @@ public class CaptureData {
     this.resolvedHostnames = resolvedHostnames;
   }
 
-  public List<EasyTCPacket> getPackets() {
+  public PacketContainer getPackets() {
     return packets;
   }
 
-  public void setPackets(List<EasyTCPacket> packets) {
+  public void setPackets(PacketContainer packets) {
     this.packets = packets;
   }
 
@@ -70,7 +73,7 @@ public class CaptureData {
   }
 
   public void clear() {
-    this.packets.clear();;
+    this.packets.clearPackets();
     this.tcpConnectionMap.clear();
   }
 }

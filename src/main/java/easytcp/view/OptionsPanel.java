@@ -1,5 +1,8 @@
 package easytcp.view;
 
+import easytcp.model.CaptureStatus;
+import easytcp.model.application.ApplicationStatus;
+import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
@@ -11,16 +14,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class OptionsPanel {
   private static final Logger LOGGER = LoggerFactory.getLogger(OptionsPanel.class);
 
   private final JPanel panel;
+  private final MiddleRow middleRow;
   private final FiltersForm filtersForm;
   private final PacketLog packetLog;
   private final HashMap<String, PcapNetworkInterface> deviceNetworkInterfaceHashMap = new HashMap<>();
-  private CaptureDescriptionPanel captureDescriptionPanel;
+  private final CaptureDescriptionPanel captureDescriptionPanel;
 
   public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
   // while capturing use BPF filter, dont allow changing filters during capture
@@ -32,7 +35,7 @@ public class OptionsPanel {
     this.filtersForm = filtersForm;
     var layout = new GridLayout();
     layout.setHgap(110);
-    layout.setVgap(50);
+    layout.setVgap(10);
     layout.setColumns(1);
     layout.setRows(3);
     panel.setLayout(layout);
@@ -40,78 +43,24 @@ public class OptionsPanel {
     var topRowLayout = new GridLayout();
     topRowLayout.setRows(1);
     topRowLayout.setColumns(3);
-    topRowLayout.setVgap(50);
+    topRowLayout.setVgap(10);
     topRowLayout.setHgap(50);
     topRow.setLayout(topRowLayout);
     addFilters(topRow);
     panel.add(topRow);
-    panel.add(createMiddleRow());
+
+    this.middleRow = new MiddleRow(filtersForm);
+    middleRow.setConnectionStatusLabel(CaptureData.getCaptureData());
+    panel.add(middleRow.getPanel());
     var bottomRow = new JPanel();
     var bottomRowLayout = new GridLayout();
     bottomRowLayout.setColumns(3);
     bottomRowLayout.setRows(1);
-    bottomRowLayout.setVgap(50);
+    bottomRowLayout.setVgap(10);
     bottomRowLayout.setHgap(50);
     bottomRow.setLayout(bottomRowLayout);
     addButtons(bottomRow);
     panel.add(bottomRow);
-  }
-
-  private JPanel createMiddleRow() {
-    var middleRowPanel = new JPanel();
-    middleRowPanel.setBackground(Color.YELLOW);
-    var middleRowLayout = new GridLayout();
-    middleRowLayout.setColumns(3);
-    middleRowLayout.setRows(1);
-    middleRowPanel.setLayout(middleRowLayout);
-    var connectionLabel = new JLabel();
-    connectionLabel.setText("""
-    Connection information
-    """);
-    middleRowPanel.add(connectionLabel);
-    middleRowPanel.add(new JPanel());
-
-    var inputFieldsContainer = new JPanel();
-    var inputFieldsLayout = new GridLayout();
-    inputFieldsLayout.setRows(2);
-    inputFieldsLayout.setColumns(1);
-    inputFieldsContainer.setLayout(inputFieldsLayout);
-    var portContainer = new JPanel();
-    var rowLayout = new BorderLayout();
-    rowLayout.setHgap(25);
-    rowLayout.setVgap(25);
-    var rowLayout2 = new BorderLayout();
-    rowLayout2.setHgap(25);
-    rowLayout2.setVgap(25);
-    portContainer.setLayout(rowLayout);
-    var hostContainer = new JPanel();
-    hostContainer.setLayout(rowLayout2);
-    var portInput = new JTextField();
-    var portLabel = new JLabel("Port");
-    portInput.add(portLabel);
-    var hostInput = new JTextField();
-    var hostLabel = new JLabel("Host");
-    hostLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-    portLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-    portContainer.add(portLabel, BorderLayout.LINE_START);
-    portContainer.add(portInput, BorderLayout.CENTER);
-    hostContainer.add(hostLabel, BorderLayout.LINE_START);
-    hostContainer.add(hostInput, BorderLayout.CENTER);
-
-    portInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> {
-      this.filtersForm.setPortRangeSelected(portInput.getText());
-    });
-
-    hostInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> {
-      this.filtersForm.setHostSelected(hostInput.getText());
-    });
-
-    inputFieldsContainer.add(portContainer);
-    inputFieldsContainer.add(hostContainer);
-
-    middleRowPanel.add(inputFieldsContainer);
-
-    return middleRowPanel;
   }
 
   private void addButtons(JPanel row) {
@@ -128,9 +77,17 @@ public class OptionsPanel {
     filterBt.setSize(200, 200);
 
     filterBt.addActionListener((event) -> {
+      if (!ApplicationStatus.getStatus().isLiveCapturing().get() && !ApplicationStatus.getStatus().isLoading().get()) {
         this.packetLog.refilterPackets();
         captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
+        middleRow.setConnectionStatusLabel(this.packetLog.getCaptureData());
+      } else {
+        JOptionPane.showMessageDialog(
+          captureDescriptionPanel.getDescriptionPanel(),
+          "You cannot change your filter while live capturing packets or loading a file " +
+            "stop your capture or wait for the file to finish loading before trying again");
       }
+    }
     );
     row.add(filterBt);
   }
@@ -192,26 +149,22 @@ public class OptionsPanel {
 
   private JButton getStartLiveCaptureButton(JComboBox interfaceSelect) {
     var button = new JButton("Start capture");
-    var isCapturing = new AtomicBoolean(false);
-
     button.addActionListener((event) -> {
       var networkInterface = deviceNetworkInterfaceHashMap.get((String) interfaceSelect.getSelectedItem());
       if (networkInterface != null) {
-        SwingUtilities.invokeLater(() -> {
-          if (button.getText().equals("Start capture")) {
-            isCapturing.set(true);
-            button.setText("Stop capture");
-          } else {
-            button.setText("Start capture");
-            isCapturing.set(false);
-          }
-        });
-        var thread = Executors.newSingleThreadExecutor();
-        thread.execute(
+        Executors.newSingleThreadExecutor().execute(
           () -> {
             try {
               packetLog.startPacketCapture(
-                networkInterface, isCapturing.get(), captureDescriptionPanel);
+                networkInterface, middleRow, captureDescriptionPanel);
+              SwingUtilities.invokeLater(() -> {
+                if (ApplicationStatus.getStatus().isLiveCapturing().get()
+                  && ApplicationStatus.getStatus().getMethodOfCapture() == CaptureStatus.LIVE_CAPTURE) {
+                  button.setText("Stop capture");
+                } else {
+                  button.setText("Start capture");
+                }
+              });
             } catch (Exception e) {
               e.printStackTrace();
               System.out.println("Could not start packet capture");
@@ -230,5 +183,9 @@ public class OptionsPanel {
 
   public CaptureDescriptionPanel getCaptureDescriptionPanel() {
     return this.captureDescriptionPanel;
+  }
+
+  public MiddleRow getMiddleRow() {
+    return middleRow;
   }
 }

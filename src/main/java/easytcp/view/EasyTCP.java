@@ -56,7 +56,7 @@ public class EasyTCP extends JFrame {
         fileChooser.addActionListener(actionEvent -> {
             var fileSelected = fileChooser.getSelectedFile();
             try {
-                packetLogger.readSelectedFile(fileSelected, optionsPanel.getCaptureDescriptionPanel());
+                packetLogger.readSelectedFile(fileSelected, optionsPanel);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(
                   this, "Error, invalid file. " +

@@ -98,12 +98,14 @@ public class PacketTransformerService {
     var latestPacket = packetList.get(packetList.size() - i);
     while(latestPacket.getTcpFlags().get(TCPFlag.RST)) {
       i++;
-      latestPacket = packetList.get(packetList.size() - i);
-      if (i == 0) {
+      if (i > packetList.size()) {
+        tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
         LOGGER.info("Connection not established, only RST packets");
-        break;
+        return;
       }
+      latestPacket = packetList.get(packetList.size() - i);
     }
+
     //todo maybe add checks for current status
     if (latestPacket.getOutgoingPacket()
       && latestPacket.getTcpFlags().get(TCPFlag.SYN)

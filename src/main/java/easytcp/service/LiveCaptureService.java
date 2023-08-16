@@ -1,10 +1,11 @@
 package easytcp.service;
 
+import easytcp.model.CaptureStatus;
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
-import easytcp.model.packet.EasyTCPacket;
 import easytcp.model.application.FiltersForm;
 import easytcp.view.CaptureDescriptionPanel;
-import org.apache.logging.log4j.util.Strings;
+import easytcp.view.MiddleRow;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
@@ -13,9 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
-import java.util.Comparator;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 public class LiveCaptureService {
   private static final Logger LOGGER = LoggerFactory.getLogger(LiveCaptureService.class);
@@ -33,9 +32,12 @@ public class LiveCaptureService {
   public PcapHandle startCapture(PcapNetworkInterface networkInterface,
                                  FiltersForm filtersForm,
                                  JTextPane textPane,
+                                 MiddleRow middleRow,
                                  CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException {
     LOGGER.info("Beginning capture on " + networkInterface);
-
+    var appStatus = ApplicationStatus.getStatus();
+    appStatus.setLiveCapturing(true);
+    appStatus.setMethodOfCapture(CaptureStatus.LIVE_CAPTURE);
     captureData.clear();
     // begin capture
     final PcapHandle handle =
@@ -45,7 +47,7 @@ public class LiveCaptureService {
       var threadPool = Executors.newCachedThreadPool();
       try {
         int maxPackets = Integer.MAX_VALUE;
-        setFilters(handle, filtersForm);
+        handle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
         handle.loop(maxPackets, (PacketListener) packet -> {
           var ipPacket = packet.get(IpPacket.class);
           if (ipPacket != null) {
@@ -53,32 +55,31 @@ public class LiveCaptureService {
             if (tcpPacket != null) {
               var easyTCPacket = packetTransformerService.fromPackets(
                 ipPacket, tcpPacket, handle.getTimestamp(), captureData, filtersForm);
-              captureData.getPackets().add(easyTCPacket);
-              LOGGER.info("Packet  src port - %s dst port - %s".formatted(tcpPacket.getHeader().getSrcPort(), tcpPacket.getHeader().getDstPort()));
+              captureData.getPackets().addPacketToContainer(easyTCPacket);
               SwingUtilities.invokeLater(() -> {
-                if (captureData.getPackets().get(captureData.getPackets().size()-1).getTimestamp().getTime()
-                  < easyTCPacket.getTimestamp().getTime()) {
                   var styledDocument = textPane.getStyledDocument();
                   try {
                     styledDocument
                       .insertString(
                         styledDocument.getLength(),
-                        "\n" + packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm), null);
+                        packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm), null);
                   } catch (BadLocationException e) {
                     LOGGER.debug("Text pane error");
                     throw new RuntimeException(e);
                   }
-                } else {
-                  textPane.setText(captureData
-                    .getPackets()
-                    .stream()
-                    .sorted(Comparator.comparing(EasyTCPacket::getTimestamp))
-                    .map(pkt -> packetDisplayService.prettyPrintPacket(pkt, filtersForm))
-                    .collect(Collectors.joining("\n")));
-                }
+                middleRow.setConnectionStatusLabel(this.captureData);
                 captureDescriptionPanel.updateCaptureStats(this.captureData);
               });
             }
+          }
+          if(!appStatus.isLiveCapturing().get()) {
+            LOGGER.debug("Stopping live capture forcefully");
+            try {
+              handle.breakLoop();
+            } catch (NotOpenException e) {
+              LOGGER.error(e.getMessage());
+            }
+            handle.close();
           }
         }, threadPool);
       } catch (Exception e) {
@@ -90,55 +91,4 @@ public class LiveCaptureService {
     });
     return handle;
   }
-
-  private void setFilters(PcapHandle handle, FiltersForm filtersForm) throws NotOpenException, PcapNativeException {
-    var filterBuilder = new StringBuilder();
-    filterBuilder.append("(tcp");
-    if (filtersForm.isShowIpv4() && filtersForm.isShowIpv6()) {
-      filterBuilder.append(" and (ip or ip6))");
-    } else if (filtersForm.isShowIpv6()) {
-      filterBuilder.append(" and ip6)");
-    } else if (filtersForm.isShowIpv4()) {
-      filterBuilder.append(" and ip)");
-    } else {
-      filterBuilder.append(")");
-    }
-    if (!Strings.isBlank(filtersForm.getHostSelected())) {
-      filterBuilder.append(" and (host %s)"
-        .formatted(filtersForm.getHostSelected().replace(" ", "")));
-    }
-    if (!Strings.isBlank(filtersForm.getPortRangeSelected())) {
-      var temp = filtersForm.getPortRangeSelected().replace(" ", "");
-      if (temp.contains("-")) {
-        filterBuilder.append(" and (portrange %s)".formatted(temp));
-      } else {
-        filterBuilder.append(" and (dst port %s or src port %s)"
-          .formatted(temp, temp));
-      }
-    }
-//    and (port <specific_port>)
-
-    handle.setFilter(filterBuilder.toString(), BpfProgram.BpfCompileMode.OPTIMIZE);
-
-//
-
-//
-//    if (!Strings.isBlank(filtersForm.getPortRangeSelected())) {
-//      var temp = filtersForm.getPortRangeSelected().replace(" ", "");
-//      if (temp.contains("-")) {
-//        handle.setFilter("dst portrange %s".formatted(temp), BpfProgram.BpfCompileMode.OPTIMIZE);
-//      } else {
-//        handle.setFilter("dst port %s".formatted(temp), BpfProgram.BpfCompileMode.OPTIMIZE);
-//      }
-//    }
-  }
-
-//  private void setCaptureStats() {
-//    this.captureData.setTcpConnectionsEstablished(captureData.getPackets()
-//      .stream()
-//      .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
-//      .map(i -> i.getDestinationAddress().getAlphanumericalAddress())
-//      .distinct()
-//      .count());
-//  }
 }

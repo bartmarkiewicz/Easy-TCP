@@ -1,15 +1,19 @@
 package easytcp.view;
 
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import org.apache.logging.log4j.util.Strings;
-import org.pcap4j.core.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import easytcp.service.LiveCaptureService;
 import easytcp.service.PacketDisplayService;
 import easytcp.service.PcapFileReaderService;
 import easytcp.service.ServiceProvider;
+import org.apache.logging.log4j.util.Strings;
+import org.pcap4j.core.NotOpenException;
+import org.pcap4j.core.PcapHandle;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.PcapNetworkInterface;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.File;
@@ -27,49 +31,68 @@ public class PacketLog {
   private final LiveCaptureService liveCaptureService;
   private PcapHandle pcapHandle;
   private CaptureData captureData;
+  private final ApplicationStatus appStatus;
 
   public PacketLog(FiltersForm filtersForm, ServiceProvider serviceProvider) {
     this.filtersForm = filtersForm;
     this.logTextPane = new JTextPane();
     logTextPane.setEditable(false);
+    this.appStatus = ApplicationStatus.getStatus();
     this.captureData = CaptureData.getInstance();
     this.pcapFileReaderService = serviceProvider.getPcapFileReaderService();
     this.packetDisplayService = serviceProvider.getPacketDisplayService();
     this.liveCaptureService = serviceProvider.getLiveCaptureService();
   }
 
-  public void readSelectedFile(File selectedFile, CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException, NotOpenException, ExecutionException, InterruptedException {
-    this.captureData = Executors.newSingleThreadExecutor()
-      .submit(() -> {
-        try {
-          return this.pcapFileReaderService.readPacketFile(selectedFile, filtersForm);
-        } catch (PcapNativeException e) {
-          throw new RuntimeException(e);
-        } catch (NotOpenException e) {
-          throw new RuntimeException(e);
-        }
-    }).get();
-
-    logTextPane.setText(getPacketText());
-    captureDescriptionPanel.updateCaptureStats(this.captureData);
+  public void readSelectedFile(File selectedFile, OptionsPanel optionsPanel) throws PcapNativeException, NotOpenException, ExecutionException, InterruptedException {
+    if (appStatus.isLoading().get() || appStatus.isLiveCapturing().get()) {
+      LOGGER.debug("Attempted to read a file while live capturing");
+      JOptionPane.showMessageDialog(
+        optionsPanel.getPanel(), "Error, cannot read file while " +
+          "already live capturing packets, please stop the capture first.");
+    } else {
+      Executors.newSingleThreadExecutor()
+        .execute(() -> {
+          try {
+            this.pcapFileReaderService.readPacketFile(
+              selectedFile, filtersForm, logTextPane, optionsPanel);
+            appStatus.setLoading(false);
+          } catch (PcapNativeException e) {
+            throw new RuntimeException(e);
+          } catch (NotOpenException e) {
+            throw new RuntimeException(e);
+          }
+        });
+    }
   }
 
   public void startPacketCapture(PcapNetworkInterface networkInterface,
-                                 boolean stopCapture,
+                                 MiddleRow middleRow,
                                  CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException, NotOpenException {
-    if (pcapHandle == null && !stopCapture) {
+    var appStatus = ApplicationStatus.getStatus();
+    if (!appStatus.isLiveCapturing().get() && pcapHandle == null) {
       this.pcapHandle = liveCaptureService.startCapture(
-        networkInterface, filtersForm, logTextPane, captureDescriptionPanel);
-    } else if (stopCapture && this.pcapHandle != null) {
+        networkInterface, filtersForm, logTextPane, middleRow, captureDescriptionPanel);
+    } else if (this.pcapHandle != null) {
       pcapHandle.breakLoop();
       pcapHandle.close();
       System.out.println("Stopping live capture");
+      ApplicationStatus.getStatus().setLiveCapturing(false);
       this.pcapHandle = null;
     }
   }
 
   public void newLog() {
     captureData.clear();
+    if (pcapHandle != null && pcapHandle.isOpen()) {
+      try {
+        pcapHandle.breakLoop();
+      } catch (NotOpenException e) {
+        LOGGER.debug(e.getMessage());
+        throw new RuntimeException(e);
+      }
+      pcapHandle.close();
+    }
     SwingUtilities.invokeLater(() -> {
       logTextPane.setText("");
       logTextPane.revalidate();
@@ -97,7 +120,7 @@ public class PacketLog {
   }
 
   private String getPacketText() {
-    return captureData.getPackets()
+    return captureData.getPackets().getPackets()
       .stream()
       .filter(packet -> packetDisplayService.isVisible(packet, filtersForm))
       .map(packet -> packetDisplayService.prettyPrintPacket(packet, filtersForm) + "\n")

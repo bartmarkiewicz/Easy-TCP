@@ -62,37 +62,31 @@ public class FiltersForm {
   }
 
   public String toBfpExpression() {
-    var builder = new StringBuilder();
-    var argCount = 0;
-    builder.append(" tcp ");
-    if (showIpv4 && !showIpv6) {
-      builder.append(" ip ");
-      argCount++;
-    } else if (showIpv6) {
-      if (argCount > 0) {
-        builder.append(" && ");
-      }
-      builder.append(" ip6 ");
+    var filterBuilder = new StringBuilder();
+    filterBuilder.append("(tcp");
+    if (isShowIpv4() && isShowIpv6()) {
+      filterBuilder.append(" and (ip or ip6))");
+    } else if (isShowIpv6()) {
+      filterBuilder.append(" and ip6)");
+    } else if (isShowIpv4()) {
+      filterBuilder.append(" and ip)");
+    } else {
+      filterBuilder.append(")");
     }
-    if (!Strings.isBlank(hostSelected)) {
-      var temp = hostSelected.replace(" ", "");
-      if (argCount > 0) {
-        builder.append(" && ");
-      }
-      builder.append(" host %s".formatted(temp));
+    if (!Strings.isBlank(getHostSelected())) {
+      filterBuilder.append(" and (host %s)"
+        .formatted(getHostSelected().replace(" ", "")));
     }
-    if (!Strings.isBlank(portRangeSelected)) {
-      if (argCount > 0) {
-        builder.append(" && ");
-      }
-      var temp = portRangeSelected.replace(" ", "");
-      if (portRangeSelected.contains("-")) {
-        builder.append(" dst portrange %s".formatted(temp));
+    if (!Strings.isBlank(getPortRangeSelected())) {
+      var temp = getPortRangeSelected().replace(" ", "");
+      if (temp.contains("-")) {
+        filterBuilder.append(" and (portrange %s)".formatted(temp));
       } else {
-        builder.append(" dst port %s".formatted(temp));
+        filterBuilder.append(" and (dst port %s or src port %s)"
+          .formatted(temp, temp));
       }
     }
-    return builder.toString();
+    return filterBuilder.toString();
   }
 
   public PcapNetworkInterface getSelectedInterface() {
