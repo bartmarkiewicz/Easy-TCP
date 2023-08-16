@@ -30,41 +30,68 @@ public class OptionsPanel {
     this.packetLog = packetLog;
     this.captureDescriptionPanel= new CaptureDescriptionPanel(this.packetLog.getCaptureData());
     this.filtersForm = filtersForm;
-    var layout = new GridLayout();
-    layout.setHgap(110);
-    layout.setVgap(10);
-    layout.setColumns(1);
-    layout.setRows(3);
+    var layout = new GridBagLayout();
+    var overallConstraints = new GridBagConstraints();
+//    overallConstraints.fill = GridBagConstraints.BOTH;
+//    overallConstraints.gridwidth = 1;
+//    overallConstraints.gridheight = 3;
+    layout.setConstraints(panel, overallConstraints);
+    var rowOneConstraints = new GridBagConstraints();
+    rowOneConstraints.gridx = 0;
+    rowOneConstraints.gridy = 0;
+    rowOneConstraints.weighty = 0.01;
+    rowOneConstraints.weightx = 1;
+    rowOneConstraints.fill = GridBagConstraints.BOTH;
+    rowOneConstraints.ipadx = 10;
+    rowOneConstraints.ipady = 10;
     panel.setLayout(layout);
+    panel.setBackground(Color.YELLOW);
     var topRow = new JPanel();
     var topRowLayout = new GridLayout();
     topRowLayout.setRows(1);
     topRowLayout.setColumns(3);
     topRowLayout.setVgap(10);
-    topRowLayout.setHgap(50);
+    topRowLayout.setHgap(10);
     topRow.setLayout(topRowLayout);
     addFilters(topRow);
-    panel.add(topRow);
+    panel.add(topRow, rowOneConstraints);
 
     this.middleRow = new MiddleRow(filtersForm);
     middleRow.setConnectionStatusLabel(CaptureData.getCaptureData());
-    panel.add(middleRow.getPanel());
+
+    var middleRowConstraints = new GridBagConstraints();
+    middleRowConstraints.gridx = 0;
+    middleRowConstraints.gridy = 1;
+    middleRowConstraints.fill = GridBagConstraints.BOTH;
+    middleRowConstraints.weighty = 0.6;
+    middleRowConstraints.weightx = 1;
+    middleRowConstraints.ipadx = 10;
+    middleRowConstraints.ipady = 10;
+    panel.add(middleRow.getPanel(), middleRowConstraints);
     var bottomRow = new JPanel();
     var bottomRowLayout = new GridLayout();
     bottomRowLayout.setColumns(3);
     bottomRowLayout.setRows(1);
-    bottomRowLayout.setVgap(10);
-    bottomRowLayout.setHgap(50);
+    bottomRowLayout.setHgap(10);
     bottomRow.setLayout(bottomRowLayout);
     addButtons(bottomRow);
-    panel.add(bottomRow);
+
+    var bottomRowConstraints = new GridBagConstraints();
+    bottomRowConstraints.gridx = 0;
+    bottomRowConstraints.gridy = 2;
+    bottomRowConstraints.fill = GridBagConstraints.BOTH;
+    bottomRowConstraints.weighty = 0.1;
+    bottomRowConstraints.weightx = 1;
+    bottomRowConstraints.ipadx = 10;
+    bottomRowConstraints.ipady = 10;
+
+    panel.add(bottomRow, bottomRowConstraints);
   }
 
   private void addButtons(JPanel row) {
     var defaultsBt = new JButton("Restore defaults");
     captureDescriptionPanel.getDescriptionPanel().setBackground(Color.RED);
     row.add(captureDescriptionPanel.getDescriptionPanel());
-    row.setBackground(Color.CYAN);
     defaultsBt.setSize(200, 200);
     row.add(defaultsBt);
     defaultsBt.addActionListener((event) ->

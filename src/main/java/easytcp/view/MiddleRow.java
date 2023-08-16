@@ -18,9 +18,26 @@ public class MiddleRow {
   public MiddleRow(FiltersForm filtersForm) {
     this.middleRowPanel = new JPanel();
     middleRowPanel.setBackground(Color.YELLOW);
-    var middleRowLayout = new BorderLayout();
+    var middleRowLayout = new GridBagLayout();
+    var middleRowConstraints = new GridBagConstraints();
+//    middleRowConstraints.fill = GridBagConstraints.BOTH;
+//    middleRowConstraints.weighty = 1;
+//    middleRowConstraints.gridheight = 6;
+//    middleRowConstraints.gridwidth = 6;
+//    middleRowConstraints.weightx = 1;
+
+//    middleRowLayout.setConstraints(middleRowPanel, middleRowConstraints);
 //    middleRowLayout.setColumns(2);
 //    middleRowLayout.setRows(1);
+    var leftPaneConstraints = new GridBagConstraints();
+    leftPaneConstraints.weighty = 0.5;
+    leftPaneConstraints.weightx = 0.2;
+    leftPaneConstraints.gridx = 0;
+    leftPaneConstraints.gridheight = 2;
+    leftPaneConstraints.gridwidth = 2;
+    leftPaneConstraints.gridy = 0;
+    leftPaneConstraints.fill = GridBagConstraints.BOTH;
+//    middleRowLayout.setConstraints(middleRowPanel);
     middleRowPanel.setLayout(middleRowLayout);
     connectionInformationPane = new JTextPane();
     packetViewScroll = new JScrollPane(connectionInformationPane);
@@ -28,16 +45,41 @@ public class MiddleRow {
     connectionInformationPane.setFont(
       new Font(connectionInformationPane.getFont().getName(), Font.PLAIN, 11));
     packetViewScroll.setAutoscrolls(false);
-    middleRowPanel.add(packetViewScroll, BorderLayout.LINE_START);
+    middleRowPanel.add(packetViewScroll, leftPaneConstraints);
     var connectionSelectorPanel = new JPanel();
     connectionSelectorPanel.setLayout(new BorderLayout());
     addConnectionSelector(connectionSelectorPanel);
-    middleRowPanel.add(connectionSelectorPanel, BorderLayout.PAGE_START);
+    var connectionSelectorConstraints = new GridBagConstraints();
+    connectionSelectorConstraints.weighty = 0;
+    connectionSelectorConstraints.weightx = 0.5;
+    connectionSelectorConstraints.gridx = 3;
+    connectionSelectorConstraints.gridy = 0;
+    connectionSelectorConstraints.gridheight = 1;
+    connectionSelectorConstraints.gridwidth = 4;
+    connectionSelectorConstraints.anchor = GridBagConstraints.ABOVE_BASELINE;
+    connectionSelectorConstraints.fill = GridBagConstraints.HORIZONTAL;
+    middleRowPanel.add(connectionSelectorPanel, connectionSelectorConstraints);
+    var connectionInfoPane = new JTextPane();
+    connectionInfoPane.setText("Selected connection info here - \n lolol \n test");
+
+    var connectionInfoConstraints = new GridBagConstraints();
+    connectionInfoConstraints.weighty = 0.1;
+    connectionInfoConstraints.weightx = 0.5;
+    connectionInfoConstraints.gridx = 3;
+    connectionInfoConstraints.gridy = 1;
+    connectionInfoConstraints.gridheight = 1;
+    connectionInfoConstraints.gridwidth = 2;
+    connectionInfoConstraints.anchor = GridBagConstraints.ABOVE_BASELINE;
+
+    connectionInfoConstraints.fill = GridBagConstraints.BOTH;
+
+    middleRowPanel.add(connectionInfoPane, connectionInfoConstraints);
+
     setConnectionStatusLabel(CaptureData.getCaptureData());
 
     var inputFieldsContainer = new JPanel();
     var inputFieldsLayout = new GridLayout();
-    inputFieldsLayout.setRows(2);
+    inputFieldsLayout.setRows(3);
     inputFieldsLayout.setColumns(1);
     inputFieldsContainer.setLayout(inputFieldsLayout);
     var portContainer = new JPanel();
@@ -69,11 +111,18 @@ public class MiddleRow {
     hostInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> {
       filtersForm.setHostSelected(hostInput.getText());
     });
-
+    inputFieldsContainer.add(new JPanel());
     inputFieldsContainer.add(portContainer);
     inputFieldsContainer.add(hostContainer);
-
-    middleRowPanel.add(inputFieldsContainer, BorderLayout.CENTER);
+    var inputFieldsConstraints = new GridBagConstraints();
+    inputFieldsConstraints.weighty = 0.5;
+    inputFieldsConstraints.weightx = 0.5;
+    inputFieldsConstraints.gridx = 5;
+    inputFieldsConstraints.gridy = 0;
+    inputFieldsConstraints.gridwidth = 2;
+    inputFieldsConstraints.gridheight = 2;
+    inputFieldsConstraints.fill = GridBagConstraints.BOTH;
+    middleRowPanel.add(inputFieldsContainer, inputFieldsConstraints);
 
   }
 

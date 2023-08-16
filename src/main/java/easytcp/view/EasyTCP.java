@@ -37,7 +37,6 @@ public class EasyTCP extends JFrame {
         var packetLogger = new PacketLog(filtersForm, ServiceProvider.getInstance());
 
         var optionsPanel = new OptionsPanel(filtersForm, packetLogger);
-        optionsPanel.getPanel().setBackground(Color.BLUE);
         firstRow.add(optionsPanel.getPanel());
 
         this.getContentPane().add(firstRow);
