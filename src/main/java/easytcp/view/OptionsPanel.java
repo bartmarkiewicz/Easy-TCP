@@ -26,9 +26,6 @@ public class OptionsPanel {
   private final CaptureDescriptionPanel captureDescriptionPanel;
 
   public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
-  // while capturing use BPF filter, dont allow changing filters during capture
-  // when stopped capture or read a file, use frontend filters
-
     this.panel = new JPanel();
     this.packetLog = packetLog;
     this.captureDescriptionPanel= new CaptureDescriptionPanel(this.packetLog.getCaptureData());

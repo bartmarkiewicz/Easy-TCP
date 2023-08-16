@@ -3,6 +3,7 @@ package easytcp.view;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.ConnectionStatus;
+import easytcp.model.packet.TCPConnection;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,23 +13,27 @@ public class MiddleRow {
   private final JPanel middleRowPanel;
   private final JTextPane connectionInformationPane;
   private final JScrollPane packetViewScroll;
+  private DefaultComboBoxModel<TCPConnection> model;
 
   public MiddleRow(FiltersForm filtersForm) {
     this.middleRowPanel = new JPanel();
     middleRowPanel.setBackground(Color.YELLOW);
-    var middleRowLayout = new GridLayout();
-    middleRowLayout.setColumns(2);
-    middleRowLayout.setRows(1);
+    var middleRowLayout = new BorderLayout();
+//    middleRowLayout.setColumns(2);
+//    middleRowLayout.setRows(1);
     middleRowPanel.setLayout(middleRowLayout);
     connectionInformationPane = new JTextPane();
     packetViewScroll = new JScrollPane(connectionInformationPane);
     connectionInformationPane.setEditable(false);
     connectionInformationPane.setFont(
       new Font(connectionInformationPane.getFont().getName(), Font.PLAIN, 11));
-    setConnectionStatusLabel(CaptureData.getCaptureData());
     packetViewScroll.setAutoscrolls(false);
-    middleRowPanel.add(packetViewScroll);
-    middleRowPanel.add(new JPanel());
+    middleRowPanel.add(packetViewScroll, BorderLayout.LINE_START);
+    var connectionSelectorPanel = new JPanel();
+    connectionSelectorPanel.setLayout(new BorderLayout());
+    addConnectionSelector(connectionSelectorPanel);
+    middleRowPanel.add(connectionSelectorPanel, BorderLayout.PAGE_START);
+    setConnectionStatusLabel(CaptureData.getCaptureData());
 
     var inputFieldsContainer = new JPanel();
     var inputFieldsLayout = new GridLayout();
@@ -68,12 +73,27 @@ public class MiddleRow {
     inputFieldsContainer.add(portContainer);
     inputFieldsContainer.add(hostContainer);
 
-    middleRowPanel.add(inputFieldsContainer);
+    middleRowPanel.add(inputFieldsContainer, BorderLayout.CENTER);
 
   }
 
   public JPanel getPanel() {
     return middleRowPanel;
+  }
+
+  private void addConnectionSelector(JPanel connectionSelectorPanel) {
+    model = new DefaultComboBoxModel<>();
+    var connectionSelector = new JComboBox<>(model);
+    connectionSelectorPanel.setBackground(Color.CYAN);
+    connectionSelector.setFont(new Font(connectionSelector.getFont().getName(), 5, 10));
+    connectionSelector.setLightWeightPopupEnabled(true);
+    connectionSelector.setToolTipText("Select a TCP connection");
+    connectionSelectorPanel.add(new JLabel("Connection"), BorderLayout.NORTH);
+    connectionSelectorPanel.add(connectionSelector, BorderLayout.CENTER);
+  }
+
+  public void addConnectionOptions(CaptureData captureData) {
+    model.addAll(captureData.getTcpConnectionMap().values());
   }
 
   public void setConnectionStatusLabel(CaptureData captureData) {
@@ -106,5 +126,6 @@ public class MiddleRow {
     connectionInformationPane.repaint();
     packetViewScroll.repaint();
     packetViewScroll.revalidate();
+    addConnectionOptions(captureData);
   }
 }

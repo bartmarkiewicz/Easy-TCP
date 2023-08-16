@@ -1,5 +1,6 @@
 package easytcp.model.application;
 
+import easytcp.model.packet.TCPConnection;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.PcapNetworkInterface;
 
@@ -10,6 +11,7 @@ public class FiltersForm {
   private boolean resolveHostnames;
   private String portRangeSelected;
   private String hostSelected;
+  private TCPConnection selectedConnection;
 
   public FiltersForm() {
     restoreDefaults();
@@ -95,5 +97,13 @@ public class FiltersForm {
 
   public void setSelectedInterface(PcapNetworkInterface selectedInterface) {
     this.selectedInterface = selectedInterface;
+  }
+
+  public TCPConnection getSelectedConnection() {
+    return selectedConnection;
+  }
+
+  public void setSelectedConnection(TCPConnection selectedConnection) {
+    this.selectedConnection = selectedConnection;
   }
 }

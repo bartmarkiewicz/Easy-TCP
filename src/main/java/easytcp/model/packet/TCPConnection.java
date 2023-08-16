@@ -37,4 +37,10 @@ public class TCPConnection {
   public void setPacketContainer(PacketContainer packetContainer) {
     this.packetContainer = packetContainer;
   }
+
+  @Override
+  public String toString() {
+    return connectionStatus + " to " + host.getAddressString() + "\n"
+      + " packet count=" + packetContainer.getPackets().size();
+  }
 }
