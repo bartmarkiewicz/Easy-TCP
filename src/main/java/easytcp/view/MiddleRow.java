@@ -7,10 +7,11 @@ import easytcp.model.packet.TCPConnection;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Set;
 
 public class MiddleRow {
-  private static MiddleRow middleRow;
   private final JPanel middleRowPanel;
   private final JTextPane connectionInformationPane;
   private final JScrollPane packetViewScroll;
@@ -21,18 +22,13 @@ public class MiddleRow {
 
   private DefaultComboBoxModel<TCPConnection> model;
 
-  public static MiddleRow getInstance() {
-    return middleRow;
-  }
-
   public MiddleRow(FiltersForm filtersForm) {
-    middleRow = this;
     this.middleRowPanel = new JPanel();
     middleRowPanel.setBackground(Color.YELLOW);
     var middleRowLayout = new GridBagLayout();
     var leftPaneConstraints = new GridBagConstraints();
     leftPaneConstraints.weighty = 0.5;
-    leftPaneConstraints.weightx = 0.2;
+    leftPaneConstraints.weightx = 0.4;
     leftPaneConstraints.gridx = 0;
     leftPaneConstraints.gridheight = 2;
     leftPaneConstraints.gridwidth = 2;
@@ -63,10 +59,10 @@ public class MiddleRow {
     middleRowPanel.add(connectionSelectorPanel, connectionSelectorConstraints);
     selectedConnectionInfoPane = new JTextPane();
     selectedConnectionInfoPane.setText("Select a connection to view information about it.");
-
+    var scrollPane = new JScrollPane(selectedConnectionInfoPane);
     var connectionInfoConstraints = new GridBagConstraints();
     connectionInfoConstraints.weighty = 0.1;
-    connectionInfoConstraints.weightx = 0.5;
+    connectionInfoConstraints.weightx = 0.4;
     connectionInfoConstraints.gridx = 3;
     connectionInfoConstraints.gridy = 1;
     connectionInfoConstraints.gridheight = 1;
@@ -75,13 +71,13 @@ public class MiddleRow {
 
     connectionInfoConstraints.fill = GridBagConstraints.BOTH;
 
-    middleRowPanel.add(selectedConnectionInfoPane, connectionInfoConstraints);
+    middleRowPanel.add(scrollPane, connectionInfoConstraints);
 
     setConnectionStatusLabel(CaptureData.getCaptureData());
 
     var inputFieldsContainer = new JPanel();
     var inputFieldsLayout = new GridLayout();
-    inputFieldsLayout.setRows(3);
+    inputFieldsLayout.setRows(4);
     inputFieldsLayout.setColumns(1);
     inputFieldsContainer.setLayout(inputFieldsLayout);
     var portContainer = new JPanel();
@@ -114,11 +110,12 @@ public class MiddleRow {
       filtersForm.setHostSelected(hostInput.getText());
     });
     inputFieldsContainer.add(new JPanel());
+    inputFieldsContainer.add(new JPanel());
     inputFieldsContainer.add(portContainer);
     inputFieldsContainer.add(hostContainer);
     var inputFieldsConstraints = new GridBagConstraints();
     inputFieldsConstraints.weighty = 0.5;
-    inputFieldsConstraints.weightx = 0.5;
+    inputFieldsConstraints.weightx = 0.9;
     inputFieldsConstraints.gridx = 5;
     inputFieldsConstraints.gridy = 0;
     inputFieldsConstraints.gridwidth = 2;
@@ -142,7 +139,7 @@ public class MiddleRow {
     connectionSelector.addItemListener((i) -> {
       var selectedItem = (TCPConnection) i.getItem();
       setConnectionInformation(selectedItem);
-      ArrowDiagram.getInstance().setTcpConnection(selectedItem);
+      ArrowDiagram.getInstance().setTcpConnection(selectedItem, filtersForm);
       filtersForm.setSelectedConnection(selectedItem);
     });
   }
@@ -181,10 +178,16 @@ public class MiddleRow {
   }
 
   public void addConnectionOptions(CaptureData captureData) {
-    var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
-    model.removeAllElements();
-    model.addAll(captureData.getTcpConnectionMap().values());
-    model.setSelectedItem(selectedItem);
+    SwingUtilities.invokeLater(() -> {
+      var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
+      model.removeAllElements();
+      model.addAll(new ArrayList<>(captureData.getTcpConnectionMap()
+        .values())
+        .stream()
+        .filter(Objects::nonNull).toList());
+      model.setSelectedItem(selectedItem);
+    });
+
   }
 
   public void setConnectionStatusLabel(CaptureData captureData) {

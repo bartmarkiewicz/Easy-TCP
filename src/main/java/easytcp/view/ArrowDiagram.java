@@ -1,14 +1,21 @@
 package easytcp.view;
 
+import easytcp.model.application.FiltersForm;
+import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.TCPConnection;
 import easytcp.service.PacketDisplayService;
 import easytcp.service.ServiceProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
+import java.util.ArrayList;
 
 public class ArrowDiagram extends JPanel implements Scrollable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ArrowDiagram.class);
   private static final int COMPONENT_WIDTH = 675;
   private static final int INITIAL_VERTICAL_POSITION = 100;
   private int maxUnitIncrement = 3;
@@ -17,10 +24,12 @@ public class ArrowDiagram extends JPanel implements Scrollable {
   private final int leftXPos = 110;
   private final int rightXPos = COMPONENT_WIDTH - 110;
   private final int rightXLabelPos = rightXPos + 5;
-  private final int leftXLabelPos = 5;
+  private final int leftXLabelPos = 15;
   private final PacketDisplayService packetDisplayService;
   private TCPConnection selectedConnection;
-
+  private JScrollPane scrollPane;
+  private FiltersForm filtersForm;
+  private int horizontalOffset;
   private static ArrowDiagram arrowDiagram;
 
   public static ArrowDiagram getInstance() {
@@ -31,17 +40,28 @@ public class ArrowDiagram extends JPanel implements Scrollable {
     return arrowDiagram;
   }
 
-  private ArrowDiagram() {
-    super();
-//    this.setVerticalScrollBarPolicy(VERTICAL_SCROLLBAR_ALWAYS);
-    this.packetDisplayService = ServiceProvider.getInstance().getPacketDisplayService();
-    this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
-    currentHeight = 900;
+  public void setScrollPane(JScrollPane scrollPane) {
+    this.scrollPane = scrollPane;
   }
 
-  public void setTcpConnection(TCPConnection tcpConnection) {
-    this.selectedConnection = tcpConnection;
+  private ArrowDiagram() {
+    super();
+    this.packetDisplayService = ServiceProvider.getInstance().getPacketDisplayService();
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
+    currentHeight = 500;
+    horizontalOffset = -30;
+  }
+
+  public void setTcpConnection(TCPConnection tcpConnection, FiltersForm filtersForm) {
+    if (scrollPane != null && (selectedConnection == null
+      || !tcpConnection.getHost().equals(selectedConnection.getHost()))) {
+      scrollPane.getViewport().setViewPosition(new Point(0, 0));
+    }
+    this.selectedConnection = new TCPConnection(tcpConnection); //copies the connection
+    selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+    this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
+    this.currentHeight = 500;
+    this.filtersForm = filtersForm;
     this.repaint();
     this.revalidate();
   }
@@ -54,58 +74,89 @@ public class ArrowDiagram extends JPanel implements Scrollable {
     Graphics2D g2d = (Graphics2D) g;
     g.setFont(new Font(g.getFont().getName(), Font.BOLD, 16));
     if (selectedConnection == null) {
-      g.drawString("Select a TCP connection to see a diagram", 115, 40);
+      g.drawString("Select a TCP connection to view a diagram", 115, 40);
       g.setFont(new Font(g.getFont().getName(), Font.BOLD, 12));
 
     } else {
       g.drawString("Connection", 115, 40);
       g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 12));
-      g.drawString("Client %s".formatted(selectedConnection.getHost().getAddressString()), 5, 40);
-      g.drawString("Server %s".formatted(selectedConnection.getHostTwo().getAddressString()), rightXPos+5, 40);
+      g.drawString("Client", 5, 20);
+      g.drawString(selectedConnection.getHostTwo().getAddressString(), 5, 40);
+      g.drawString("Server", rightXPos+5, 20);
+      g.drawString(selectedConnection.getHost().getAddressString(), rightXPos+5, 40);
     }
 
     //title bar
-    g.fillRect(0, 50, getWidth(), 1);
+    g.fillRect(0, 50, Integer.MAX_VALUE, 1);
 
     //vertical bars
     g.fillRect(rightXPos, 0, 1, getHeight());
     g.fillRect(leftXPos, 0, 1, getHeight());
 
     if (selectedConnection != null) {
-      selectedConnection.getPacketContainer()
-        .getPackets()
-        .forEach(pkt -> {
-          var leftPoint = new Point();
-          leftPoint.x = leftXPos;
-          leftPoint.y = currentVerticalPosition;
-          currentVerticalPosition = currentVerticalPosition + 70;
-          var rightPoint = new Point();
-          rightPoint.x = rightXPos;
-          rightPoint.y = currentVerticalPosition;
-          currentVerticalPosition = currentVerticalPosition + 70;
-
-          if (pkt.getOutgoingPacket()) {
-            g.drawString(packetDisplayService.getDiagramLabelForPacket(pkt), leftXLabelPos, currentVerticalPosition);
-
-            drawArrow(g2d, leftPoint, rightPoint);
-          } else {
-            g.drawString(packetDisplayService.getDiagramLabelForPacket(pkt), rightXLabelPos, currentVerticalPosition);
-            drawArrow(g2d, rightPoint, leftPoint);
-          }
-
-        });
-
+      drawArrows(g2d);
     }
     currentVerticalPosition = INITIAL_VERTICAL_POSITION;
     g.dispose();
   }
 
+  private void drawArrows(Graphics2D g2d) {
+    new ArrayList<>(selectedConnection.getPacketContainer()
+      .getPackets())
+      .forEach(pkt -> {
+        var leftPoint = new Point();
+        var rightPoint = new Point();
+        if (pkt.getOutgoingPacket()) {
+          leftPoint.x = leftXPos;
+          leftPoint.y = currentVerticalPosition;
+          currentVerticalPosition = currentVerticalPosition + 70;
+          rightPoint.x = rightXPos;
+          rightPoint.y = currentVerticalPosition;
+          g2d.drawString(
+            packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), leftXLabelPos, currentVerticalPosition-70);
+          drawArrow(g2d, leftPoint, rightPoint);
+          currentVerticalPosition = currentVerticalPosition + 70;
+          var midpoint = midpoint(leftPoint, rightPoint);
+          g2d.setFont(new Font(g2d.getFont().getFontName(), Font.PLAIN, 11));
+          var lineLabel = packetDisplayService.getTcpFlagsForPacket(pkt, filtersForm);
+          var affineTransform = new AffineTransform();
+          affineTransform.rotate(0.15);
+          var defaultFont = g2d.getFont();
+          var font = new Font(g2d.getFont().getFontName(), Font.PLAIN, 12).deriveFont(affineTransform);
+          g2d.setFont(font);
+          g2d.drawString(lineLabel, midpoint.x-80, midpoint.y-20);
+          g2d.setFont(defaultFont);
+        } else {
+          leftPoint.x = leftXPos;
+          rightPoint.y = currentVerticalPosition;
+          currentVerticalPosition = currentVerticalPosition + 70;
+          leftPoint.y = currentVerticalPosition;
+          rightPoint.x = rightXPos;
+          g2d.drawString(packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), rightXLabelPos, currentVerticalPosition-70);
+          drawArrow(g2d, rightPoint, leftPoint);
+          currentVerticalPosition = currentVerticalPosition + 70;
+          var midpoint = midpoint(leftPoint, rightPoint);
+          var tempFont = g2d.getFont();
+          var affineTransform = new AffineTransform();
+          affineTransform.rotate(-0.15);
+          g2d.setFont(new Font(g2d.getFont().getFontName(), Font.PLAIN, 12).deriveFont(affineTransform));
+          var lineLabel = packetDisplayService.getTcpFlagsForPacket(pkt, filtersForm);
+          g2d.drawString(lineLabel, midpoint.x-80, midpoint.y);
+          g2d.setFont(tempFont);
+        }
+        selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+        if (currentVerticalPosition >= currentHeight) {
+          currentHeight += 100;
+          if (scrollPane != null && filtersForm.isScrollDiagram()) {
+            scrollPane.getViewport().setViewPosition(new Point(0, currentHeight+100));
+          }
+        }
+      });
+  }
+
   public void drawArrow(Graphics2D g2d, Point startPoint, Point endPoint) {
     int arrowSize = 16;
-
-    var dx = endPoint.getX() - startPoint.getX();
-    var dy = endPoint.getY() - startPoint.getY();
-    var angle = Math.atan2(dy, dx);
+    var angle = getRotation(startPoint, endPoint);
 
     g2d.setColor(Color.BLACK);
     g2d.setStroke(new BasicStroke(2));
@@ -121,9 +172,15 @@ public class ArrowDiagram extends JPanel implements Scrollable {
     g2d.fill(arrowHead);
   }
 
-  private static Point midpoint(Point p1, Point p2) {
-    return new Point((int)((p1.x + p2.x)/2.0),
-      (int)((p1.y + p2.y)/2.0));
+  private Double getRotation(Point startPoint, Point endPoint) {
+    var dx = endPoint.getX() - startPoint.getX();
+    var dy = endPoint.getY() - startPoint.getY();
+    var angle = Math.atan2(dy, dx);
+    return angle;
+  }
+
+  private Point midpoint(Point p1, Point p2) {
+    return new Point((int) ((p1.x + p2.x)/2.0), (int) ((p1.y + p2.y)/2.0));
   }
 
   @Override
@@ -138,7 +195,6 @@ public class ArrowDiagram extends JPanel implements Scrollable {
 
   @Override
   public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
-    //Get the current position.
     int currentPosition = 0;
     if (orientation == SwingConstants.HORIZONTAL) {
       currentPosition = visibleRect.x;
@@ -146,17 +202,11 @@ public class ArrowDiagram extends JPanel implements Scrollable {
       currentPosition = visibleRect.y;
     }
 
-    //Return the number of pixels between currentPosition
-    //and the nearest tick mark in the indicated direction.
     if (direction < 0) {
-      int newPosition = currentPosition -
-        (currentPosition / maxUnitIncrement)
-          * maxUnitIncrement;
+      int newPosition = currentPosition - (currentPosition / maxUnitIncrement) * maxUnitIncrement;
       return (newPosition == 0) ? maxUnitIncrement : newPosition;
     } else {
-      return ((currentPosition / maxUnitIncrement) + 1)
-        * maxUnitIncrement
-        - currentPosition;
+      return ((currentPosition / maxUnitIncrement) + 1) * maxUnitIncrement - currentPosition;
     }
   }
 
@@ -176,5 +226,9 @@ public class ArrowDiagram extends JPanel implements Scrollable {
   @Override
   public boolean getScrollableTracksViewportHeight() {
     return false;
+  }
+
+  public void setFilters(FiltersForm filtersForm) {
+    this.filtersForm = filtersForm;
   }
 }

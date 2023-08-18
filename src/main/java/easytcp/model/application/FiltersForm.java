@@ -5,16 +5,30 @@ import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.PcapNetworkInterface;
 
 public class FiltersForm {
+  private static FiltersForm filtersForm;
   private PcapNetworkInterface selectedInterface;
   private boolean showIpv4;
   private boolean showIpv6;
   private boolean resolveHostnames;
   private boolean fullConnectionOnly;
+  private boolean scrollDiagram;
+  private boolean showAckAndSeqNumbers;
+  private boolean showHeaderFlags;
+  private boolean showWindowSize;
+  private boolean showLength;
   private String portRangeSelected;
   private String hostSelected;
   private TCPConnection selectedConnection;
 
-  public FiltersForm() {
+  public static FiltersForm getInstance() {
+    if (filtersForm == null) {
+      filtersForm = new FiltersForm();
+      return filtersForm;
+    }
+    return filtersForm;
+  }
+
+  private FiltersForm() {
     restoreDefaults();
   }
 
@@ -49,6 +63,10 @@ public class FiltersForm {
     this.portRangeSelected = null;
     this.hostSelected = null;
     this.selectedConnection = null;
+    this.showHeaderFlags = true;
+    this.showAckAndSeqNumbers = true;
+    this.showLength = true;
+    this.showWindowSize = true;
   }
 
   public String getPortRangeSelected() {
@@ -117,5 +135,45 @@ public class FiltersForm {
 
   public void setFullConnectionOnly(boolean fullConnectionOnly) {
     this.fullConnectionOnly = fullConnectionOnly;
+  }
+
+  public boolean isScrollDiagram() {
+    return scrollDiagram;
+  }
+
+  public void setScrollDiagram(boolean scrollDiagram) {
+    this.scrollDiagram = scrollDiagram;
+  }
+
+  public boolean isShowAckAndSeqNumbers() {
+    return showAckAndSeqNumbers;
+  }
+
+  public void setShowAckAndSeqNumbers(boolean showAckAndSeqNumbers) {
+    this.showAckAndSeqNumbers = showAckAndSeqNumbers;
+  }
+
+  public boolean isShowHeaderFlags() {
+    return showHeaderFlags;
+  }
+
+  public void setShowHeaderFlags(boolean showHeaderFlags) {
+    this.showHeaderFlags = showHeaderFlags;
+  }
+
+  public boolean isShowWindowSize() {
+    return showWindowSize;
+  }
+
+  public void setShowWindowSize(boolean showWindowSize) {
+    this.showWindowSize = showWindowSize;
+  }
+
+  public boolean isShowLength() {
+    return showLength;
+  }
+
+  public void setShowLength(boolean showLength) {
+    this.showLength = showLength;
   }
 }

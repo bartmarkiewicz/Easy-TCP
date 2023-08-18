@@ -71,6 +71,8 @@ public class PacketLog {
                                  CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException, NotOpenException {
     var appStatus = ApplicationStatus.getStatus();
     if (!appStatus.isLiveCapturing().get() && pcapHandle == null) {
+      ArrowDiagram.getInstance().setFilters(filtersForm);
+      ArrowDiagram.getInstance().repaint();
       this.pcapHandle = liveCaptureService.startCapture(
         networkInterface, filtersForm, logTextPane, middleRow, captureDescriptionPanel);
     } else if (this.pcapHandle != null) {
@@ -102,6 +104,9 @@ public class PacketLog {
 
   public void refilterPackets() {
     var packetText = getPacketText();
+    ArrowDiagram.getInstance().setFilters(filtersForm);
+    ArrowDiagram.getInstance().repaint();
+    ArrowDiagram.getInstance().revalidate();
     if (Strings.isBlank(packetText)) {
       logTextPane.setText("No packets matching your search criteria found, try changing your filters.");
     } else {

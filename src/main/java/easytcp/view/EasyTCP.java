@@ -33,9 +33,9 @@ public class EasyTCP extends JFrame {
         firstRow.setLayout(firstRowLayout);
         var arrowDiagram = ArrowDiagram.getInstance();
         var arrowDiagramScrollPane = new JScrollPane(arrowDiagram);
-
+        arrowDiagram.setScrollPane(arrowDiagramScrollPane);
         firstRow.add(arrowDiagramScrollPane);
-        var filtersForm = new FiltersForm();
+        var filtersForm = FiltersForm.getInstance();
         var packetLogger = new PacketLog(filtersForm, ServiceProvider.getInstance());
 
         var optionsPanel = new OptionsPanel(filtersForm, packetLogger);

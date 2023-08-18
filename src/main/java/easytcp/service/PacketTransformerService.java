@@ -1,9 +1,15 @@
 package easytcp.service;
 
-import easytcp.model.*;
+import easytcp.model.CaptureStatus;
+import easytcp.model.IPprotocol;
+import easytcp.model.TCPFlag;
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.model.packet.*;
+import easytcp.model.packet.ConnectionStatus;
+import easytcp.model.packet.EasyTCPacket;
+import easytcp.model.packet.InternetAddress;
+import easytcp.model.packet.TCPConnection;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.namednumber.IpVersion;
@@ -11,7 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,10 +70,22 @@ public class PacketTransformerService {
   private void setTcpConnection(EasyTCPacket easyTcpPacket,
                                 HashMap<InternetAddress, TCPConnection> tcpConnectionHashMap,
                                 FiltersForm filtersForm) {
-    var interfaceAddresses = filtersForm.getSelectedInterface() != null
-      ? filtersForm.getSelectedInterface().getAddresses().stream()
-      .map(pcapAddress -> "/" + pcapAddress.getAddress().getHostAddress()).toList()
-      : List.of();
+    List<String> interfaceAddresses;
+    if (ApplicationStatus.getStatus().getMethodOfCapture() == CaptureStatus.LIVE_CAPTURE) {
+      interfaceAddresses = filtersForm.getSelectedInterface() != null
+        ? filtersForm.getSelectedInterface().getAddresses().stream()
+        .map(pcapAddress -> "/" + pcapAddress.getAddress().getHostAddress()).toList()
+        : List.of();
+    } else {
+      interfaceAddresses = new ArrayList<>();
+      if (easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("/192") //private address ranges
+        || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("/172")) {
+        interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
+      } else if (easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("/192") //private address ranges
+        || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("/172")) {
+        interfaceAddresses.add(easyTcpPacket.getDestinationAddress().getAddressString());
+      }
+    }
     InternetAddress addressOfConnection;
     TCPConnection tcpConnection;
     if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAlphanumericalAddress())) {
@@ -96,7 +117,6 @@ public class PacketTransformerService {
   private void determineStatusOfConnection(
     TCPConnection tcpConnection, EasyTCPacket easyTcpPacket,
     FiltersForm filtersForm) {
-    //todo sort by timestamp, determine status of connection by latest packet
     tcpConnection.getPacketContainer().addPacketToContainer(easyTcpPacket);
     var packetList = tcpConnection.getPacketContainer().getPackets();
     var i = 1;
@@ -226,10 +246,7 @@ public class PacketTransformerService {
           tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
         }
       }
-      case TIME_WAIT -> {
-        LOGGER.debug("time wait");
-
-      }
+      case TIME_WAIT -> LOGGER.debug("time wait");
     }
   }
 
@@ -388,7 +405,7 @@ public class PacketTransformerService {
     }
     var srcHostName = resolvedHostNames.get(String.valueOf(ipHeader.getSrcAddr()));
     var sourceAddress = new InternetAddress(
-      ipHeader.getSrcAddr(), srcHostName, ipHeader.getSrcAddr(), tcpHeader.getDstPort());
+      ipHeader.getSrcAddr(), srcHostName, ipHeader.getSrcAddr(), tcpHeader.getSrcPort());
     packet.setSourceAddress(sourceAddress);
     if (filtersForm.isResolveHostnames() && srcHostName == null) {
       new Thread(() -> {

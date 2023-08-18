@@ -27,6 +27,10 @@ public class OptionsPanel {
   private JCheckBox ipv6Checkbox;
   private JCheckBox ipv4Checkbox;
   private JCheckBox resolveHostnames;
+  private JCheckBox showAckAndSequenceNumbers;
+  private JCheckBox showHeaderFlags;
+  private JCheckBox showWindowSize;
+  private JCheckBox showLength;
 
   public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
     this.panel = new JPanel();
@@ -34,28 +38,26 @@ public class OptionsPanel {
     this.captureDescriptionPanel= new CaptureDescriptionPanel(this.packetLog.getCaptureData());
     this.filtersForm = filtersForm;
     var layout = new GridBagLayout();
-    var overallConstraints = new GridBagConstraints();
-
-    layout.setConstraints(panel, overallConstraints);
-    var rowOneConstraints = new GridBagConstraints();
-    rowOneConstraints.gridx = 0;
-    rowOneConstraints.gridy = 0;
-    rowOneConstraints.weighty = 0.01;
-    rowOneConstraints.weightx = 1;
-    rowOneConstraints.fill = GridBagConstraints.BOTH;
-    rowOneConstraints.ipadx = 10;
-    rowOneConstraints.ipady = 10;
+    var firstRowConstraints = new GridBagConstraints();
+    firstRowConstraints.weighty = 0.1;
+    firstRowConstraints.weightx = 0.5;
+    firstRowConstraints.gridx = 3;
+    firstRowConstraints.gridy = 1;
+    firstRowConstraints.gridheight = 1;
+    firstRowConstraints.gridwidth = 2;
+    firstRowConstraints.anchor = GridBagConstraints.ABOVE_BASELINE;
+    layout.setConstraints(panel, firstRowConstraints);
     panel.setLayout(layout);
     panel.setBackground(Color.YELLOW);
     var topRow = new JPanel();
     var topRowLayout = new GridLayout();
     topRowLayout.setRows(1);
-    topRowLayout.setColumns(3);
+    topRowLayout.setColumns(4);
     topRowLayout.setVgap(10);
-    topRowLayout.setHgap(10);
+    topRowLayout.setHgap(5);
     topRow.setLayout(topRowLayout);
     addFilters(topRow);
-    panel.add(topRow, rowOneConstraints);
+    panel.add(topRow);
 
     this.middleRow = new MiddleRow(filtersForm);
     middleRow.setConnectionStatusLabel(CaptureData.getCaptureData());
@@ -123,8 +125,9 @@ public class OptionsPanel {
   private void addFilters(JPanel topRow) {
     var checkboxLayout = new GridLayout();
     checkboxLayout.setColumns(1);
-    checkboxLayout.setRows(3);
+    checkboxLayout.setRows(4);
     var checkboxContainer = new JPanel();
+    checkboxContainer.setBackground(Color.PINK);
     checkboxContainer.setLayout(checkboxLayout);
 
     resolveHostnames = new JCheckBox();
@@ -151,6 +154,44 @@ public class OptionsPanel {
     });
     checkboxContainer.add(ipv6Checkbox);
 
+    var checkboxLayout2 = new GridLayout();
+    checkboxLayout2.setColumns(1);
+    checkboxLayout2.setRows(3);
+    var checkboxContainer2 = new JPanel();
+    checkboxContainer2.setLayout(checkboxLayout2);
+
+    showAckAndSequenceNumbers = new JCheckBox();
+    showAckAndSequenceNumbers.setText("Ack and sequence numbers");
+    showAckAndSequenceNumbers.setSelected(filtersForm.isShowLength());
+    showAckAndSequenceNumbers.addChangeListener((changeEvent) -> {
+      this.filtersForm.setShowAckAndSeqNumbers(showAckAndSequenceNumbers.isSelected());
+    });
+    checkboxContainer.add(showAckAndSequenceNumbers);
+
+    showHeaderFlags = new JCheckBox();
+    showHeaderFlags.setText("Header flags");
+    showHeaderFlags.setSelected(filtersForm.isShowHeaderFlags());
+    showHeaderFlags.addChangeListener((changeEvent) -> {
+      this.filtersForm.setShowHeaderFlags(showHeaderFlags.isSelected());
+    });
+    checkboxContainer2.add(showHeaderFlags);
+
+    showWindowSize = new JCheckBox();
+    showWindowSize.setText("Show window size");
+    showWindowSize.setSelected(filtersForm.isShowWindowSize());
+    showWindowSize.addChangeListener((changeEvent) -> {
+      this.filtersForm.setShowWindowSize(showWindowSize.isSelected());
+    });
+    checkboxContainer2.add(showWindowSize);
+
+    showLength = new JCheckBox();
+    showLength.setText("Payload length");
+    showLength.setSelected(filtersForm.isShowLength());
+    showLength.addChangeListener((changeEvent) -> {
+      this.filtersForm.setShowLength(showLength.isSelected());
+    });
+    checkboxContainer2.add(showLength);
+
     try {
       Pcaps.findAllDevs()
         .forEach(pcapNetworkInterface ->
@@ -171,6 +212,7 @@ public class OptionsPanel {
     });
 
     topRow.add(checkboxContainer);
+    topRow.add(checkboxContainer2);
     topRow.add(interfaceList);
     topRow.add(getStartLiveCaptureButton(interfaceList));
   }
@@ -179,6 +221,10 @@ public class OptionsPanel {
     ipv4Checkbox.setSelected(filtersForm.isShowIpv4());
     ipv6Checkbox.setSelected(filtersForm.isShowIpv6());
     resolveHostnames.setSelected(filtersForm.isResolveHostnames());
+    showWindowSize.setSelected(filtersForm.isShowWindowSize());
+    showLength.setSelected(filtersForm.isShowWindowSize());
+    showHeaderFlags.setSelected(filtersForm.isShowHeaderFlags());
+    showAckAndSequenceNumbers.setSelected(filtersForm.isShowAckAndSeqNumbers());
   }
 
   private JButton getStartLiveCaptureButton(JComboBox interfaceSelect) {

@@ -6,6 +6,16 @@ public class TCPConnection {
   private InternetAddress hostTwo;
   private PacketContainer packetContainer = new PacketContainer();
 
+  public TCPConnection() {
+  }
+
+  public TCPConnection(TCPConnection connection) {
+    this.connectionStatus = connection.getConnectionStatus();
+    this.host = connection.getHost();
+    this.hostTwo = connection.getHostTwo();
+    this.packetContainer = connection.getPacketContainer();
+  }
+
   public ConnectionStatus getConnectionStatus() {
     return connectionStatus;
   }

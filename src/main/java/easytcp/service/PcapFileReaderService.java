@@ -39,6 +39,7 @@ public class PcapFileReaderService {
     } catch (PcapNativeException e) {
       handle = Pcaps.openOffline(packetFile.getPath());
     }
+
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setMethodOfCapture(CaptureStatus.READING_FROM_FILE);
     appStatus.setLoading(true);

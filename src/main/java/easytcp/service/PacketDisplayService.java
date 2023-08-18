@@ -4,6 +4,7 @@ import easytcp.model.TCPFlag;
 import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.EasyTCPacket;
+import easytcp.model.packet.TCPConnection;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,21 +81,191 @@ public class PacketDisplayService {
       );
   }
 
-  public String getDiagramLabelForPacket(EasyTCPacket pkt) {
-    var connection = pkt.getTcpConnection();
-    var packets = connection.getPacketContainer();
-    if (pkt.getTcpFlags().get(TCPFlag.ACK)) {
-      // if ack packet
-      var ackedPacketOpt = packets.findPacketWithSeqNumber(pkt.getAckNumber());
-      if (ackedPacketOpt.isPresent()) {
-        var ackedPacket = ackedPacketOpt.get();
-        if (ackedPacket.getTcpFlags().get(TCPFlag.PSH)) {
+  public String getStatusLabelForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
+    var packetBeingAcked =
+      tcpConnection.getPacketContainer()
+        .findPacketWithSeqNumber(pkt.getSequenceNumber());
+    var currentPacketFlags = pkt.getTcpFlags();
+
+    if (tcpConnection.getConnectionStatus() == null) {
+      tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+      return ConnectionStatus.CLOSED.getDisplayText();
+    }
+    switch (tcpConnection.getConnectionStatus()) {
+      case CLOSED -> {
+        //determine initial connection status
+        if (currentPacketFlags.get(TCPFlag.SYN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
+          return ConnectionStatus.SYN_SENT.getDisplayText();
+        } else if (currentPacketFlags.get(TCPFlag.PSH)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
+
           return ConnectionStatus.ESTABLISHED.getDisplayText();
-        } else if (ackedPacket.getTcpFlags().get(TCPFlag.FIN)) {
+        } else if (currentPacketFlags.get(TCPFlag.FIN) || currentPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+
+          return ConnectionStatus.CLOSED.getDisplayText();
+        } else if (currentPacketFlags.get(TCPFlag.SYN)
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+        }
+      }
+      case SYN_SENT -> {
+        LOGGER.debug("SYN SENT");
+        if (currentPacketFlags.get(TCPFlag.SYN)
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+        } else if (currentPacketFlags.get(TCPFlag.SYN)) {
+          // simultaneous open
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+
+          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+        } else if (currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
+
+          return ConnectionStatus.ESTABLISHED.getDisplayText();
+        }
+      }
+      case SYN_RECEIVED -> {
+        LOGGER.debug("SYN received");
+        if (!pkt.getOutgoingPacket()
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
+
+          return ConnectionStatus.ESTABLISHED.getDisplayText();
+        }
+      }
+      case ESTABLISHED -> {
+        LOGGER.debug("Established");
+        if (!pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
+
+          return ConnectionStatus.CLOSE_WAIT.getDisplayText();
+        } else if (pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_1);
+
+          return ConnectionStatus.FIN_WAIT_1.getDisplayText();
+        } else if (pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
+
+          return ConnectionStatus.CLOSE_WAIT.getDisplayText();
+        }
+      }
+      case CLOSE_WAIT -> {
+        LOGGER.debug("close wait");
+        if (pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.LAST_ACK);
+
+          return ConnectionStatus.LAST_ACK.getDisplayText();
+        }
+      }
+      case LAST_ACK -> {
+        LOGGER.debug("last ack");
+
+        if (!pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+
+          return ConnectionStatus.CLOSED.getDisplayText();
+        }
+      }
+      case FIN_WAIT_1 -> {
+        LOGGER.debug("fin wait");
+
+        if (pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)
+          && !packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSING);
+
+          return ConnectionStatus.CLOSING.getDisplayText();
+        } else if (pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
+
+          return ConnectionStatus.TIME_WAIT.getDisplayText();
+        } else if (!pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_2);
+
           return ConnectionStatus.FIN_WAIT_2.getDisplayText();
         }
       }
+      case FIN_WAIT_2 -> {
+        LOGGER.debug("fin wait 2");
+
+        if (pkt.getOutgoingPacket()
+          && currentPacketFlags.get(TCPFlag.ACK)
+          && packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
+
+          return ConnectionStatus.TIME_WAIT.getDisplayText();
+        }
+      }
+      case TIME_WAIT -> LOGGER.debug("time wait");
     }
+
     return "Fish";
+  }
+
+  public String getTcpFlagsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {
+    var flags = pkt.getTcpFlags();
+    var sb = new StringBuilder();
+    var flagCount = 0;
+    if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.PSH)) {
+      flagCount++;
+      sb.append("PSH");
+    }
+
+    if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.SYN)) {
+      if (flagCount > 0) {
+        sb.append(", ");
+      }
+      flagCount++;
+      sb.append("SYN".formatted(pkt.getSequenceNumber()));
+    }
+
+    if (filtersForm.isShowAckAndSeqNumbers()) {
+      sb.append(" %s ".formatted(pkt.getSequenceNumber()));
+    }
+
+    if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.ACK)) {
+      if (flagCount > 0) {
+        sb.append(", ");
+      }
+      flagCount++;
+
+      sb.append("ACK");
+    }
+    if (filtersForm.isShowAckAndSeqNumbers() && flags.get(TCPFlag.ACK)) {
+      sb.append(" %s".formatted(pkt.getAckNumber()));
+    }
+
+    return sb.toString();
   }
 }
