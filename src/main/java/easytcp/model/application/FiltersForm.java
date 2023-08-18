@@ -9,6 +9,7 @@ public class FiltersForm {
   private boolean showIpv4;
   private boolean showIpv6;
   private boolean resolveHostnames;
+  private boolean fullConnectionOnly;
   private String portRangeSelected;
   private String hostSelected;
   private TCPConnection selectedConnection;
@@ -45,6 +46,9 @@ public class FiltersForm {
     this.resolveHostnames = false;
     this.showIpv4 = true;
     this.showIpv6 = false;
+    this.portRangeSelected = null;
+    this.hostSelected = null;
+    this.selectedConnection = null;
   }
 
   public String getPortRangeSelected() {
@@ -105,5 +109,13 @@ public class FiltersForm {
 
   public void setSelectedConnection(TCPConnection selectedConnection) {
     this.selectedConnection = selectedConnection;
+  }
+
+  public boolean isFullConnectionOnly() {
+    return fullConnectionOnly;
+  }
+
+  public void setFullConnectionOnly(boolean fullConnectionOnly) {
+    this.fullConnectionOnly = fullConnectionOnly;
   }
 }

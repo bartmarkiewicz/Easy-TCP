@@ -24,6 +24,9 @@ public class OptionsPanel {
   private final PacketLog packetLog;
   private final HashMap<String, PcapNetworkInterface> deviceNetworkInterfaceHashMap = new HashMap<>();
   private final CaptureDescriptionPanel captureDescriptionPanel;
+  private JCheckBox ipv6Checkbox;
+  private JCheckBox ipv4Checkbox;
+  private JCheckBox resolveHostnames;
 
   public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
     this.panel = new JPanel();
@@ -32,9 +35,7 @@ public class OptionsPanel {
     this.filtersForm = filtersForm;
     var layout = new GridBagLayout();
     var overallConstraints = new GridBagConstraints();
-//    overallConstraints.fill = GridBagConstraints.BOTH;
-//    overallConstraints.gridwidth = 1;
-//    overallConstraints.gridheight = 3;
+
     layout.setConstraints(panel, overallConstraints);
     var rowOneConstraints = new GridBagConstraints();
     rowOneConstraints.gridx = 0;
@@ -94,8 +95,11 @@ public class OptionsPanel {
     row.add(captureDescriptionPanel.getDescriptionPanel());
     defaultsBt.setSize(200, 200);
     row.add(defaultsBt);
-    defaultsBt.addActionListener((event) ->
-      this.filtersForm.restoreDefaults()
+    defaultsBt.addActionListener((event) -> {
+      this.filtersForm.restoreDefaults();
+      this.middleRow.resetConnectionInformation();
+      restoreFilters();
+      }
     );
     var filterBt = new JButton("Filter");
     filterBt.setSize(200, 200);
@@ -123,7 +127,7 @@ public class OptionsPanel {
     var checkboxContainer = new JPanel();
     checkboxContainer.setLayout(checkboxLayout);
 
-    var resolveHostnames = new JCheckBox();
+    resolveHostnames = new JCheckBox();
     resolveHostnames.setText("Resolve hostnames");
     resolveHostnames.setSelected(filtersForm.isResolveHostnames());
     resolveHostnames.addChangeListener((changeEvent) -> {
@@ -131,7 +135,7 @@ public class OptionsPanel {
     });
     checkboxContainer.add(resolveHostnames);
 
-    var ipv4Checkbox = new JCheckBox();
+    ipv4Checkbox = new JCheckBox();
     ipv4Checkbox.setText("IPv4");
     ipv4Checkbox.addChangeListener((changeEvent) -> {
       this.filtersForm.setShowIpv4(ipv4Checkbox.isSelected());
@@ -139,7 +143,7 @@ public class OptionsPanel {
     ipv4Checkbox.setSelected(filtersForm.isShowIpv4());
     checkboxContainer.add(ipv4Checkbox);
 
-    var ipv6Checkbox = new JCheckBox();
+    ipv6Checkbox = new JCheckBox();
     ipv6Checkbox.setText("IPv6");
     ipv6Checkbox.setSelected(filtersForm.isShowIpv6());
     ipv6Checkbox.addChangeListener((changeEvent) -> {
@@ -169,6 +173,12 @@ public class OptionsPanel {
     topRow.add(checkboxContainer);
     topRow.add(interfaceList);
     topRow.add(getStartLiveCaptureButton(interfaceList));
+  }
+
+  public void restoreFilters() {
+    ipv4Checkbox.setSelected(filtersForm.isShowIpv4());
+    ipv6Checkbox.setSelected(filtersForm.isShowIpv6());
+    resolveHostnames.setSelected(filtersForm.isResolveHostnames());
   }
 
   private JButton getStartLiveCaptureButton(JComboBox interfaceSelect) {

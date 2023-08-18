@@ -10,25 +10,26 @@ import java.awt.*;
 import java.util.Set;
 
 public class MiddleRow {
+  private static MiddleRow middleRow;
   private final JPanel middleRowPanel;
   private final JTextPane connectionInformationPane;
   private final JScrollPane packetViewScroll;
+  private final JTextPane selectedConnectionInfoPane;
+  private final JComboBox<TCPConnection> connectionSelector;
+  private JTextField hostInput;
+  private JTextField portInput;
+
   private DefaultComboBoxModel<TCPConnection> model;
 
+  public static MiddleRow getInstance() {
+    return middleRow;
+  }
+
   public MiddleRow(FiltersForm filtersForm) {
+    middleRow = this;
     this.middleRowPanel = new JPanel();
     middleRowPanel.setBackground(Color.YELLOW);
     var middleRowLayout = new GridBagLayout();
-    var middleRowConstraints = new GridBagConstraints();
-//    middleRowConstraints.fill = GridBagConstraints.BOTH;
-//    middleRowConstraints.weighty = 1;
-//    middleRowConstraints.gridheight = 6;
-//    middleRowConstraints.gridwidth = 6;
-//    middleRowConstraints.weightx = 1;
-
-//    middleRowLayout.setConstraints(middleRowPanel, middleRowConstraints);
-//    middleRowLayout.setColumns(2);
-//    middleRowLayout.setRows(1);
     var leftPaneConstraints = new GridBagConstraints();
     leftPaneConstraints.weighty = 0.5;
     leftPaneConstraints.weightx = 0.2;
@@ -37,7 +38,6 @@ public class MiddleRow {
     leftPaneConstraints.gridwidth = 2;
     leftPaneConstraints.gridy = 0;
     leftPaneConstraints.fill = GridBagConstraints.BOTH;
-//    middleRowLayout.setConstraints(middleRowPanel);
     middleRowPanel.setLayout(middleRowLayout);
     connectionInformationPane = new JTextPane();
     packetViewScroll = new JScrollPane(connectionInformationPane);
@@ -48,7 +48,9 @@ public class MiddleRow {
     middleRowPanel.add(packetViewScroll, leftPaneConstraints);
     var connectionSelectorPanel = new JPanel();
     connectionSelectorPanel.setLayout(new BorderLayout());
-    addConnectionSelector(connectionSelectorPanel);
+    model = new DefaultComboBoxModel<>();
+    connectionSelector = new JComboBox<>(model);
+    addConnectionSelector(connectionSelectorPanel, filtersForm);
     var connectionSelectorConstraints = new GridBagConstraints();
     connectionSelectorConstraints.weighty = 0;
     connectionSelectorConstraints.weightx = 0.5;
@@ -59,8 +61,8 @@ public class MiddleRow {
     connectionSelectorConstraints.anchor = GridBagConstraints.ABOVE_BASELINE;
     connectionSelectorConstraints.fill = GridBagConstraints.HORIZONTAL;
     middleRowPanel.add(connectionSelectorPanel, connectionSelectorConstraints);
-    var connectionInfoPane = new JTextPane();
-    connectionInfoPane.setText("Selected connection info here - \n lolol \n test");
+    selectedConnectionInfoPane = new JTextPane();
+    selectedConnectionInfoPane.setText("Select a connection to view information about it.");
 
     var connectionInfoConstraints = new GridBagConstraints();
     connectionInfoConstraints.weighty = 0.1;
@@ -73,7 +75,7 @@ public class MiddleRow {
 
     connectionInfoConstraints.fill = GridBagConstraints.BOTH;
 
-    middleRowPanel.add(connectionInfoPane, connectionInfoConstraints);
+    middleRowPanel.add(selectedConnectionInfoPane, connectionInfoConstraints);
 
     setConnectionStatusLabel(CaptureData.getCaptureData());
 
@@ -92,10 +94,10 @@ public class MiddleRow {
     portContainer.setLayout(rowLayout);
     var hostContainer = new JPanel();
     hostContainer.setLayout(rowLayout2);
-    var portInput = new JTextField();
+    portInput = new JTextField();
     var portLabel = new JLabel("Port");
     portInput.add(portLabel);
-    var hostInput = new JTextField();
+    hostInput = new JTextField();
     var hostLabel = new JLabel("Host");
     hostLabel.setHorizontalAlignment(SwingConstants.RIGHT);
     portLabel.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -130,19 +132,59 @@ public class MiddleRow {
     return middleRowPanel;
   }
 
-  private void addConnectionSelector(JPanel connectionSelectorPanel) {
-    model = new DefaultComboBoxModel<>();
-    var connectionSelector = new JComboBox<>(model);
+  private void addConnectionSelector(JPanel connectionSelectorPanel, FiltersForm filtersForm) {
     connectionSelectorPanel.setBackground(Color.CYAN);
     connectionSelector.setFont(new Font(connectionSelector.getFont().getName(), 5, 10));
     connectionSelector.setLightWeightPopupEnabled(true);
     connectionSelector.setToolTipText("Select a TCP connection");
     connectionSelectorPanel.add(new JLabel("Connection"), BorderLayout.NORTH);
     connectionSelectorPanel.add(connectionSelector, BorderLayout.CENTER);
+    connectionSelector.addItemListener((i) -> {
+      var selectedItem = (TCPConnection) i.getItem();
+      setConnectionInformation(selectedItem);
+      ArrowDiagram.getInstance().setTcpConnection(selectedItem);
+      filtersForm.setSelectedConnection(selectedItem);
+    });
+  }
+
+  public void resetConnectionInformation() {
+    selectedConnectionInfoPane.setText("Select a connection to view information about it.");
+    connectionSelector.setSelectedIndex(-1);
+    portInput.setText("");
+    hostInput.setText("");
+    selectedConnectionInfoPane.revalidate();
+    selectedConnectionInfoPane.repaint();
+  }
+
+  private void setConnectionInformation(TCPConnection selectedItem) {
+    selectedConnectionInfoPane.setText("""
+      Connection information
+      Status: %s
+      Packets sent: %s
+      Packets received: %s
+      Host one: %s
+      Host two: %s
+      Port one : %s
+      Port two : %s
+      """.formatted(selectedItem.getConnectionStatus().getDisplayText(),
+      selectedItem.getPacketContainer().getOutgoingPackets().size(),
+      selectedItem.getPacketContainer().getIncomingPackets().size(),
+      selectedItem.getHost().getAddressString(),
+      selectedItem.getHostTwo().getAddressString(),
+      selectedItem.getHost().getPort(),
+      selectedItem.getHostTwo().getPort()));
+//    ArrowDiagram.getInstance().repaint();
+    ArrowDiagram.getInstance().revalidate();
+
+    selectedConnectionInfoPane.revalidate();
+    selectedConnectionInfoPane.repaint();
   }
 
   public void addConnectionOptions(CaptureData captureData) {
+    var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
+    model.removeAllElements();
     model.addAll(captureData.getTcpConnectionMap().values());
+    model.setSelectedItem(selectedItem);
   }
 
   public void setConnectionStatusLabel(CaptureData captureData) {
@@ -175,6 +217,9 @@ public class MiddleRow {
     connectionInformationPane.repaint();
     packetViewScroll.repaint();
     packetViewScroll.revalidate();
+    if (connectionSelector.getSelectedItem() != null) {
+      setConnectionInformation((TCPConnection) connectionSelector.getSelectedItem());
+    }
     addConnectionOptions(captureData);
   }
 }

@@ -14,7 +14,7 @@ public class EasyTCPacket {
   private IPprotocol iPprotocol;
   private InternetAddress sourceAddress;
   private InternetAddress destinationAddress;
-  private Integer sequenceNumber;
+  private Long sequenceNumber;
   private Long ackNumber;
   private Integer windowSize;
   private Integer dataPayloadLength;
@@ -40,11 +40,11 @@ public class EasyTCPacket {
     this.iPprotocol = iPprotocol;
   }
 
-  public Integer getSequenceNumber() {
+  public Long getSequenceNumber() {
     return sequenceNumber;
   }
 
-  public void setSequenceNumber(Integer sequenceNumber) {
+  public void setSequenceNumber(Long sequenceNumber) {
     this.sequenceNumber = sequenceNumber;
   }
 

@@ -1,6 +1,7 @@
 package easytcp.model.packet;
 
 import org.apache.logging.log4j.util.Strings;
+import org.pcap4j.packet.namednumber.TcpPort;
 
 import java.net.InetAddress;
 import java.util.Objects;
@@ -9,20 +10,17 @@ public class InternetAddress {
   private String alphanumericalAddress;
   private String hostName;
   private InetAddress pcap4jAddress;
-
-  public InternetAddress(InetAddress pcap4jAddress) {
-    this.pcap4jAddress = pcap4jAddress;
-    this.alphanumericalAddress = pcap4jAddress.getHostAddress() != null ? pcap4jAddress.toString() : "";
-    this.hostName = pcap4jAddress.getHostName();
-  }
+  private Integer port;
 
   public InternetAddress(
     InetAddress alphanumericalAddress,
     String hostName,
-    InetAddress addressPcap4j) {
+    InetAddress addressPcap4j,
+    TcpPort tcpPort) {
     this.alphanumericalAddress = alphanumericalAddress.getHostAddress() != null ? alphanumericalAddress.toString() : "";
     this.hostName = hostName;
     this.pcap4jAddress = addressPcap4j;
+    this.port = tcpPort.valueAsInt();
   }
 
   public InetAddress getPcap4jAddress() {
@@ -53,6 +51,14 @@ public class InternetAddress {
     return hostName;
   }
 
+  public Integer getPort() {
+    return port;
+  }
+
+  public void setPort(Integer port) {
+    this.port = port;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(this.alphanumericalAddress, this.pcap4jAddress);
@@ -60,18 +66,15 @@ public class InternetAddress {
 
   @Override
   public boolean equals(Object obj) {
-    // self check
     if (this == obj)
       return true;
-    // null check
     if (obj == null)
       return false;
-    // type check and cast
     if (getClass() != obj.getClass())
       return false;
     InternetAddress otherAddress = (InternetAddress) obj;
-    // field comparison
-    return Objects.equals(this.alphanumericalAddress, otherAddress.alphanumericalAddress)
-      || Objects.equals(this.pcap4jAddress, otherAddress.pcap4jAddress);
+    return Objects.equals(this.port, otherAddress.port)
+      && (Objects.equals(this.alphanumericalAddress, otherAddress.alphanumericalAddress)
+      || Objects.equals(this.pcap4jAddress, otherAddress.pcap4jAddress));
   }
 }

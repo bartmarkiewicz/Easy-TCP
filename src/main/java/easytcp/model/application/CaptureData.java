@@ -29,7 +29,7 @@ public class CaptureData {
   }
 
   public long getTcpConnectionsEstablished() {
-    return tcpConnectionMap.size();
+    return tcpConnectionMap.keySet().size();
   }
 
   public List<TCPConnection> getTcpConnectionsWithStatus(Set<ConnectionStatus> statusSet) {

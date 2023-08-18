@@ -40,7 +40,6 @@ public class TCPConnection {
 
   @Override
   public String toString() {
-    return connectionStatus + " to " + host.getAddressString() + "\n"
-      + " packet count=" + packetContainer.getPackets().size();
+    return connectionStatus.getDisplayText() + " to " + host.getAddressString() + " packet count =" + packetContainer.getPackets().size();
   }
 }
