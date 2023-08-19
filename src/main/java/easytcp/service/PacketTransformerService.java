@@ -398,8 +398,7 @@ public class PacketTransformerService {
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getDstAddr().getHostName();
         resolvedHostNames.put(String.valueOf(ipHeader.getDstAddr()), resolvedHostname);
-        packet.setDestinationAddress(new InternetAddress(
-          ipHeader.getDstAddr(), resolvedHostname, ipHeader.getDstAddr(), tcpHeader.getDstPort()));
+        destinationAddress.setHostName(resolvedHostname);
         threadsInProgress.decrementAndGet();
       }).start();
     }
@@ -412,8 +411,7 @@ public class PacketTransformerService {
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getSrcAddr().getHostName();
         resolvedHostNames.put(String.valueOf(ipHeader.getSrcAddr()), resolvedHostname);
-        packet.setSourceAddress(
-          new InternetAddress(ipHeader.getDstAddr(), resolvedHostname, ipHeader.getSrcAddr(), tcpHeader.getSrcPort()));
+        sourceAddress.setHostName(resolvedHostname);
         threadsInProgress.decrementAndGet();
         LOGGER.debug("thread count %s".formatted(threadsInProgress.get()));
       }).start();
