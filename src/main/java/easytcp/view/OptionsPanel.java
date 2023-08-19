@@ -31,6 +31,7 @@ public class OptionsPanel {
   private JCheckBox showHeaderFlags;
   private JCheckBox showWindowSize;
   private JCheckBox showLength;
+  private JCheckBox showTcpOptions;
 
   public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
     this.panel = new JPanel();
@@ -100,6 +101,7 @@ public class OptionsPanel {
     defaultsBt.addActionListener((event) -> {
       this.filtersForm.restoreDefaults();
       this.middleRow.resetConnectionInformation();
+      ArrowDiagram.getInstance().setTcpConnection(null, filtersForm);
       restoreFilters();
       }
     );
@@ -156,13 +158,13 @@ public class OptionsPanel {
 
     var checkboxLayout2 = new GridLayout();
     checkboxLayout2.setColumns(1);
-    checkboxLayout2.setRows(3);
+    checkboxLayout2.setRows(4);
     var checkboxContainer2 = new JPanel();
     checkboxContainer2.setLayout(checkboxLayout2);
 
     showAckAndSequenceNumbers = new JCheckBox();
     showAckAndSequenceNumbers.setText("Ack and sequence numbers");
-    showAckAndSequenceNumbers.setSelected(filtersForm.isShowLength());
+    showAckAndSequenceNumbers.setSelected(filtersForm.isShowAckAndSeqNumbers());
     showAckAndSequenceNumbers.addChangeListener((changeEvent) -> {
       this.filtersForm.setShowAckAndSeqNumbers(showAckAndSequenceNumbers.isSelected());
     });
@@ -191,6 +193,15 @@ public class OptionsPanel {
       this.filtersForm.setShowLength(showLength.isSelected());
     });
     checkboxContainer2.add(showLength);
+
+    showTcpOptions = new JCheckBox();
+    showTcpOptions.setText("Tcp options");
+    showTcpOptions.setSelected(filtersForm.isShowTcpOptions());
+    showTcpOptions.addChangeListener((changeEvent) -> {
+      this.filtersForm.setShowTcpOptions(showTcpOptions.isSelected());
+    });
+    checkboxContainer2.add(showTcpOptions);
+
 
     try {
       Pcaps.findAllDevs()

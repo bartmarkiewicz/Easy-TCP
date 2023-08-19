@@ -13,6 +13,14 @@ public class InternetAddress {
   private Integer port;
 
   public InternetAddress(
+    String alphanumericalAddress, String hostName, InetAddress addressPcap4j, Integer tcpPort) {
+    this.alphanumericalAddress = alphanumericalAddress;
+    this.hostName = hostName;
+    this.pcap4jAddress = addressPcap4j;
+    this.port = tcpPort;
+  }
+
+  public InternetAddress(
     InetAddress alphanumericalAddress,
     String hostName,
     InetAddress addressPcap4j,
@@ -75,6 +83,7 @@ public class InternetAddress {
     InternetAddress otherAddress = (InternetAddress) obj;
     return Objects.equals(this.port, otherAddress.port)
       && (Objects.equals(this.alphanumericalAddress, otherAddress.alphanumericalAddress)
-      || Objects.equals(this.pcap4jAddress, otherAddress.pcap4jAddress));
+      || Objects.equals(this.pcap4jAddress, otherAddress.pcap4jAddress)
+      || Objects.equals(this.hostName, otherAddress.hostName));
   }
 }

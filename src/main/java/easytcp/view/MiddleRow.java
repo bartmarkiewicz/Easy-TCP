@@ -181,10 +181,10 @@ public class MiddleRow {
     SwingUtilities.invokeLater(() -> {
       var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
       model.removeAllElements();
-      model.addAll(new ArrayList<>(captureData.getTcpConnectionMap()
+      new ArrayList<>(captureData.getTcpConnectionMap()
         .values())
         .stream()
-        .filter(Objects::nonNull).toList());
+        .filter(Objects::nonNull).forEach(i -> model.addElement(i));
       model.setSelectedItem(selectedItem);
     });
 

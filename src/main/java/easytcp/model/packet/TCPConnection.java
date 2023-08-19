@@ -1,5 +1,7 @@
 package easytcp.model.packet;
 
+import java.util.Objects;
+
 public class TCPConnection {
   private ConnectionStatus connectionStatus;
   private InternetAddress host;
@@ -51,5 +53,18 @@ public class TCPConnection {
   @Override
   public String toString() {
     return connectionStatus.getDisplayText() + " to " + host.getAddressString() + " packet count =" + packetContainer.getPackets().size();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    TCPConnection that = (TCPConnection) o;
+    return connectionStatus == that.connectionStatus && Objects.equals(host, that.host) && Objects.equals(hostTwo, that.hostTwo) && Objects.equals(packetContainer, that.packetContainer);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(connectionStatus, host, hostTwo, packetContainer);
   }
 }

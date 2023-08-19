@@ -9,6 +9,9 @@ import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.util.Comparator;
+
 public class PacketDisplayService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketDisplayService.class);
   public boolean isVisible(EasyTCPacket packet, FiltersForm filtersForm) {
@@ -86,31 +89,28 @@ public class PacketDisplayService {
       tcpConnection.getPacketContainer()
         .findPacketWithSeqNumber(pkt.getSequenceNumber());
     var currentPacketFlags = pkt.getTcpFlags();
-
+    LOGGER.debug("" + pkt.getDataPayloadLength());
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
-      return ConnectionStatus.CLOSED.getDisplayText();
+      LOGGER.debug("Null status, setting closed as default");
     }
     switch (tcpConnection.getConnectionStatus()) {
       case CLOSED -> {
         //determine initial connection status
-        if (currentPacketFlags.get(TCPFlag.SYN)) {
+        if (currentPacketFlags.get(TCPFlag.SYN) && !currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
           return ConnectionStatus.SYN_SENT.getDisplayText();
-        } else if (currentPacketFlags.get(TCPFlag.PSH)
+        } else if ((currentPacketFlags.get(TCPFlag.ACK) && pkt.getDataPayloadLength() > 0)
+          || (currentPacketFlags.get(TCPFlag.PSH)
           && packetBeingAcked.isPresent()
-          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH)) {
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH))) {
           tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-
           return ConnectionStatus.ESTABLISHED.getDisplayText();
-        } else if (currentPacketFlags.get(TCPFlag.FIN) || currentPacketFlags.get(TCPFlag.ACK)) {
+        } else if (currentPacketFlags.get(TCPFlag.FIN) && currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
-
           return ConnectionStatus.CLOSED.getDisplayText();
         } else if (currentPacketFlags.get(TCPFlag.SYN)
-          && currentPacketFlags.get(TCPFlag.ACK)
-          && packetBeingAcked.isPresent()
-          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
+          && currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
           return ConnectionStatus.SYN_RECEIVED.getDisplayText();
         }
@@ -139,8 +139,7 @@ public class PacketDisplayService {
       }
       case SYN_RECEIVED -> {
         LOGGER.debug("SYN received");
-        if (!pkt.getOutgoingPacket()
-          && packetBeingAcked.isPresent()
+        if (packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
 
@@ -152,19 +151,16 @@ public class PacketDisplayService {
         if (!pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
-
           return ConnectionStatus.CLOSE_WAIT.getDisplayText();
         } else if (pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_1);
-
           return ConnectionStatus.FIN_WAIT_1.getDisplayText();
         } else if (pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
-
           return ConnectionStatus.CLOSE_WAIT.getDisplayText();
         }
       }
@@ -230,7 +226,7 @@ public class PacketDisplayService {
       case TIME_WAIT -> LOGGER.debug("time wait");
     }
 
-    return "Fish";
+    return "";
   }
 
   public String getTcpFlagsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {
@@ -247,11 +243,35 @@ public class PacketDisplayService {
         sb.append(", ");
       }
       flagCount++;
-      sb.append("SYN".formatted(pkt.getSequenceNumber()));
+      sb.append("SYN");
+    }
+    if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.RST)) {
+      if (flagCount > 0) {
+        sb.append(", ");
+      }
+      flagCount++;
+      sb.append("RST");
+    }
+
+    if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.URG)) {
+      if (flagCount > 0) {
+        sb.append(", ");
+      }
+      flagCount++;
+      sb.append("URG");
     }
 
     if (filtersForm.isShowAckAndSeqNumbers()) {
       sb.append(" %s ".formatted(pkt.getSequenceNumber()));
+    }
+
+    if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.FIN)) {
+      if (flagCount > 0) {
+        sb.append(", ");
+      }
+      flagCount++;
+
+      sb.append("FIN");
     }
 
     if (filtersForm.isShowHeaderFlags() && flags.get(TCPFlag.ACK)) {
@@ -267,5 +287,44 @@ public class PacketDisplayService {
     }
 
     return sb.toString();
+  }
+
+  public String getTcpOptionsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {
+    var options = pkt.getTcpOptions();
+    var windowSize = pkt.getWindowSize();
+    var sb = new StringBuilder();
+    if (filtersForm.isShowWindowSize()) {
+      sb.append("Win %s".formatted(windowSize));
+    }
+    if (filtersForm.isShowTcpOptions()) {
+      sb.append("<");
+      options.forEach(opt -> {
+        sb.append(opt.getKind());
+      });
+      sb.append(">");
+    }
+    return sb.toString();
+
+  }
+
+  public String getConnectionTimestampForPacket(EasyTCPacket pkt) {
+    var con = pkt.getTcpConnection();
+    var firstPacket = con.getPacketContainer()
+      .getPackets()
+      .stream()
+      .min(Comparator.comparing(EasyTCPacket::getTimestamp)).orElseThrow();
+
+    var duration = Duration.between(firstPacket.getTimestamp().toInstant(), pkt.getTimestamp().toInstant());
+    var nanos = duration.getNano() / 1e+9;
+    return "%f (%.04f)".formatted(nanos, nanos);
+  }
+
+  public String getSegmentLabel(EasyTCPacket pkt) {
+    var con = pkt.getTcpConnection();
+    var indexOf = con.getPacketContainer()
+      .getPackets()
+      .indexOf(pkt);
+
+    return "Segment %s".formatted(indexOf+1);
   }
 }

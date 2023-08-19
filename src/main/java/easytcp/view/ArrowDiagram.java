@@ -53,6 +53,12 @@ public class ArrowDiagram extends JPanel implements Scrollable {
   }
 
   public void setTcpConnection(TCPConnection tcpConnection, FiltersForm filtersForm) {
+    if (tcpConnection == null) {
+      this.selectedConnection = null;
+      this.filtersForm = filtersForm;
+      scrollPane.getViewport().setViewPosition(new Point(0, 0));
+      return;
+    }
     if (scrollPane != null && (selectedConnection == null
       || !tcpConnection.getHost().equals(selectedConnection.getHost()))) {
       scrollPane.getViewport().setViewPosition(new Point(0, 0));
@@ -113,7 +119,11 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           rightPoint.x = rightXPos;
           rightPoint.y = currentVerticalPosition;
           g2d.drawString(
-            packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), leftXLabelPos, currentVerticalPosition-70);
+            packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), leftXLabelPos, currentVerticalPosition-65);
+          g2d.drawString(packetDisplayService.getSegmentLabel(pkt), leftXLabelPos, currentVerticalPosition-76);
+          g2d.drawString(
+            packetDisplayService.getConnectionTimestampForPacket(pkt), leftXLabelPos-10, currentVerticalPosition-90);
+
           drawArrow(g2d, leftPoint, rightPoint);
           currentVerticalPosition = currentVerticalPosition + 70;
           var midpoint = midpoint(leftPoint, rightPoint);
@@ -124,6 +134,8 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           var defaultFont = g2d.getFont();
           var font = new Font(g2d.getFont().getFontName(), Font.PLAIN, 12).deriveFont(affineTransform);
           g2d.setFont(font);
+          var tcpOptionsAndWinSize = packetDisplayService.getTcpOptionsForPacket(pkt, filtersForm);
+          g2d.drawString(tcpOptionsAndWinSize, midpoint.x-80, midpoint.y+10);
           g2d.drawString(lineLabel, midpoint.x-80, midpoint.y-20);
           g2d.setFont(defaultFont);
         } else {
@@ -132,7 +144,11 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           currentVerticalPosition = currentVerticalPosition + 70;
           leftPoint.y = currentVerticalPosition;
           rightPoint.x = rightXPos;
-          g2d.drawString(packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), rightXLabelPos, currentVerticalPosition-70);
+          g2d.drawString(packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), rightXLabelPos, currentVerticalPosition-65);
+          g2d.drawString(packetDisplayService.getSegmentLabel(pkt), rightXLabelPos, currentVerticalPosition-76);
+          g2d.drawString(
+            packetDisplayService.getConnectionTimestampForPacket(pkt), rightXLabelPos, currentVerticalPosition-90);
+
           drawArrow(g2d, rightPoint, leftPoint);
           currentVerticalPosition = currentVerticalPosition + 70;
           var midpoint = midpoint(leftPoint, rightPoint);
@@ -141,10 +157,11 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           affineTransform.rotate(-0.15);
           g2d.setFont(new Font(g2d.getFont().getFontName(), Font.PLAIN, 12).deriveFont(affineTransform));
           var lineLabel = packetDisplayService.getTcpFlagsForPacket(pkt, filtersForm);
+          var tcpOptionsAndWinSize = packetDisplayService.getTcpOptionsForPacket(pkt, filtersForm);
           g2d.drawString(lineLabel, midpoint.x-80, midpoint.y);
+          g2d.drawString(tcpOptionsAndWinSize, midpoint.x-70, midpoint.y+30);
           g2d.setFont(tempFont);
         }
-        selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
         if (currentVerticalPosition >= currentHeight) {
           currentHeight += 100;
           if (scrollPane != null && filtersForm.isScrollDiagram()) {
@@ -152,6 +169,7 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           }
         }
       });
+    selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
   }
 
   public void drawArrow(Graphics2D g2d, Point startPoint, Point endPoint) {

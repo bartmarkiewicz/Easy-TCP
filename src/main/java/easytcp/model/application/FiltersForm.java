@@ -16,6 +16,7 @@ public class FiltersForm {
   private boolean showHeaderFlags;
   private boolean showWindowSize;
   private boolean showLength;
+  private boolean showTcpOptions;
   private String portRangeSelected;
   private String hostSelected;
   private TCPConnection selectedConnection;
@@ -175,5 +176,21 @@ public class FiltersForm {
 
   public void setShowLength(boolean showLength) {
     this.showLength = showLength;
+  }
+
+  public static FiltersForm getFiltersForm() {
+    return filtersForm;
+  }
+
+  public static void setFiltersForm(FiltersForm filtersForm) {
+    FiltersForm.filtersForm = filtersForm;
+  }
+
+  public boolean isShowTcpOptions() {
+    return showTcpOptions;
+  }
+
+  public void setShowTcpOptions(boolean showTcpOptions) {
+    this.showTcpOptions = showTcpOptions;
   }
 }

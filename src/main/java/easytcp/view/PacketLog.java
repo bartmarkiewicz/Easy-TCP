@@ -95,6 +95,10 @@ public class PacketLog {
       }
       pcapHandle.close();
     }
+    filtersForm.restoreDefaults();
+    var arrowDiagram = ArrowDiagram.getInstance();
+    arrowDiagram.setTcpConnection(null, filtersForm);
+    arrowDiagram.repaint();
     SwingUtilities.invokeLater(() -> {
       logTextPane.setText("");
       logTextPane.revalidate();
