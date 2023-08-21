@@ -4,8 +4,8 @@ import easytcp.model.CaptureStatus;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.view.CaptureDescriptionPanel;
-import easytcp.view.MiddleRow;
+import easytcp.model.packet.EasyTCPacket;
+import easytcp.view.OptionsPanel;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpPacket;
@@ -13,8 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class LiveCaptureService {
   private static final Logger LOGGER = LoggerFactory.getLogger(LiveCaptureService.class);
@@ -32,8 +34,7 @@ public class LiveCaptureService {
   public PcapHandle startCapture(PcapNetworkInterface networkInterface,
                                  FiltersForm filtersForm,
                                  JTextPane textPane,
-                                 MiddleRow middleRow,
-                                 CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException {
+                                 OptionsPanel optionsPanel) throws PcapNativeException {
     LOGGER.info("Beginning capture on " + networkInterface);
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setLiveCapturing(true);
@@ -43,7 +44,8 @@ public class LiveCaptureService {
     final PcapHandle handle =
       networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
     LOGGER.debug("Began live capture");
-    Executors.newSingleThreadExecutor().execute(() -> {
+    var executor = Executors.newSingleThreadExecutor();
+    executor.execute(() -> {
       var threadPool = Executors.newCachedThreadPool();
       try {
         int maxPackets = Integer.MAX_VALUE;
@@ -57,18 +59,7 @@ public class LiveCaptureService {
                 ipPacket, tcpPacket, handle.getTimestamp(), captureData, filtersForm);
               captureData.getPackets().addPacketToContainer(easyTCPacket);
               SwingUtilities.invokeLater(() -> {
-                  var styledDocument = textPane.getStyledDocument();
-                  try {
-                    styledDocument
-                      .insertString(
-                        styledDocument.getLength(),
-                        packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm), null);
-                  } catch (BadLocationException e) {
-                    LOGGER.debug("Text pane error");
-                    throw new RuntimeException(e);
-                  }
-                middleRow.setConnectionStatusLabel(this.captureData);
-                captureDescriptionPanel.updateCaptureStats(this.captureData);
+                setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
               });
             }
           }
@@ -89,6 +80,25 @@ public class LiveCaptureService {
         threadPool.shutdown();
       }
     });
+    executor.shutdown();
     return handle;
+  }
+
+  static void setLogTextPane(FiltersForm filtersForm,
+                             JTextPane textPane,
+                             CaptureData captureData,
+                             PacketDisplayService packetDisplayService,
+                             OptionsPanel optionsPanel) {
+    textPane.setText("<html>" +new ArrayList<>(captureData
+      .getPackets().getPackets())
+      .stream()
+      .sorted(Comparator.comparing(EasyTCPacket::getTimestamp))
+      .map(pkt -> packetDisplayService.prettyPrintPacket(pkt, filtersForm))
+      .collect(Collectors.joining()) + "</html>");
+    textPane.setContentType("text/html");
+    textPane.revalidate();
+    textPane.repaint();
+    optionsPanel.getMiddleRow().setConnectionStatusLabel(captureData);
+    optionsPanel.getCaptureDescriptionPanel().updateCaptureStats(captureData);
   }
 }

@@ -5,7 +5,7 @@ import easytcp.model.packet.InternetAddress;
 import easytcp.model.packet.PacketContainer;
 import easytcp.model.packet.TCPConnection;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,12 +14,12 @@ public class CaptureData {
   private static CaptureData captureData;
   private ConcurrentHashMap<String, String> resolvedHostnames = new ConcurrentHashMap<>();
   private PacketContainer packets = new PacketContainer();
-  private HashMap<InternetAddress, TCPConnection> tcpConnectionMap = new HashMap<>();
+  private ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionMap = new ConcurrentHashMap<>();
 
   private CaptureData() {
   }
 
-  public static CaptureData getInstance() {
+  public synchronized static CaptureData getInstance() {
     if (captureData == null) {
       captureData = new CaptureData();
       return captureData;
@@ -33,7 +33,7 @@ public class CaptureData {
   }
 
   public List<TCPConnection> getTcpConnectionsWithStatus(Set<ConnectionStatus> statusSet) {
-    return tcpConnectionMap.values()
+    return new ArrayList<>(tcpConnectionMap.values())
       .stream()
       .filter(tcpConnection ->
         tcpConnection.getConnectionStatus() != null && statusSet.contains(tcpConnection.getConnectionStatus()))
@@ -64,11 +64,11 @@ public class CaptureData {
     CaptureData.captureData = captureData;
   }
 
-  public HashMap<InternetAddress, TCPConnection> getTcpConnectionMap() {
+  public ConcurrentHashMap<InternetAddress, TCPConnection> getTcpConnectionMap() {
     return tcpConnectionMap;
   }
 
-  public void setTcpConnectionMap(HashMap<InternetAddress, TCPConnection> tcpConnectionMap) {
+  public void setTcpConnectionMap(ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionMap) {
     this.tcpConnectionMap = tcpConnectionMap;
   }
 

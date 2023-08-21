@@ -4,41 +4,49 @@ public class ServiceProvider {
   private static PacketTransformerService packetTransformerService;
   private static PacketDisplayService packetDisplayService;
   private static PcapFileReaderService pcapFileReaderService;
+  private static ConnectionDisplayService connectionDisplayService;
   private static LiveCaptureService liveCaptureService;
   private static ServiceProvider serviceProvider;
 
-  public static ServiceProvider getInstance() {
+  public synchronized static ServiceProvider getInstance() {
     if (serviceProvider == null) {
       serviceProvider = new ServiceProvider();
     }
     return serviceProvider;
   }
 
-  public PacketTransformerService getPacketTransformerService() {
+  public synchronized PacketTransformerService getPacketTransformerService() {
     if (packetTransformerService == null) {
       packetTransformerService = new PacketTransformerService();
     }
     return packetTransformerService;
   }
 
-  public PacketDisplayService getPacketDisplayService() {
+  public synchronized PacketDisplayService getPacketDisplayService() {
     if (packetDisplayService == null) {
       packetDisplayService = new PacketDisplayService();
     }
     return packetDisplayService;
   }
 
-  public PcapFileReaderService getPcapFileReaderService() {
+  public synchronized PcapFileReaderService getPcapFileReaderService() {
     if (pcapFileReaderService == null) {
       pcapFileReaderService = new PcapFileReaderService(getPacketTransformerService());
     }
     return pcapFileReaderService;
   }
 
-  public LiveCaptureService getLiveCaptureService() {
+  public synchronized LiveCaptureService getLiveCaptureService() {
     if (liveCaptureService == null) {
       liveCaptureService = new LiveCaptureService(getInstance());
     }
     return liveCaptureService;
+  }
+
+  public synchronized ConnectionDisplayService getConnectionDisplayService() {
+    if (connectionDisplayService == null) {
+      connectionDisplayService = new ConnectionDisplayService();
+    }
+    return connectionDisplayService;
   }
 }

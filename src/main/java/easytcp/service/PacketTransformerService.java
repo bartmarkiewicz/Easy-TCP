@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,7 +42,6 @@ public class PacketTransformerService {
       throw new IllegalStateException("Invalid IP packet version");
     }
     var tcpHeader = tcpPacket.getHeader();
-
     easyTcpPacket.setAckNumber(tcpHeader.getAcknowledgmentNumberAsLong());
     easyTcpPacket.setTcpFlags(
       Map.ofEntries(
@@ -57,20 +55,28 @@ public class PacketTransformerService {
     setAddressesAndHostnames(
       ipHeader, tcpHeader, easyTcpPacket, captureData.getResolvedHostnames(), filtersForm);
     easyTcpPacket.setTimestamp(timestamp);
-    easyTcpPacket.setSequenceNumber(Long.valueOf(tcpHeader.getSequenceNumber()));
+    easyTcpPacket.setSequenceNumber((long) tcpHeader.getSequenceNumber());
     easyTcpPacket.setWindowSize(tcpHeader.getWindowAsInt());
-    easyTcpPacket.setDataPayloadLength(tcpPacket.getRawData().length);
     easyTcpPacket.setTcpOptions(tcpHeader.getOptions());
     easyTcpPacket.setHeaderPayloadLength(tcpHeader.length());
+    easyTcpPacket.setDataPayloadLength(tcpPacket.getRawData().length - tcpHeader.length());
     setTcpConnection(easyTcpPacket, captureData.getTcpConnectionMap(), filtersForm);
 
     return easyTcpPacket;
   }
 
-  private void setTcpConnection(EasyTCPacket easyTcpPacket,
-                                HashMap<InternetAddress, TCPConnection> tcpConnectionHashMap,
-                                FiltersForm filtersForm) {
+  /**
+   * Sets up a tcp connection on the packet and the hashmap, needs to be synchronised due to this being
+   * done in parallel, and so the same tcp connection isn't created multiple times.
+   * @param easyTcpPacket
+   * @param tcpConnectionHashMap
+   * @param filtersForm
+   */
+  private synchronized void setTcpConnection(EasyTCPacket easyTcpPacket,
+                                             ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionHashMap,
+                                             FiltersForm filtersForm) {
     List<String> interfaceAddresses;
+    // extracts the capturing device interface address
     if (ApplicationStatus.getStatus().getMethodOfCapture() == CaptureStatus.LIVE_CAPTURE) {
       interfaceAddresses = filtersForm.getSelectedInterface() != null
         ? filtersForm.getSelectedInterface().getAddresses().stream()
@@ -78,6 +84,7 @@ public class PacketTransformerService {
         : List.of();
     } else {
       interfaceAddresses = new ArrayList<>();
+      // when reading a file, interface address is not known from the .pcap file, though usually it begins with 192 or 172
       if (easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("/192") //private address ranges
         || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("/172")) {
         interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
@@ -89,70 +96,75 @@ public class PacketTransformerService {
     InternetAddress addressOfConnection;
     TCPConnection tcpConnection;
     if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAlphanumericalAddress())) {
-//      addressOfConnection = new InternetAddress(
-//        easyTcpPacket.getSourceAddress().getPcap4jAddress(),
-//        easyTcpPacket.getSourceAddress().getPort());
+      // if dest address is an interface address it uses the src address as a key for the hashmap
       addressOfConnection = easyTcpPacket.getSourceAddress();
       tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
+      if (tcpConnection.getHost() == null) {
+        LOGGER.debug("Not found tcp connection for %s".formatted(addressOfConnection));
+      }
       tcpConnection.setHost(addressOfConnection);
       tcpConnection.setHostTwo(easyTcpPacket.getDestinationAddress());
       easyTcpPacket.setOutgoingPacket(true);
-//      tcpConnection.setHostTwo(new InternetAddress(easyTcpPacket.getDestinationAddress().getPcap4jAddress(), easyTcpPacket.getDestinationAddress().getPort()));
     } else {
-//      addressOfConnection = new InternetAddress(easyTcpPacket.getDestinationAddress().getPcap4jAddress());
       addressOfConnection = easyTcpPacket.getDestinationAddress();
       tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
+      if (tcpConnection.getHost() == null) {
+        LOGGER.debug("Not found tcp connection for %s".formatted(addressOfConnection));
+      }
       easyTcpPacket.setOutgoingPacket(false);
       tcpConnection.setHost(addressOfConnection);
       tcpConnection.setHostTwo(easyTcpPacket.getSourceAddress());
     }
-
-    determineStatusOfConnection(tcpConnection, easyTcpPacket, filtersForm);
-
-
+    //stores the packet in the tcp connection
+    tcpConnection.getPacketContainer().addPacketToContainer(easyTcpPacket);
+    //stores the tcp connection in a hashmap of address-connection
     tcpConnectionHashMap.put(addressOfConnection, tcpConnection);
+    //adds the connection reference to the packet itself
     easyTcpPacket.setTcpConnection(tcpConnection);
+    determineStatusOfConnection(tcpConnection);
+
   }
 
   private void determineStatusOfConnection(
-    TCPConnection tcpConnection, EasyTCPacket easyTcpPacket,
-    FiltersForm filtersForm) {
-    tcpConnection.getPacketContainer().addPacketToContainer(easyTcpPacket);
+    TCPConnection tcpConnection) {
     var packetList = tcpConnection.getPacketContainer().getPackets();
     var i = 1;
+
+    // gets latest packet for the purpose of seeing if it had changed the connection,
+    // rather than checking the packet just added - due to this being done asynchronously,
+    // its not always the current packet that is the latest
     var latestPacket = packetList.get(packetList.size() - i);
-    while (latestPacket.getTcpFlags().get(TCPFlag.RST)) {
-      i++;
-      if (i > packetList.size()) {
-        tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
-        LOGGER.info("Connection not established, only RST packets");
-        return;
-      }
-      latestPacket = packetList.get(packetList.size() - i);
-    }
 
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
-        .findPacketWithSeqNumber(latestPacket.getSequenceNumber());
-    var currentPacketFlags = latestPacket.getTcpFlags();
-    //todo maybe add checks for current status
-//    easyTcpPacket = latestPacket;
+        .findLatestPacketWithSeqNumberLessThan(latestPacket.getAckNumber());
+    var latestPacketFlags = latestPacket.getTcpFlags();
+
+    //default status is closed
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
     }
+
+    // reset flag means the connection has been rejected, or disorderly terminated
+    if (latestPacketFlags.get(TCPFlag.RST)) {
+      tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
+    }
+
+    //state transitions are done through this switch based on current tcp connection status
     switch (tcpConnection.getConnectionStatus()) {
       case CLOSED -> {
         //determine initial connection status
-        if (currentPacketFlags.get(TCPFlag.SYN)) {
+        if (latestPacketFlags.get(TCPFlag.SYN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
-        } else if (currentPacketFlags.get(TCPFlag.PSH)
+          tcpConnection.setFullConnection(true);
+        } else if ((latestPacketFlags.get(TCPFlag.PSH) || latestPacket.getDataPayloadLength() > 20)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-        } else if (currentPacketFlags.get(TCPFlag.FIN) || currentPacketFlags.get(TCPFlag.ACK)) {
+        } else if (latestPacketFlags.get(TCPFlag.FIN) || latestPacketFlags.get(TCPFlag.ACK)) {
             tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
-        } else if (currentPacketFlags.get(TCPFlag.SYN)
-          && currentPacketFlags.get(TCPFlag.ACK)
+        } else if (latestPacketFlags.get(TCPFlag.SYN)
+          && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
@@ -160,15 +172,15 @@ public class PacketTransformerService {
       }
       case SYN_SENT -> {
         LOGGER.debug("SYN SENT");
-        if (currentPacketFlags.get(TCPFlag.SYN)
-          && currentPacketFlags.get(TCPFlag.ACK)
+        if (latestPacketFlags.get(TCPFlag.SYN)
+          && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-        } else if (currentPacketFlags.get(TCPFlag.SYN)) {
+        } else if (latestPacketFlags.get(TCPFlag.SYN)) {
           // simultaneous open
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-        } else if (currentPacketFlags.get(TCPFlag.ACK)
+        } else if (latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
@@ -186,13 +198,12 @@ public class PacketTransformerService {
       case ESTABLISHED -> {
         LOGGER.debug("Established");
         if (!latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.FIN)) {
+          && latestPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
         } else if (latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.FIN)) {
+          && latestPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_1);
-        } else if (latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)
+        } else if (latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
@@ -202,7 +213,7 @@ public class PacketTransformerService {
         LOGGER.debug("close wait");
 
         if (latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.FIN)) {
+          && latestPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.LAST_ACK);
         }
       }
@@ -210,7 +221,7 @@ public class PacketTransformerService {
         LOGGER.debug("last ack");
 
         if (!latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)
+          && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
@@ -220,19 +231,19 @@ public class PacketTransformerService {
         LOGGER.debug("fin wait");
 
         if (latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)
+          && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)
           && !packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSING);
         } else if (latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)
+          && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
         } else if (!latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)) {
+          && latestPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_2);
         }
       }
@@ -240,7 +251,7 @@ public class PacketTransformerService {
         LOGGER.debug("fin wait 2");
 
         if (latestPacket.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)
+          && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
@@ -250,153 +261,27 @@ public class PacketTransformerService {
     }
   }
 
-
-//        if (!easyTcpPacket.getOutgoingPacket() && currentPacketFlags.get(TCPFlag.SYN)) {
-//          // simultaneous open
-//          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-//        } else if (easyTcpPacket.getOutgoingPacket()
-//          && currentPacketFlags.get(TCPFlag.SYN)
-//          && currentPacketFlags.get(TCPFlag.ACK)
-//          && packetBeingAcked.isPresent()
-//          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
-//          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-//        } else if (currentPacketFlags.get(TCPFlag.ACK)
-//          && packetBeingAcked.isPresent()
-//          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
-//          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-//        }
-//      }
-//    }
-
-//    if (tcpConnection.getConnectionStatus() == null || tcpConnection.getConnectionStatus() == ConnectionStatus.UNKNOWN) {
-//      if (easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)
-//        && !easyTcpPacket.getTcpFlags().get(TCPFlag.ACK)) {
-//        //attempting to start connection syn sent
-//        tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
-//      } else if (easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)
-//        && easyTcpPacket.getTcpFlags().get(TCPFlag.ACK)
-//        && packetBeingAcked.isPresent()) {
-//        tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-//      } else if (packetBeingAcked.isPresent()
-//        && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)
-//        && easyTcpPacket.getTcpFlags().get(TCPFlag.ACK)) {
-//        tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-//      } else if (packetBeingAcked.isPresent()
-//        && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH)
-//        && easyTcpPacket.getTcpFlags().get(TCPFlag.ACK)
-//        && easyTcpPacket.getTcpFlags().get(TCPFlag.PSH)) {
-//        //likely established
-//        if (!filtersForm.isFullConnectionOnly()) {
-//          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-//        }
-//      } else if (easyTcpPacket.getTcpFlags().get(TCPFlag.FIN)
-//        && (packetBeingAcked.isEmpty()
-//        || !packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN))) {
-//        // beginning of close
-//      }
-//    }
-
-//    if (latestPacket.getOutgoingPacket()
-//      && latestPacket.getTcpFlags().get(TCPFlag.SYN)
-//      && latestPacket.getTcpFlags().get(TCPFlag.ACK)) {
-//      tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-//      LOGGER.info("Syn received, sending syn ack to complete TCP handshake between %s, %s"
-//        .formatted(tcpConnection.getHost().getAddressString(), tcpConnection.getHostTwo().getAddressString()));
-//    } else if (latestPacket.getOutgoingPacket() && latestPacket.getTcpFlags().get(TCPFlag.SYN)) {
-//      tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
-//      LOGGER.info("Started a tcp handshake between %s and %s"
-//        .formatted(tcpConnection.getHost().getAddressString(), tcpConnection.getHostTwo().getAddressString()));
-//    } else if (!latestPacket.getOutgoingPacket() //if incoming packet with SYN and an ACK for the syn
-//      && latestPacket.getTcpFlags().get(TCPFlag.SYN)
-//      && latestPacket.getTcpFlags().get(TCPFlag.ACK)) {
-//      tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-//      LOGGER.info("Established TCP connection between %s and %s"
-//        .formatted(tcpConnection.getHost().getAddressString(), tcpConnection.getHostTwo().getAddressString()));
-//    } else if (latestPacket.getOutgoingPacket() && latestPacket.getTcpFlags().get(TCPFlag.FIN)) {
-//      LOGGER.info("Current TCP status %s attempting to orderly close connection between %s and %s, new status FIN_WAIT_1"
-//        .formatted(
-//          tcpConnection.getConnectionStatus(),
-//          tcpConnection.getHost().getAddressString(),
-//          tcpConnection.getHostTwo().getAddressString()));
-//      tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_1); // active close
-//    } else if (!latestPacket.getOutgoingPacket()
-//      && latestPacket.getTcpFlags().get(TCPFlag.FIN)
-//      && latestPacket.getTcpFlags().get(TCPFlag.ACK)) {
-//      LOGGER.info("Current TCP status %s attempting to orderly close connection between %s and %s, new status CLOSE WAIT"
-//        .formatted(
-//          tcpConnection.getConnectionStatus(),
-//          tcpConnection.getHost().getAddressString(),
-//          tcpConnection.getHostTwo().getAddressString()));
-//      tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT); // passive close
-//    } else if (!latestPacket.getOutgoingPacket()
-//      && tcpConnection.getConnectionStatus() == ConnectionStatus.CLOSE_WAIT
-//      && latestPacket.getTcpFlags().get(TCPFlag.ACK)
-//      && !latestPacket.getTcpFlags().get(TCPFlag.FIN)) {
-//      LOGGER.info("Current TCP status %s attempting to orderly close connection between %s and %s, new status FIN_WAIT_2"
-//        .formatted(
-//          tcpConnection.getConnectionStatus(),
-//          tcpConnection.getHost().getAddressString(),
-//          tcpConnection.getHostTwo().getAddressString()));
-//      tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_2); // passive close
-//    } else if (!latestPacket.getOutgoingPacket()
-//      && latestPacket.getTcpFlags().get(TCPFlag.FIN)) {
-//      LOGGER.info("Current TCP status %s attempting to orderly close connection between %s and %s, new status TIME_WAIT"
-//        .formatted(
-//          tcpConnection.getConnectionStatus(),
-//          tcpConnection.getHost().getAddressString(),
-//          tcpConnection.getHostTwo().getAddressString()));
-//      tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT); // passive close
-//    } else if (latestPacket.getOutgoingPacket()
-//      && latestPacket.getTcpFlags().get(TCPFlag.ACK)
-//      && tcpConnection.getConnectionStatus() == ConnectionStatus.TIME_WAIT) {
-//      LOGGER.info("Current TCP status %s attempting to orderly close connection between %s and %s, new status CLOSED"
-//        .formatted(
-//          tcpConnection.getConnectionStatus(),
-//          tcpConnection.getHost().getAddressString(),
-//          tcpConnection.getHostTwo().getAddressString()));
-//      tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED); // passive close
-//    } else if (latestPacket.getTcpFlags().get(TCPFlag.PSH)
-//      && latestPacket.getTcpFlags().get(TCPFlag.ACK)
-//      && !latestPacket.getTcpFlags().get(TCPFlag.RST)){
-////      LOGGER.info("Connections probably is live between %s and %s"
-////        .formatted(tcpConnection.getHost().getAddressString(), tcpConnection.getHostTwo().getAddressString()));
-//      tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED); //probably established
-//    } else if (latestPacket.getTcpFlags().get(TCPFlag.RST)) {
-//      LOGGER.info("Connection unexpected, disorderly close between %s and %s"
-//        .formatted(tcpConnection.getHost().getAddressString(), tcpConnection.getHostTwo().getAddressString()));
-//    }
-//    if (tcpConnection.getConnectionStatus() == null) {
-//      tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
-//    }
-//  }
-
-//  private void setStatusForOutgoingPacket(TCPConnection tcpConnection, EasyTCPacket easyTcpPacket, Optional<EasyTCPacket> packetBeingAcked) {
-//    var pktFlags = easyTcpPacket.getTcpFlags();
-//    switch (tcpConnection.getConnectionStatus()) {
-//      case CLOSED -> {
-//        if (pktFlags.get(TCPFlag.SYN)) {
-//          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
-//        }
-//      }
-//      case SYN_SENT -> {
-//        if ()
-//      }
-//    }
-//  }
-
+  /**
+   * Sets addresses and hostnames for the tcp packet, resolves hostnames if enabled
+   */
   private void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
                                         TcpPacket.TcpHeader tcpHeader,
                                         EasyTCPacket packet,
                                         ConcurrentHashMap<String, String> resolvedHostNames,
                                         FiltersForm filtersForm) {
+
     var destHostName = resolvedHostNames.get(String.valueOf(ipHeader.getDstAddr()));
     var destinationAddress = new InternetAddress(
       ipHeader.getDstAddr(), destHostName, ipHeader.getDstAddr(), tcpHeader.getDstPort());
     packet.setDestinationAddress(destinationAddress);
     if (filtersForm.isResolveHostnames() && destHostName == null) {
       new Thread(() -> {
+        // resolving a hostname is a heavy operation so it needs to be done on another thread
+        // to not hang the application
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getDstAddr().getHostName();
+        // is added to a hashmap to allow it to retrieve it from there rather than doing another
+        // slow DNS call or cache lookup through pcap4j's .getHostName().
         resolvedHostNames.put(String.valueOf(ipHeader.getDstAddr()), resolvedHostname);
         destinationAddress.setHostName(resolvedHostname);
         threadsInProgress.decrementAndGet();

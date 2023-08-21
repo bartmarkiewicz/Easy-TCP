@@ -14,7 +14,7 @@ public class ApplicationStatus {
   private ApplicationStatus() {
   }
 
-  public static ApplicationStatus getStatus() {
+  public synchronized static ApplicationStatus getStatus() {
     if (currentApplicationStatus == null) {
       currentApplicationStatus = new ApplicationStatus();
     }

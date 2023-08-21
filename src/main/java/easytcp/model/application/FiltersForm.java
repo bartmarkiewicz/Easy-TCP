@@ -1,5 +1,6 @@
 package easytcp.model.application;
 
+import easytcp.model.TcpStrategyDetection;
 import easytcp.model.packet.TCPConnection;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.PcapNetworkInterface;
@@ -17,11 +18,14 @@ public class FiltersForm {
   private boolean showWindowSize;
   private boolean showLength;
   private boolean showTcpOptions;
+  private boolean showTcpFeatures;
+  private boolean showGeneralInformation;
   private String portRangeSelected;
   private String hostSelected;
   private TCPConnection selectedConnection;
+  private TcpStrategyDetection tcpStrategyThreshold;
 
-  public static FiltersForm getInstance() {
+  public synchronized static FiltersForm getInstance() {
     if (filtersForm == null) {
       filtersForm = new FiltersForm();
       return filtersForm;
@@ -68,6 +72,9 @@ public class FiltersForm {
     this.showAckAndSeqNumbers = true;
     this.showLength = true;
     this.showWindowSize = true;
+    this.tcpStrategyThreshold = TcpStrategyDetection.BALANCED;
+    this.showGeneralInformation = false;
+    this.showTcpFeatures = true;
   }
 
   public String getPortRangeSelected() {
@@ -192,5 +199,29 @@ public class FiltersForm {
 
   public void setShowTcpOptions(boolean showTcpOptions) {
     this.showTcpOptions = showTcpOptions;
+  }
+
+  public TcpStrategyDetection getTcpStrategyThreshold() {
+    return tcpStrategyThreshold;
+  }
+
+  public void setTcpStrategyThreshold(TcpStrategyDetection tcpStrategyThreshold) {
+    this.tcpStrategyThreshold = tcpStrategyThreshold;
+  }
+
+  public boolean isShowTcpFeatures() {
+    return showTcpFeatures;
+  }
+
+  public void setShowTcpFeatures(boolean showTcpFeatures) {
+    this.showTcpFeatures = showTcpFeatures;
+  }
+
+  public boolean isShowGeneralInformation() {
+    return showGeneralInformation;
+  }
+
+  public void setShowGeneralInformation(boolean showGeneralInformation) {
+    this.showGeneralInformation = showGeneralInformation;
   }
 }

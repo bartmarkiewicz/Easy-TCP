@@ -36,8 +36,10 @@ public class CaptureDescriptionPanel {
   }
 
   private void setConnectionCountLabel(CaptureData captureData) {
-    connectionCountLabel.setText("""
-    %s TCP connections
-    """.formatted(captureData.getTcpConnectionsEstablished()));
+    SwingUtilities.invokeLater(() -> {
+      connectionCountLabel.setText("""
+      %s TCP connections
+      """.formatted(captureData.getTcpConnectionsEstablished()));
+    });
   }
 }

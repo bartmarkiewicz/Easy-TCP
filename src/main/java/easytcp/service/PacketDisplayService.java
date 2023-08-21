@@ -6,10 +6,14 @@ import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.EasyTCPacket;
 import easytcp.model.packet.TCPConnection;
 import org.apache.logging.log4j.util.Strings;
+import org.pcap4j.packet.TcpMaximumSegmentSizeOption;
+import org.pcap4j.packet.TcpWindowScaleOption;
+import org.pcap4j.packet.namednumber.TcpOptionKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
 
 public class PacketDisplayService {
@@ -27,8 +31,7 @@ public class PacketDisplayService {
     if (filtersForm.getSelectedConnection() != null
       && !(packet.getDestinationAddress().equals(filtersForm.getSelectedConnection().getHost())
       || packet.getSourceAddress().equals(filtersForm.getSelectedConnection().getHost()))) {
-      matchesFilter = false;
-      return matchesFilter;
+      return false;
     }
 
     if (!Strings.isBlank(filtersForm.getHostSelected())) {
@@ -65,10 +68,9 @@ public class PacketDisplayService {
   }
 
   public String prettyPrintPacket(EasyTCPacket packet, FiltersForm filtersForm) {
-    return """
-      %s %s %s:%s> %s:%s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s
-      """
-      .formatted(
+    return "<p> <a href=\"%s:%s:%s:%s:%s\"> %s %s %s:%s > %s:%s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s </a></p>"
+      .formatted(packet.getSequenceNumber(), packet.getDataPayloadLength(),
+        packet.getAckNumber(), packet.getTcpFlagsDisplayable(), packet.getTcpConnection().getHost(),
         packet.getTimestamp().toString(),
         packet.getiPprotocol().getDisplayName(),
         filtersForm.isResolveHostnames() ? packet.getSourceAddress().getAddressString() : packet.getSourceAddress().getAlphanumericalAddress(),
@@ -87,9 +89,8 @@ public class PacketDisplayService {
   public String getStatusLabelForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
-        .findPacketWithSeqNumber(pkt.getSequenceNumber());
+        .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber());
     var currentPacketFlags = pkt.getTcpFlags();
-    LOGGER.debug("" + pkt.getDataPayloadLength());
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
       LOGGER.debug("Null status, setting closed as default");
@@ -100,7 +101,7 @@ public class PacketDisplayService {
         if (currentPacketFlags.get(TCPFlag.SYN) && !currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
           return ConnectionStatus.SYN_SENT.getDisplayText();
-        } else if ((currentPacketFlags.get(TCPFlag.ACK) && pkt.getDataPayloadLength() > 0)
+        } else if ((currentPacketFlags.get(TCPFlag.ACK) && pkt.getDataPayloadLength() > 20)
           || (currentPacketFlags.get(TCPFlag.PSH)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH))) {
@@ -286,6 +287,10 @@ public class PacketDisplayService {
       sb.append(" %s".formatted(pkt.getAckNumber()));
     }
 
+    if (filtersForm.isShowLength()) {
+      sb.append(" Length %s".formatted(pkt.getDataPayloadLength()));
+    }
+
     return sb.toString();
   }
 
@@ -294,13 +299,25 @@ public class PacketDisplayService {
     var windowSize = pkt.getWindowSize();
     var sb = new StringBuilder();
     if (filtersForm.isShowWindowSize()) {
-      sb.append("Win %s".formatted(windowSize));
+      sb.append("Win %s\n".formatted(windowSize));
     }
     if (filtersForm.isShowTcpOptions()) {
       sb.append("<");
       options.forEach(opt -> {
-        sb.append(opt.getKind());
+        var kind = opt.getKind();
+        if (kind.equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE)) {
+          var mss = (TcpMaximumSegmentSizeOption) opt;
+          sb.append("MSS %s bytes".formatted(mss.getMaxSegSize()));
+        } if(kind.equals(TcpOptionKind.WINDOW_SCALE)) {
+          var ws = (TcpWindowScaleOption) opt;
+          sb.append("Window scale %s".formatted(ws.getLength()));
+        } else if (!kind.equals(TcpOptionKind.NO_OPERATION)
+          && !kind.equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE)) {
+          sb.append(opt.getKind().name());
+        }
+        sb.append(" ");
       });
+      sb.delete(sb.length()-1, sb.length()-1);
       sb.append(">");
     }
     return sb.toString();
@@ -309,9 +326,9 @@ public class PacketDisplayService {
 
   public String getConnectionTimestampForPacket(EasyTCPacket pkt) {
     var con = pkt.getTcpConnection();
-    var firstPacket = con.getPacketContainer()
-      .getPackets()
-      .stream()
+    var firstPacket = new ArrayList<>(con.getPacketContainer()
+      .getPackets())
+      .stream() //todo pass this to the method
       .min(Comparator.comparing(EasyTCPacket::getTimestamp)).orElseThrow();
 
     var duration = Duration.between(firstPacket.getTimestamp().toInstant(), pkt.getTimestamp().toInstant());

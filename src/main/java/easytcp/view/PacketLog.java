@@ -16,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.StyleSheet;
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -36,9 +39,53 @@ public class PacketLog {
   public PacketLog(FiltersForm filtersForm, ServiceProvider serviceProvider) {
     this.filtersForm = filtersForm;
     this.logTextPane = new JTextPane();
-    logTextPane.setEditable(false);
-    this.appStatus = ApplicationStatus.getStatus();
     this.captureData = CaptureData.getInstance();
+    logTextPane.setEditable(false);
+    logTextPane.setContentType("text/html");
+    var hed = new HTMLEditorKit();
+    var defaultStyle = hed.getStyleSheet();
+    var style = new StyleSheet();
+    style.addStyleSheet(defaultStyle);
+    style.addRule("body {font-family:\"Monospaced\"; font-size:9px;}");
+    style.addRule("a {color:#000000; text-decoration: none;}");
+    hed.setStyleSheet(style);
+    logTextPane.setEditorKit(hed);
+    logTextPane.setDocument(hed.createDefaultDocument());
+    logTextPane.addHyperlinkListener(e -> {
+      if(e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+        var url = e.getDescription().split(":");
+        var sequenceNumber = url[0];
+        var payloadLength = url[1];
+        var ackNumber = url[2];
+        var tcpFlagsDisplayable = url[3];
+        var tcpConnectionHostAddress = url[4];
+        var addressOpt = this.captureData.getTcpConnectionMap().keySet()
+          .stream()
+          .filter(addr -> addr.toString().equals(tcpConnectionHostAddress))
+          .findFirst();
+        if (addressOpt.isPresent()) {
+          var tcpConnectionOfPacket = captureData
+            .getTcpConnectionMap()
+            .get(addressOpt.get());
+          var selectedPkt = tcpConnectionOfPacket.getPacketContainer()
+            .findPacketWith(
+              Long.parseLong(sequenceNumber),
+              Long.parseLong(ackNumber),
+              Integer.parseInt(payloadLength),
+              tcpFlagsDisplayable);
+          selectedPkt.ifPresent(packet ->
+            SwingUtilities.invokeLater(() -> {
+              ArrowDiagram.getInstance().setTcpConnection(tcpConnectionOfPacket, filtersForm);
+              ArrowDiagram.getInstance().setSelectedPacket(packet);
+              filtersForm.setSelectedConnection(tcpConnectionOfPacket);
+              var mr = MiddleRow.getInstance();
+              mr.setConnectionSelector(tcpConnectionOfPacket);
+              mr.setConnectionInformation(tcpConnectionOfPacket);
+          }));
+        }
+      }
+    });
+    this.appStatus = ApplicationStatus.getStatus();
     this.pcapFileReaderService = serviceProvider.getPcapFileReaderService();
     this.packetDisplayService = serviceProvider.getPacketDisplayService();
     this.liveCaptureService = serviceProvider.getLiveCaptureService();
@@ -51,7 +98,8 @@ public class PacketLog {
         optionsPanel.getPanel(), "Error, cannot read file while " +
           "already live capturing packets, please stop the capture first.");
     } else {
-      Executors.newSingleThreadExecutor()
+      var executor = Executors.newSingleThreadExecutor();
+      executor
         .execute(() -> {
           try {
             this.pcapFileReaderService.readPacketFile(
@@ -63,18 +111,20 @@ public class PacketLog {
             throw new RuntimeException(e);
           }
         });
+      executor.shutdown();
     }
   }
 
   public void startPacketCapture(PcapNetworkInterface networkInterface,
-                                 MiddleRow middleRow,
-                                 CaptureDescriptionPanel captureDescriptionPanel) throws PcapNativeException, NotOpenException {
+                                 OptionsPanel optionsPanel) throws PcapNativeException, NotOpenException {
     var appStatus = ApplicationStatus.getStatus();
     if (!appStatus.isLiveCapturing().get() && pcapHandle == null) {
-      ArrowDiagram.getInstance().setFilters(filtersForm);
-      ArrowDiagram.getInstance().repaint();
+      SwingUtilities.invokeLater(() -> {
+        ArrowDiagram.getInstance().setFilters(filtersForm);
+        ArrowDiagram.getInstance().repaint();
+      });
       this.pcapHandle = liveCaptureService.startCapture(
-        networkInterface, filtersForm, logTextPane, middleRow, captureDescriptionPanel);
+        networkInterface, filtersForm, logTextPane, optionsPanel);
     } else if (this.pcapHandle != null) {
       pcapHandle.breakLoop();
       pcapHandle.close();
@@ -96,10 +146,12 @@ public class PacketLog {
       pcapHandle.close();
     }
     filtersForm.restoreDefaults();
-    var arrowDiagram = ArrowDiagram.getInstance();
-    arrowDiagram.setTcpConnection(null, filtersForm);
-    arrowDiagram.repaint();
     SwingUtilities.invokeLater(() -> {
+      var middleRow = MiddleRow.getInstance();
+      middleRow.resetConnectionInformation();
+      var arrowDiagram = ArrowDiagram.getInstance();
+      arrowDiagram.setTcpConnection(null, filtersForm);
+      arrowDiagram.repaint();
       logTextPane.setText("");
       logTextPane.revalidate();
       logTextPane.repaint();
@@ -108,16 +160,19 @@ public class PacketLog {
 
   public void refilterPackets() {
     var packetText = getPacketText();
-    ArrowDiagram.getInstance().setFilters(filtersForm);
-    ArrowDiagram.getInstance().repaint();
-    ArrowDiagram.getInstance().revalidate();
-    if (Strings.isBlank(packetText)) {
-      logTextPane.setText("No packets matching your search criteria found, try changing your filters.");
-    } else {
-      logTextPane.setText(packetText);
-    }
-    logTextPane.repaint();
-    logTextPane.revalidate();
+
+    SwingUtilities.invokeLater(() -> {
+      ArrowDiagram.getInstance().setFilters(filtersForm);
+      ArrowDiagram.getInstance().repaint();
+      logTextPane.setContentType("text/html");
+      if (Strings.isBlank(packetText)) {
+        logTextPane.setText("<html> No packets matching your search criteria found, try changing your filters.</html>");
+      } else {
+        logTextPane.setText(packetText);
+      }
+      logTextPane.repaint();
+      logTextPane.revalidate();
+    });
   }
 
   public CaptureData getCaptureData() {
@@ -129,10 +184,15 @@ public class PacketLog {
   }
 
   private String getPacketText() {
-    return captureData.getPackets().getPackets()
+    var sb = new StringBuilder();
+    sb.append("<html>");
+
+    sb.append(captureData.getPackets().getPackets()
       .stream()
       .filter(packet -> packetDisplayService.isVisible(packet, filtersForm))
-      .map(packet -> packetDisplayService.prettyPrintPacket(packet, filtersForm) + "\n")
-      .collect(Collectors.joining("\n"));
+      .map(packet -> packetDisplayService.prettyPrintPacket(packet, filtersForm))
+      .collect(Collectors.joining()));
+    sb.append("</html>");
+    return sb.toString();
   }
 }

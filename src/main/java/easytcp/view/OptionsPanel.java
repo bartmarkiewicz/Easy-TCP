@@ -99,18 +99,22 @@ public class OptionsPanel {
     defaultsBt.setSize(200, 200);
     row.add(defaultsBt);
     defaultsBt.addActionListener((event) -> {
-      this.filtersForm.restoreDefaults();
-      this.middleRow.resetConnectionInformation();
-      ArrowDiagram.getInstance().setTcpConnection(null, filtersForm);
-      restoreFilters();
-      }
-    );
+      SwingUtilities.invokeLater(() -> {
+        this.filtersForm.restoreDefaults();
+        this.middleRow.resetConnectionInformation();
+        ArrowDiagram.getInstance().setTcpConnection(null, filtersForm);
+        restoreFilters();
+      });
+    });
     var filterBt = new JButton("Filter");
     filterBt.setSize(200, 200);
 
     filterBt.addActionListener((event) -> {
       if (!ApplicationStatus.getStatus().isLiveCapturing().get() && !ApplicationStatus.getStatus().isLoading().get()) {
         this.packetLog.refilterPackets();
+        if (filtersForm.getSelectedConnection() != null) {
+          middleRow.setConnectionInformation(filtersForm.getSelectedConnection());
+        }
         captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
         middleRow.setConnectionStatusLabel(this.packetLog.getCaptureData());
       } else {
@@ -243,11 +247,12 @@ public class OptionsPanel {
     button.addActionListener((event) -> {
       var networkInterface = deviceNetworkInterfaceHashMap.get((String) interfaceSelect.getSelectedItem());
       if (networkInterface != null) {
-        Executors.newSingleThreadExecutor().execute(
+        var executor = Executors.newSingleThreadExecutor();
+        executor.execute(
           () -> {
             try {
               packetLog.startPacketCapture(
-                networkInterface, middleRow, captureDescriptionPanel);
+                networkInterface, this);
               SwingUtilities.invokeLater(() -> {
                 if (ApplicationStatus.getStatus().isLiveCapturing().get()
                   && ApplicationStatus.getStatus().getMethodOfCapture() == CaptureStatus.LIVE_CAPTURE) {
@@ -261,6 +266,7 @@ public class OptionsPanel {
               System.out.println("Could not start packet capture");
             }
           });
+        executor.shutdown();
       } else {
         System.out.println("Error reading interface.");
       }

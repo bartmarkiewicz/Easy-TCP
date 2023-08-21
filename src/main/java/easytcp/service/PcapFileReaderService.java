@@ -4,7 +4,6 @@ import easytcp.model.CaptureStatus;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.model.packet.EasyTCPacket;
 import easytcp.view.OptionsPanel;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.IpPacket;
@@ -14,10 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 public class PcapFileReaderService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PcapFileReaderService.class);
@@ -58,34 +54,7 @@ public class PcapFileReaderService {
               ipPacket, tcpPacket, finalHandle.getTimestamp(), captureData, filtersForm);
             captureData.getPackets().addPacketToContainer(easyTCPacket);
             SwingUtilities.invokeLater(() -> {
-              textPane.setText(new ArrayList<>(captureData
-                .getPackets().getPackets())
-                      .stream()
-                      .sorted(Comparator.comparing(EasyTCPacket::getTimestamp))
-                      .map(pkt -> packetDisplayService.prettyPrintPacket(pkt, filtersForm))
-                      .collect(Collectors.joining("\n")));
-              textPane.revalidate();
-              textPane.repaint();
-//                var styledDocument = textPane.getStyledDocument();
-//                try {
-//                  styledDocument
-//                    .insertString(
-//                      styledDocument.getLength(),
-//                      "\n" + packetDisplayService.prettyPrintPacket(easyTCPacket, filtersForm), null);
-//                } catch (BadLocationException e) {
-//                  LOGGER.debug("Text pane error");
-//                  throw new RuntimeException(e);
-//                }
-              //} //else {
-//                    textPane.setText(new ArrayList<>(captureData
-//                      .getPackets())
-//                      .stream()
-//                      .sorted(Comparator.comparing(EasyTCPacket::getTimestamp))
-//                      .map(pkt -> packetDisplayService.prettyPrintPacket(pkt, filtersForm))
-//                      .collect(Collectors.joining("\n")));
-            //  }
-              optionsPanel.getMiddleRow().setConnectionStatusLabel(this.captureData);
-              optionsPanel.getCaptureDescriptionPanel().updateCaptureStats(this.captureData);
+              LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
             });
           }
         }
@@ -100,13 +69,4 @@ public class PcapFileReaderService {
     LOGGER.debug("Finished reading file");
     return captureData;
   }
-
-//  private void setCaptureStats() {
-//    this.captureData.setTcpConnectionsEstablished(captureData.getPackets()
-//      .stream()
-//      .filter(i -> i.getTcpFlags().get(TCPFlag.SYN))
-//      .map(i -> i.getDestinationAddress().getAlphanumericalAddress())
-//      .distinct()
-//      .count());
-//  }
 }

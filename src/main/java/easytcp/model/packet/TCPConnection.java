@@ -7,7 +7,7 @@ public class TCPConnection {
   private InternetAddress host;
   private InternetAddress hostTwo;
   private PacketContainer packetContainer = new PacketContainer();
-
+  private boolean fullConnection;
   public TCPConnection() {
   }
 
@@ -15,7 +15,7 @@ public class TCPConnection {
     this.connectionStatus = connection.getConnectionStatus();
     this.host = connection.getHost();
     this.hostTwo = connection.getHostTwo();
-    this.packetContainer = connection.getPacketContainer();
+    this.packetContainer = new PacketContainer(connection.getPacketContainer());
   }
 
   public ConnectionStatus getConnectionStatus() {
@@ -50,9 +50,19 @@ public class TCPConnection {
     this.packetContainer = packetContainer;
   }
 
+  public boolean isFullConnection() {
+    return fullConnection;
+  }
+
+  public void setFullConnection(boolean fullConnection) {
+    this.fullConnection = fullConnection;
+  }
+
   @Override
   public String toString() {
-    return connectionStatus.getDisplayText() + " to " + host.getAddressString() + " packet count =" + packetContainer.getPackets().size();
+    return connectionStatus.getDisplayText() + " to " + host.getAddressString()
+      + " packet count =" + packetContainer.getPackets().size()
+      + (fullConnection ? " with TCP three-way handshake" : "");
   }
 
   @Override
@@ -60,7 +70,10 @@ public class TCPConnection {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     TCPConnection that = (TCPConnection) o;
-    return connectionStatus == that.connectionStatus && Objects.equals(host, that.host) && Objects.equals(hostTwo, that.hostTwo) && Objects.equals(packetContainer, that.packetContainer);
+    return connectionStatus == that.connectionStatus
+      && Objects.equals(host, that.host)
+      && Objects.equals(hostTwo, that.hostTwo)
+      && Objects.equals(packetContainer, that.packetContainer);
   }
 
   @Override

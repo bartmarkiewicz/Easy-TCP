@@ -1,14 +1,21 @@
 package easytcp.model.packet;
 
 import easytcp.model.TCPFlag;
+import org.pcap4j.packet.TcpPacket;
+import org.pcap4j.packet.namednumber.TcpOptionKind;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PacketContainer {
   private final List<EasyTCPacket> packets = new ArrayList<>();
+
+  public PacketContainer() {
+  }
+
+  public PacketContainer(PacketContainer packetContainer) {
+    this.packets.addAll(packetContainer.getPackets());
+  }
 
   public Optional<EasyTCPacket> findPacketWithAckNumber(Long ackNumber) {
     return new ArrayList<>(packets)
@@ -17,11 +24,32 @@ public class PacketContainer {
       .findFirst();
   }
 
-  public Optional<EasyTCPacket> findPacketWithSeqNumber(Long sequenceNumber) {
+  public List<EasyTCPacket> findPacketsWithOption(TcpOptionKind tcpOptionKind) {
     return new ArrayList<>(packets)
       .stream()
-      .filter(pkt -> sequenceNumber.equals(pkt.getSequenceNumber()))
-      .findFirst();
+      .filter(pkt -> pkt.getTcpOptions()
+        .stream()
+        .map(TcpPacket.TcpOption::getKind)
+        .toList()
+        .contains(tcpOptionKind))
+      .toList();
+  }
+
+  public List<TcpOptionKind> getUniqueTcpOptions() {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> !pkt.getTcpOptions().isEmpty())
+      .flatMap(pkt -> pkt.getTcpOptions().stream().filter(i -> !i.getKind().equals(TcpOptionKind.NO_OPERATION)))
+      .map(TcpPacket.TcpOption::getKind)
+      .distinct()
+      .toList();
+  }
+
+  public Optional<EasyTCPacket> findLatestPacketWithSeqNumberLessThan(Long ackNumber) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> ackNumber > pkt.getSequenceNumber())
+      .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
   public Optional<EasyTCPacket> findPacketWithAckNumberAndFlag(Long ackNumber, TCPFlag flag) {
@@ -45,12 +73,15 @@ public class PacketContainer {
     }
   }
 
-  public EasyTCPacket getLatestPacket() {
-    return packets.get(packets.size() - 1);
+  public Map<Boolean, List<EasyTCPacket>> findPacketsWithFlagOutGoingOrNot(TCPFlag flag) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> pkt.getTcpFlags().get(flag))
+      .collect(Collectors.partitioningBy((EasyTCPacket pkt) -> pkt.getOutgoingPacket() == true));
   }
 
   public List<EasyTCPacket> getPackets() {
-    return packets;
+    return new ArrayList<>(packets);
   }
 
   public List<EasyTCPacket> getOutgoingPackets() {
@@ -67,7 +98,26 @@ public class PacketContainer {
       .toList();
   }
 
-  public void clearPackets() {
+  public synchronized void clearPackets() {
     this.packets.clear();
+  }
+
+  public Long getBytesSentOrReceived(boolean outGoing) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> pkt.getOutgoingPacket() == outGoing)
+      .mapToLong(EasyTCPacket::getDataPayloadLength)
+      .sum();
+  }
+
+  public Optional<EasyTCPacket> findPacketWith(Long seq, Long ack, Integer payloadLen, String tcpFlagsDisplayable) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> seq.equals(pkt.getSequenceNumber())
+        && pkt.getAckNumber().equals(ack)
+        && pkt.getTcpFlagsDisplayable().equals(tcpFlagsDisplayable)
+        && pkt.getDataPayloadLength().equals(payloadLen))
+      .findFirst();
+
   }
 }

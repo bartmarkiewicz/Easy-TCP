@@ -4,6 +4,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.packet.namednumber.TcpPort;
 
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Objects;
 
 public class InternetAddress {
@@ -69,21 +70,41 @@ public class InternetAddress {
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.alphanumericalAddress, this.pcap4jAddress);
+    return Objects.hash(alphanumericalAddress, hostName, port);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    InternetAddress otherAddress = (InternetAddress) obj;
-    return Objects.equals(this.port, otherAddress.port)
-      && (Objects.equals(this.alphanumericalAddress, otherAddress.alphanumericalAddress)
-      || Objects.equals(this.pcap4jAddress, otherAddress.pcap4jAddress)
-      || Objects.equals(this.hostName, otherAddress.hostName));
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    InternetAddress that = (InternetAddress) o;
+    return Objects.equals(alphanumericalAddress, that.alphanumericalAddress)
+      && Arrays.equals(pcap4jAddress.getAddress(), that.pcap4jAddress.getAddress())
+      && Objects.equals(port, that.port);
+  }
+
+  //  @Override
+//  public boolean equals(Object obj) {
+//    if (this == obj)
+//      return true;
+//    if (obj == null)
+//      return false;
+//    if (getClass() != obj.getClass())
+//      return false;
+//    InternetAddress otherAddress = (InternetAddress) obj;
+//    return Objects.equals(this.port, otherAddress.port)
+//      && (Objects.equals(this.alphanumericalAddress, otherAddress.alphanumericalAddress)
+//      || Objects.equals(this.pcap4jAddress.getHostAddress(), otherAddress.getPcap4jAddress().getHostAddress())
+//      || Objects.equals(this.hostName, otherAddress.hostName));
+//  }
+
+  @Override
+  public String toString() {
+    return "InternetAddress{" +
+      "alphanumericalAddress='" + alphanumericalAddress + '\'' +
+      ", hostName='" + hostName + '\'' +
+      ", pcap4jAddress=" + pcap4jAddress +
+      ", port=" + port +
+      '}';
   }
 }

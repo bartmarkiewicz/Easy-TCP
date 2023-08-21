@@ -11,7 +11,7 @@ public enum ConnectionStatus {
   CLOSE_WAIT("Close wait"),
   CLOSED("Closed"),
   CLOSING("Closing"),
-  UNKNOWN("Unknown");
+  REJECTED("Rejected");
   private final String displayText;
 
   ConnectionStatus(String displayText) {
