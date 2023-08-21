@@ -49,7 +49,6 @@ public class OptionsPanel {
     firstRowConstraints.anchor = GridBagConstraints.ABOVE_BASELINE;
     layout.setConstraints(panel, firstRowConstraints);
     panel.setLayout(layout);
-    panel.setBackground(Color.YELLOW);
     var topRow = new JPanel();
     var topRowLayout = new GridLayout();
     topRowLayout.setRows(1);
@@ -94,7 +93,6 @@ public class OptionsPanel {
 
   private void addButtons(JPanel row) {
     var defaultsBt = new JButton("Restore defaults");
-    captureDescriptionPanel.getDescriptionPanel().setBackground(Color.RED);
     row.add(captureDescriptionPanel.getDescriptionPanel());
     defaultsBt.setSize(200, 200);
     row.add(defaultsBt);
@@ -133,7 +131,6 @@ public class OptionsPanel {
     checkboxLayout.setColumns(1);
     checkboxLayout.setRows(4);
     var checkboxContainer = new JPanel();
-    checkboxContainer.setBackground(Color.PINK);
     checkboxContainer.setLayout(checkboxLayout);
 
     resolveHostnames = new JCheckBox();
@@ -225,11 +222,16 @@ public class OptionsPanel {
       this.filtersForm.setSelectedInterface(
         deviceNetworkInterfaceHashMap.get(interfaceList.getSelectedItem()));
     });
-
+    var buttonContainer = new JPanel();
+    var buttonLayout = new GridLayout();
+    buttonLayout.setColumns(1);
+    buttonLayout.setRows(2);
+    buttonContainer.setLayout(buttonLayout);
+    buttonContainer.add(interfaceList);
+    buttonContainer.add(getStartLiveCaptureButton(interfaceList));
     topRow.add(checkboxContainer);
     topRow.add(checkboxContainer2);
-    topRow.add(interfaceList);
-    topRow.add(getStartLiveCaptureButton(interfaceList));
+    topRow.add(buttonContainer);
   }
 
   public void restoreFilters() {

@@ -17,11 +17,11 @@ public class PacketContainer {
     this.packets.addAll(packetContainer.getPackets());
   }
 
-  public Optional<EasyTCPacket> findPacketWithAckNumber(Long ackNumber) {
+  public List<EasyTCPacket> findPacketsWithSeqNum(Long seq) {
     return new ArrayList<>(packets)
       .stream()
-      .filter(pkt -> ackNumber.equals(pkt.getAckNumber()))
-      .findFirst();
+      .filter(pkt -> seq.equals(pkt.getSequenceNumber()))
+      .toList();
   }
 
   public List<EasyTCPacket> findPacketsWithOption(TcpOptionKind tcpOptionKind) {
@@ -119,5 +119,16 @@ public class PacketContainer {
         && pkt.getDataPayloadLength().equals(payloadLen))
       .findFirst();
 
+  }
+
+  public long getPacketsCountRetransmissions(boolean outgoingPacket) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> outgoingPacket == pkt.getOutgoingPacket())
+      .filter(pkt -> findPacketsWithSeqNum(pkt.getSequenceNumber())
+        .stream()
+        .filter(i -> i.getDataPayloadLength() > 0)
+        .toList().size() > 1 && pkt.getDataPayloadLength() > 0)
+      .count();
   }
 }

@@ -10,6 +10,7 @@ import org.pcap4j.packet.namednumber.TcpOptionKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.NumberFormat;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
@@ -146,7 +147,6 @@ public class ConnectionDisplayService {
         ackCounter = 0;
       }
 
-
       if (currentPacket.getOutgoingPacket() && sendingMss.isPresent()) {
         var sendingMssBytes = ((TcpMaximumSegmentSizeOption) sendingMss.get()).getMaxSegSize();
         var nagleThreshold =
@@ -203,6 +203,22 @@ public class ConnectionDisplayService {
       }
     }
 
+    var packetsSentRetransmissions = packetContainer.getPacketsCountRetransmissions(true);
+    var packetsReceivedRetransmissions = packetContainer.getPacketsCountRetransmissions(false);
+    var outgoingPackets = packetContainer.getOutgoingPackets();
+    var incomingPackets = packetContainer.getIncomingPackets();
+    var format = NumberFormat.getPercentInstance();
+    if (packetsSentRetransmissions > 0) {
+      var packetLoss = (double) packetsSentRetransmissions / outgoingPackets.size();
+      stringBuilder.append("Approximate packet loss on send %s \n"
+        .formatted(format.format(packetLoss)));
+    }
+
+    if (packetsReceivedRetransmissions > 0) {
+      var packetLoss = (double) packetsReceivedRetransmissions / incomingPackets.size();
+      stringBuilder.append("Approximate packet loss on receive %s \n"
+        .formatted(format.format(packetLoss)));
+    }
     //check for slow start
 
 

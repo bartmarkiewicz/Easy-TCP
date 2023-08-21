@@ -64,7 +64,8 @@ public class CaptureData {
     CaptureData.captureData = captureData;
   }
 
-  public ConcurrentHashMap<InternetAddress, TCPConnection> getTcpConnectionMap() {
+  public ConcurrentHashMap<InternetAddress, TCPConnection>
+  getTcpConnectionMap() {
     return tcpConnectionMap;
   }
 

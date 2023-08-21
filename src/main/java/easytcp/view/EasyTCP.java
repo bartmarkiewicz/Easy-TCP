@@ -2,6 +2,8 @@ package easytcp.view;
 
 import easytcp.model.application.FiltersForm;
 import easytcp.service.ServiceProvider;
+import mdlaf.MaterialLookAndFeel;
+import mdlaf.themes.MaterialLiteTheme;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,9 +16,9 @@ public class EasyTCP extends JFrame {
         screenSize.setSize(screenSize.width - 120, screenSize.height - 120);
         this.setPreferredSize(screenSize);
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel(new MaterialLookAndFeel(new MaterialLiteTheme()));
         } catch (Exception e) {
-            System.out.println("Error setting default windows styling, defaulting to swing styling.");
+            System.out.println("Error setting material styling, defaulting to swing styling.");
         }
         initComponents();
     }
@@ -43,11 +45,9 @@ public class EasyTCP extends JFrame {
 
         this.getContentPane().add(firstRow);
 
-        packetLogger.getPacketTextPane().setBackground(Color.PINK);
         var packetViewScroll = new JScrollPane(packetLogger.getPacketTextPane());
 
         packetViewScroll.setVerticalScrollBarPolicy(JScrollPane. VERTICAL_SCROLLBAR_AS_NEEDED);
-        packetViewScroll.setBackground(Color.pink);
 
         var menuToolbar = new MenuToolbar();
         menuToolbar.addNewMenuItemListener((actionEvent) -> {

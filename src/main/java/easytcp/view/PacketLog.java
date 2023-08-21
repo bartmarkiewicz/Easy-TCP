@@ -125,6 +125,8 @@ public class PacketLog {
       });
       this.pcapHandle = liveCaptureService.startCapture(
         networkInterface, filtersForm, logTextPane, optionsPanel);
+      MiddleRow.getInstance().resetConnectionInformation();
+      MiddleRow.getInstance().addConnectionOptions(captureData);
     } else if (this.pcapHandle != null) {
       pcapHandle.breakLoop();
       pcapHandle.close();
