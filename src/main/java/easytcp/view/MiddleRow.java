@@ -14,7 +14,6 @@ import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Executors;
 
 public class MiddleRow {
   private static MiddleRow middleRow;
@@ -58,7 +57,7 @@ public class MiddleRow {
     connectionInfoAndSelectorContainer.setLayout(borderLayout);
     connectionInfoAndSelectorContainer.add(connectionSelectorPanel, BorderLayout.NORTH);
     selectedConnectionInfoPane = new JTextPane();
-    selectedConnectionInfoPane.setText("Select a connection to view information about it.");
+    selectedConnectionInfoPane.setText(getDefaultSelectedConnectionText());
     var scrollPane = new JScrollPane(selectedConnectionInfoPane);
     connectionInfoAndSelectorContainer.add(scrollPane, BorderLayout.CENTER);
     setConnectionStatusLabel(CaptureData.getCaptureData());
@@ -110,6 +109,10 @@ public class MiddleRow {
     middleRowPanel.add(firstColPanel);
     middleRowPanel.add(connectionInfoAndSelectorContainer);
     middleRowPanel.add(rightColumn);
+  }
+
+  private String getDefaultSelectedConnectionText() {
+    return "Select a connection to view information about it.";
   }
 
   private void addConnectionDescriptionSettings(JPanel connectionDescriptionSettingPanel, FiltersForm filtersForm) {
@@ -183,26 +186,18 @@ public class MiddleRow {
     connectionSelector.setToolTipText("Select a TCP connection");
     connectionSelectorPanel.add(new JLabel("Connection"), BorderLayout.NORTH);
     connectionSelectorPanel.add(connectionSelector, BorderLayout.CENTER);
+
     connectionSelector.addItemListener((i) -> {
-      if (i.getStateChange() == ItemEvent.SELECTED
-        || i.getStateChange() == ItemEvent.DESELECTED) {
+      if (i.getStateChange() == ItemEvent.SELECTED || i.getStateChange() == ItemEvent.DESELECTED) {
           var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
-          if (selectedItem != filtersForm.getSelectedConnection()) {
-            ArrowDiagram.getInstance().setTcpConnection(selectedItem, filtersForm);
-            if (selectedItem != null) {
-              SwingUtilities.invokeLater(() -> {
-                setConnectionInformation(selectedItem); }
-              );
-            }
-            filtersForm.setSelectedConnection(selectedItem);
-          }
+          filtersForm.setSelectedConnection(selectedItem);
+          ArrowDiagram.getInstance().setTcpConnection(selectedItem, filtersForm);
       }
     });
   }
 
   public void resetConnectionInformation() {
     selectedConnectionInfoPane.setText("Select a connection to view information about it.");
-    connectionSelector.setSelectedIndex(-1);
     model.setSelectedItem(null);
     portInput.setText("");
     hostInput.setText("");
@@ -210,35 +205,19 @@ public class MiddleRow {
     selectedConnectionInfoPane.repaint();
   }
 
-  public void setConnectionInformation(TCPConnection selectedItem) {
-    Executors.newSingleThreadExecutor().execute(() -> {
-      var conInfo = connectionDisplayService.getConnectionInformation(selectedItem);
-      SwingUtilities.invokeLater(() -> {
-        selectedConnectionInfoPane.setText(conInfo);
-        ArrowDiagram.getInstance().repaint();
-        ArrowDiagram.getInstance().revalidate();
-        selectedConnectionInfoPane.revalidate();
-        selectedConnectionInfoPane.repaint();
-      });
-    });
-  }
-
   public synchronized void addConnectionOptions(CaptureData captureData) {
-    var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
     var connections = new ArrayList<>(captureData.getTcpConnectionMap().values());
     if (model.getSize() != connections.size()) {
       model.removeAllElements();
-      model.setSelectedItem(null);
-      new ArrayList<>(captureData.getTcpConnectionMap()
+
+      model.addAll(new ArrayList<>(captureData.getTcpConnectionMap()
         .values())
         .stream()
         .filter(Objects::nonNull)
-        .forEach(i -> {
-            model.addElement(i);
-            if (i.equals(selectedItem)) {
-              model.setSelectedItem(i);
-            }
-        });
+        .toList());
+      var ff = FiltersForm.getFiltersForm();
+      model.setSelectedItem(ff.getSelectedConnection());
+
     }
   }
 
@@ -257,11 +236,15 @@ public class MiddleRow {
     connectionInformationPane.setText(sb.toString());
     connectionInformationPane.revalidate();
     connectionInformationPane.repaint();
+    if (FiltersForm.getInstance().getSelectedConnection() != null) {
+      selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(FiltersForm.getFiltersForm().getSelectedConnection()));
+    } else {
+      selectedConnectionInfoPane.setText(getDefaultSelectedConnectionText());
+    }
+    selectedConnectionInfoPane.repaint();
+    selectedConnectionInfoPane.revalidate();
     packetViewScroll.repaint();
     packetViewScroll.revalidate();
-    if (connectionSelector.getSelectedItem() != null) {
-      setConnectionInformation((TCPConnection) connectionSelector.getSelectedItem());
-    }
     addConnectionOptions(captureData);
   }
 
@@ -273,10 +256,14 @@ public class MiddleRow {
     return middleRow;
   }
 
-  public void setConnectionSelector(TCPConnection tcpConnectionOfPacket) {
-//    addConnectionOptions(CaptureData.getCaptureData());
-    connectionSelector.setSelectedItem(tcpConnectionOfPacket);
-    connectionSelector.repaint();
+  public void setConnectionInformation(TCPConnection selectedConnection) {
+    model.setSelectedItem(selectedConnection);
+    SwingUtilities.invokeLater(() -> {
+      selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(selectedConnection));
+      selectedConnectionInfoPane.revalidate();
+      selectedConnectionInfoPane.repaint();
+    });
     connectionSelector.revalidate();
+    connectionSelector.repaint();
   }
 }

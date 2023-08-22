@@ -101,14 +101,50 @@ public class ConnectionDisplayService {
         .stream()
         .filter(opt -> opt.getKind().equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE))
         .findFirst());
-    var delayedAckThreshold = filtersForm.getTcpStrategyThreshold().getDelayedAckCountThreshold();
-    var delayedAckTimeout = filtersForm.getTcpStrategyThreshold().getDelayedAckCountMsThreshold();
+    var tcpThreshold = filtersForm.getTcpStrategyThreshold();
+    var delayedAckThreshold = tcpThreshold.getDelayedAckCountThreshold();
+    var delayedAckTimeout = tcpThreshold.getDelayedAckCountMsThreshold();
     var lastOutgoingPacketHadData = false;
     var lastIncomingPacketHadData = false;
+    var slowStartPossibilityReceiving = 0;
+    var slowStartPossibilitySending = 0;
     var ackCounter = 0;
+    var currentReceivingWindowSize = 0;
+    var currentSendingWindowSize = 0;
+    var consecutivePacketsRcvd = 0;
+    var consecutivePacketsSent = 0;
+
+    for(EasyTCPacket pkt: packetContainer.getPackets()) {
+      //check for slow start
+      if (pkt.getOutgoingPacket()) {
+        currentReceivingWindowSize = 0;
+        consecutivePacketsRcvd = 0;
+        consecutivePacketsSent++;
+        var previousSendingWindow = currentSendingWindowSize;
+        currentSendingWindowSize += pkt.getDataPayloadLength();
+        if (consecutivePacketsSent > 1
+          && currentSendingWindowSize >= previousSendingWindow * tcpThreshold.getSlowStartThreshold()) {
+          slowStartPossibilitySending++;
+          LOGGER.debug("Window size increased on outgoing, likely slow start");
+        }
+      } else {
+        currentSendingWindowSize = 0;
+        consecutivePacketsRcvd++;
+        consecutivePacketsSent = 0;
+        var previousReceivingWindow = currentReceivingWindowSize;
+        currentReceivingWindowSize += pkt.getDataPayloadLength();
+        if (consecutivePacketsRcvd > 1
+          && currentReceivingWindowSize >= previousReceivingWindow * tcpThreshold.getSlowStartThreshold()) {
+          slowStartPossibilityReceiving++;
+          LOGGER.debug("Window size increased on incoming, likely slow start");
+        }
+      }
+    }
+
     while (currentIndex >= 0) {
       //detects the various tcp strategies
       var currentPacket = packetContainer.getPackets().get(currentIndex);
+      var currentPacketFromStart = packetContainer.getPackets().get(0);
       var packetBeingAcked = packetContainer.findLatestPacketWithSeqNumberLessThan(currentPacket.getAckNumber());
 
       if (packetBeingAcked.isPresent() && packetBeingAcked.get().getOutgoingPacket()) {
@@ -161,22 +197,39 @@ public class ConnectionDisplayService {
         var nagleThreshold =
           (receivingMssBytes - (receivingMssBytes*filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier()));
         if (currentPacket.getDataPayloadLength() >= nagleThreshold) {
-          LOGGER.debug("Possibly nagle enabled on outgoing connection");
+          LOGGER.debug("Possibly nagle enabled on incoming connection");
           nagleAlrogithmPossibilityIncoming++;
         }
       }
+
       currentIndex--;
     }
 
     var detectedTcpFeatures = 0;
 
-    if (delayedAckPossibilityIncoming > (packetContainer.getPackets().size()/2)) {
+    if (slowStartPossibilitySending > (packetContainer.getOutgoingPackets().size()/2)) {
       detectedTcpFeatures++;
       stringBuilder.append("Detected tcp features\n");
+      stringBuilder.append("Slow start is enabled on the client\n");
+    }
+
+    if (slowStartPossibilityReceiving > (packetContainer.getIncomingPackets().size()/2)) {
+      detectedTcpFeatures++;
+      if (detectedTcpFeatures == 1) {
+        stringBuilder.append("Detected tcp features\n");
+      }
+      stringBuilder.append("Slow start is enabled on the server\n");
+    }
+
+    if (delayedAckPossibilityIncoming > (packetContainer.getIncomingPackets().size()/2)) {
+      detectedTcpFeatures++;
+      if (detectedTcpFeatures == 1) {
+        stringBuilder.append("Detected tcp features\n");
+      }
       stringBuilder.append("Delayed ack is enabled on the client\n");
     }
 
-    if (delayedAckPossibilityOutgoing > (packetContainer.getPackets().size()/2)) {
+    if (delayedAckPossibilityOutgoing > (packetContainer.getOutgoingPackets().size()/2)) {
       detectedTcpFeatures++;
       if (detectedTcpFeatures == 1) {
         stringBuilder.append("Detected tcp features\n");
@@ -203,6 +256,11 @@ public class ConnectionDisplayService {
       }
     }
 
+    //check for slow start
+    //slow start?
+
+
+
     var packetsSentRetransmissions = packetContainer.getPacketsCountRetransmissions(true);
     var packetsReceivedRetransmissions = packetContainer.getPacketsCountRetransmissions(false);
     var outgoingPackets = packetContainer.getOutgoingPackets();
@@ -219,7 +277,6 @@ public class ConnectionDisplayService {
       stringBuilder.append("Approximate packet loss on receive %s \n"
         .formatted(format.format(packetLoss)));
     }
-    //check for slow start
 
 
   }

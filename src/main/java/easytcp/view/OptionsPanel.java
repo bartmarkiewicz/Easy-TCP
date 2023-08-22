@@ -110,9 +110,7 @@ public class OptionsPanel {
     filterBt.addActionListener((event) -> {
       if (!ApplicationStatus.getStatus().isLiveCapturing().get() && !ApplicationStatus.getStatus().isLoading().get()) {
         this.packetLog.refilterPackets();
-        if (filtersForm.getSelectedConnection() != null) {
-          middleRow.setConnectionInformation(filtersForm.getSelectedConnection());
-        }
+        middleRow.setConnectionInformation(filtersForm.getSelectedConnection());
         captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
         middleRow.setConnectionStatusLabel(this.packetLog.getCaptureData());
       } else {

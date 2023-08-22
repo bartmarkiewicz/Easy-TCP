@@ -29,7 +29,6 @@ public class ArrowDiagram extends JPanel implements Scrollable {
   private TCPConnection selectedConnection;
   private JScrollPane scrollPane;
   private FiltersForm filtersForm;
-  private int horizontalOffset;
   private static ArrowDiagram arrowDiagram;
   private EasyTCPacket selectedPkt;
 
@@ -50,7 +49,6 @@ public class ArrowDiagram extends JPanel implements Scrollable {
     this.packetDisplayService = ServiceProvider.getInstance().getPacketDisplayService();
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
     currentHeight = 500;
-    horizontalOffset = -30;
   }
 
   public void setTcpConnection(TCPConnection tcpConnection, FiltersForm filtersForm) {
@@ -106,7 +104,11 @@ public class ArrowDiagram extends JPanel implements Scrollable {
       .forEach(pkt -> {
         var leftPoint = new Point();
         var rightPoint = new Point();
-
+        if (selectedPkt != null
+          && selectedPkt.equals(pkt)) {
+          //highlight selected packet
+          g2d.setColor(Color.BLUE);
+        }
         if (pkt.getOutgoingPacket()) {
           leftPoint.x = leftXPos;
           leftPoint.y = currentVerticalPosition;
@@ -171,6 +173,7 @@ public class ArrowDiagram extends JPanel implements Scrollable {
             scrollPane.getViewport().setViewPosition(new Point(0, currentHeight+100));
           }
         }
+        g2d.setColor(Color.BLACK);
       });
     selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
   }
@@ -179,7 +182,6 @@ public class ArrowDiagram extends JPanel implements Scrollable {
     int arrowSize = 16;
     var angle = getRotation(startPoint, endPoint);
 
-    g2d.setColor(Color.BLACK);
     g2d.setStroke(new BasicStroke(2));
     g2d.draw(new Line2D.Double(startPoint, endPoint));
     var arrowHead = new Polygon();
@@ -255,17 +257,24 @@ public class ArrowDiagram extends JPanel implements Scrollable {
 
   public void setSelectedPacket(EasyTCPacket pkt) {
     this.selectedPkt = pkt;
-    var packets = pkt.getTcpConnection().getPacketContainer().getPackets();
-    var packetLocY = INITIAL_VERTICAL_POSITION-40;
-    for (EasyTCPacket currentPacket : packets) {
-      if (selectedPkt.getAckNumber().equals(currentPacket.getAckNumber())
-        && selectedPkt.getSequenceNumber().equals(currentPacket.getSequenceNumber())) {
-        scrollPane.getViewport().setViewPosition(new Point(0, packetLocY));
-      }
-      packetLocY += 80;
-    }
-
-    repaint();
     revalidate();
+    repaint();
+//    var verticalOffset = 80;
+    if (pkt != null) {
+      var packets = pkt.getTcpConnection().getPacketContainer().getPackets();
+      var packetLocY = INITIAL_VERTICAL_POSITION - 70;
+      for (EasyTCPacket currentPacket : packets) {
+        if (currentPacket.equals(selectedPkt)) {
+          if (selectedPkt.getOutgoingPacket()) {
+            scrollPane.getViewport().setViewPosition(new Point(0, packetLocY));
+          } else {
+            scrollPane.getViewport().setViewPosition(new Point(0, packetLocY));
+          }
+        }
+        packetLocY += 140;
+//        packetLocY *= verticalOffset;
+//        verticalOffset += 10;
+      }
+    }
   }
 }

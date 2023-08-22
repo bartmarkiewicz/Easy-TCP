@@ -24,6 +24,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import static easytcp.service.LiveCaptureService.setLogTextPane;
+
 public class PacketLog {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketLog.class);
@@ -75,12 +77,10 @@ public class PacketLog {
               tcpFlagsDisplayable);
           selectedPkt.ifPresent(packet ->
             SwingUtilities.invokeLater(() -> {
-              ArrowDiagram.getInstance().setTcpConnection(tcpConnectionOfPacket, filtersForm);
               ArrowDiagram.getInstance().setSelectedPacket(packet);
-              filtersForm.setSelectedConnection(tcpConnectionOfPacket);
               var mr = MiddleRow.getInstance();
-              mr.setConnectionSelector(tcpConnectionOfPacket);
               mr.setConnectionInformation(tcpConnectionOfPacket);
+
           }));
         }
       }
@@ -125,13 +125,15 @@ public class PacketLog {
       });
       this.pcapHandle = liveCaptureService.startCapture(
         networkInterface, filtersForm, logTextPane, optionsPanel);
-      MiddleRow.getInstance().resetConnectionInformation();
       MiddleRow.getInstance().addConnectionOptions(captureData);
     } else if (this.pcapHandle != null) {
       pcapHandle.breakLoop();
       pcapHandle.close();
       System.out.println("Stopping live capture");
       ApplicationStatus.getStatus().setLiveCapturing(false);
+      SwingUtilities.invokeLater(() -> {
+        setLogTextPane(filtersForm, logTextPane, captureData, packetDisplayService, optionsPanel);
+      });
       this.pcapHandle = null;
     }
   }

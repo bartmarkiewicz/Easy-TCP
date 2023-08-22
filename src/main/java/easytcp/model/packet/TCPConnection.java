@@ -61,8 +61,8 @@ public class TCPConnection {
   @Override
   public String toString() {
     return connectionStatus.getDisplayText() + " to " + host.getAddressString()
-      + " packet count =" + packetContainer.getPackets().size()
-      + (fullConnection ? " with TCP three-way handshake" : "");
+      + " pkts =" + packetContainer.getPackets().size()
+      + (fullConnection ? " with handshake" : "");
   }
 
   @Override

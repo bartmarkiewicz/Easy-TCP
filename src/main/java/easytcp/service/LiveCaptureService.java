@@ -16,6 +16,7 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class LiveCaptureService {
@@ -24,6 +25,7 @@ public class LiveCaptureService {
   private final CaptureData captureData;
   private final PacketTransformerService packetTransformerService;
   private final PacketDisplayService packetDisplayService;
+  private AtomicBoolean isSettingText;
 
   public LiveCaptureService(ServiceProvider serviceProvider) {
     this.captureData = CaptureData.getInstance();
@@ -39,14 +41,16 @@ public class LiveCaptureService {
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setLiveCapturing(true);
     appStatus.setMethodOfCapture(CaptureStatus.LIVE_CAPTURE);
-    captureData.clear();
     // begin capture
     final PcapHandle handle =
       networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
     LOGGER.debug("Began live capture");
     var executor = Executors.newSingleThreadExecutor();
+    this.isSettingText = new AtomicBoolean();
+    isSettingText.set(false);
     executor.execute(() -> {
       var threadPool = Executors.newCachedThreadPool();
+
       try {
         int maxPackets = Integer.MAX_VALUE;
         handle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
@@ -58,9 +62,14 @@ public class LiveCaptureService {
               var easyTCPacket = packetTransformerService.fromPackets(
                 ipPacket, tcpPacket, handle.getTimestamp(), captureData, filtersForm);
               captureData.getPackets().addPacketToContainer(easyTCPacket);
-              SwingUtilities.invokeLater(() -> {
-                setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
-              });
+              if (!isSettingText.get()) {
+                //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates
+                isSettingText.set(true);
+                SwingUtilities.invokeLater(() -> {
+                  setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
+                  isSettingText.set(false);
+                });
+              }
             }
           }
           if(!appStatus.isLiveCapturing().get()) {
@@ -84,11 +93,11 @@ public class LiveCaptureService {
     return handle;
   }
 
-  static void setLogTextPane(FiltersForm filtersForm,
-                             JTextPane textPane,
-                             CaptureData captureData,
-                             PacketDisplayService packetDisplayService,
-                             OptionsPanel optionsPanel) {
+  public static void setLogTextPane(FiltersForm filtersForm,
+                                    JTextPane textPane,
+                                    CaptureData captureData,
+                                    PacketDisplayService packetDisplayService,
+                                    OptionsPanel optionsPanel) {
     textPane.setText("<html>" +new ArrayList<>(captureData
       .getPackets().getPackets())
       .stream()

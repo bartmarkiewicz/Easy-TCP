@@ -7,6 +7,7 @@ import org.pcap4j.packet.TcpPacket;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class EasyTCPacket {
@@ -160,5 +161,18 @@ public class EasyTCPacket {
 
   public void setOutgoingPacket(Boolean outgoingPacket) {
     this.outgoingPacket = outgoingPacket;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    EasyTCPacket that = (EasyTCPacket) o;
+    return Objects.equals(timestamp, that.timestamp) && iPprotocol == that.iPprotocol && Objects.equals(sourceAddress, that.sourceAddress) && Objects.equals(destinationAddress, that.destinationAddress) && Objects.equals(sequenceNumber, that.sequenceNumber) && Objects.equals(ackNumber, that.ackNumber) && Objects.equals(windowSize, that.windowSize) && Objects.equals(dataPayloadLength, that.dataPayloadLength) && Objects.equals(headerPayloadLength, that.headerPayloadLength) && Objects.equals(tcpFlags, that.tcpFlags) && Objects.equals(tcpOptions, that.tcpOptions) && Objects.equals(tcpConnection, that.tcpConnection) && Objects.equals(outgoingPacket, that.outgoingPacket);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(timestamp, iPprotocol, sourceAddress, destinationAddress, sequenceNumber, ackNumber, windowSize, dataPayloadLength, headerPayloadLength, tcpFlags, tcpOptions, tcpConnection, outgoingPacket);
   }
 }
