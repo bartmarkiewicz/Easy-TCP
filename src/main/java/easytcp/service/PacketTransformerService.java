@@ -140,14 +140,9 @@ public class PacketTransformerService {
         .findLatestPacketWithSeqNumberLessThan(latestPacket.getAckNumber());
     var latestPacketFlags = latestPacket.getTcpFlags();
 
-    //default status is closed
+    //default status is unknown
     if (tcpConnection.getConnectionStatus() == null) {
-      tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
-    }
-
-    // reset flag means the connection has been rejected, or disorderly terminated
-    if (latestPacketFlags.get(TCPFlag.RST)) {
-      tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
+      tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
     }
 
     //state transitions are done through this switch based on current tcp connection status
@@ -157,17 +152,13 @@ public class PacketTransformerService {
         if (latestPacketFlags.get(TCPFlag.SYN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
           tcpConnection.setFullConnection(true);
-        } else if ((latestPacketFlags.get(TCPFlag.PSH) || latestPacket.getDataPayloadLength() > 20)
-          && packetBeingAcked.isPresent()
-          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.PSH)) {
-          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-        } else if (latestPacketFlags.get(TCPFlag.FIN) || latestPacketFlags.get(TCPFlag.ACK)) {
-            tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
         } else if (latestPacketFlags.get(TCPFlag.SYN)
           && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+        } else if (latestPacketFlags.get(TCPFlag.RST)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
         }
       }
       case SYN_SENT -> {
@@ -258,6 +249,19 @@ public class PacketTransformerService {
         }
       }
       case TIME_WAIT -> LOGGER.debug("time wait");
+      case UNKNOWN -> {
+        if (!latestPacket.getOutgoingPacket()
+          && packetBeingAcked.isPresent() && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+        } else if (latestPacketFlags.get(TCPFlag.RST)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
+        } else if (latestPacketFlags.get(TCPFlag.SYN) && !latestPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
+        } else if (latestPacketFlags.get(TCPFlag.SYN)
+          && latestPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+        }
+      }
     }
   }
 

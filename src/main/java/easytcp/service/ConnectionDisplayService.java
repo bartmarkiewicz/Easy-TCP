@@ -123,9 +123,12 @@ public class ConnectionDisplayService {
         var previousSendingWindow = currentSendingWindowSize;
         currentSendingWindowSize += pkt.getDataPayloadLength();
         if (consecutivePacketsSent > 1
-          && currentSendingWindowSize >= previousSendingWindow * tcpThreshold.getSlowStartThreshold()) {
+          && currentSendingWindowSize > previousSendingWindow * tcpThreshold.getSlowStartThreshold()
+          && currentSendingWindowSize > 0
+          && previousSendingWindow > 0) {
           slowStartPossibilitySending++;
-          LOGGER.debug("Window size increased on outgoing, likely slow start");
+          LOGGER.debug("Window size increased from %s to %s on outgoing, likely slow start"
+            .formatted(previousSendingWindow, currentSendingWindowSize));
         }
       } else {
         currentSendingWindowSize = 0;
@@ -134,9 +137,12 @@ public class ConnectionDisplayService {
         var previousReceivingWindow = currentReceivingWindowSize;
         currentReceivingWindowSize += pkt.getDataPayloadLength();
         if (consecutivePacketsRcvd > 1
-          && currentReceivingWindowSize >= previousReceivingWindow * tcpThreshold.getSlowStartThreshold()) {
+          && currentReceivingWindowSize > previousReceivingWindow * tcpThreshold.getSlowStartThreshold()
+          && currentReceivingWindowSize > 0
+          && previousReceivingWindow > 0) {
           slowStartPossibilityReceiving++;
-          LOGGER.debug("Window size increased on incoming, likely slow start");
+          LOGGER.debug("Window size increased from %s to %s on incoming, likely slow start"
+            .formatted(previousReceivingWindow, currentReceivingWindowSize));
         }
       }
     }
@@ -171,13 +177,17 @@ public class ConnectionDisplayService {
             packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
           .toMillis() >= delayedAckTimeout) {
           delayedAckPossibilityOutgoing++;
-          LOGGER.debug("Delayed ack possibility + 1");
+          LOGGER.debug("Delayed ack possibility + 1 duration - between ack and packet %s".formatted(Duration.between(
+              packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
+            .toMillis()));
         }
         if (!currentPacket.getOutgoingPacket() && packetBeingAcked.isPresent() && Duration.between(
             packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
           .toMillis() >= delayedAckTimeout) {
           delayedAckPossibilityIncoming++;
-          LOGGER.debug("Delayed ack possibility + 1");
+          LOGGER.debug("Delayed ack possibility + 1 duration - %s ".formatted(Duration.between(
+              packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
+            .toMillis()));
         }
       } else {
         ackCounter = 0;
@@ -207,13 +217,13 @@ public class ConnectionDisplayService {
 
     var detectedTcpFeatures = 0;
 
-    if (slowStartPossibilitySending > (packetContainer.getOutgoingPackets().size()/2)) {
+    if (slowStartPossibilitySending > 1) { // (packetContainer.getOutgoingPackets().size()/2)) {
       detectedTcpFeatures++;
       stringBuilder.append("Detected tcp features\n");
       stringBuilder.append("Slow start is enabled on the client\n");
     }
 
-    if (slowStartPossibilityReceiving > (packetContainer.getIncomingPackets().size()/2)) {
+    if (slowStartPossibilityReceiving > 1 ) { //(packetContainer.getIncomingPackets().size()/2)) {
       detectedTcpFeatures++;
       if (detectedTcpFeatures == 1) {
         stringBuilder.append("Detected tcp features\n");
@@ -255,11 +265,6 @@ public class ConnectionDisplayService {
         stringBuilder.append("Nagle's algorithm is enabled on the server\n");
       }
     }
-
-    //check for slow start
-    //slow start?
-
-
 
     var packetsSentRetransmissions = packetContainer.getPacketsCountRetransmissions(true);
     var packetsReceivedRetransmissions = packetContainer.getPacketsCountRetransmissions(false);

@@ -59,9 +59,12 @@ public class ArrowDiagram extends JPanel implements Scrollable {
       this.selectedConnection = null;
       scrollPane.getViewport().setViewPosition(new Point(0, 0));
       return;
+    } else if (selectedConnection != null && !selectedConnection.equals(tcpConnection)) {
+      scrollPane.getViewport().setViewPosition(new Point(0, 0));
+      return;
     }
     this.selectedConnection = new TCPConnection(tcpConnection); //copies the connection
-    selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+    selectedConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
   }
 
   @Override
@@ -175,7 +178,7 @@ public class ArrowDiagram extends JPanel implements Scrollable {
         }
         g2d.setColor(Color.BLACK);
       });
-    selectedConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+    selectedConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
   }
 
   public void drawArrow(Graphics2D g2d, Point startPoint, Point endPoint) {

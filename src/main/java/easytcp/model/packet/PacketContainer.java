@@ -127,8 +127,15 @@ public class PacketContainer {
       .filter(pkt -> outgoingPacket == pkt.getOutgoingPacket())
       .filter(pkt -> findPacketsWithSeqNum(pkt.getSequenceNumber())
         .stream()
-        .filter(i -> i.getDataPayloadLength() > 0)
-        .toList().size() > 1 && pkt.getDataPayloadLength() > 0)
+        .filter(i -> {
+          var payloadIsSame = i.getDataPayloadLength().equals(pkt.getDataPayloadLength());
+          if (payloadIsSame) {
+            return i.getAckNumber().equals(pkt.getAckNumber());
+          } else {
+            return false;
+          }
+        })
+        .toList().size() > 1)
       .count();
   }
 }

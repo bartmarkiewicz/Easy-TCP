@@ -72,8 +72,7 @@ public class TCPConnection {
     TCPConnection that = (TCPConnection) o;
     return connectionStatus == that.connectionStatus
       && Objects.equals(host, that.host)
-      && Objects.equals(hostTwo, that.hostTwo)
-      && Objects.equals(packetContainer, that.packetContainer);
+      && Objects.equals(hostTwo, that.hostTwo);
   }
 
   @Override
