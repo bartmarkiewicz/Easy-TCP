@@ -61,7 +61,6 @@ public class ArrowDiagram extends JPanel implements Scrollable {
       return;
     } else if (selectedConnection != null && !selectedConnection.equals(tcpConnection)) {
       scrollPane.getViewport().setViewPosition(new Point(0, 0));
-      return;
     }
     this.selectedConnection = new TCPConnection(tcpConnection); //copies the connection
     selectedConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);

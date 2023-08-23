@@ -101,15 +101,14 @@ public class PacketLog {
       var executor = Executors.newSingleThreadExecutor();
       executor
         .execute(() -> {
-          try {
+//          try {
             this.pcapFileReaderService.readPacketFile(
               selectedFile, filtersForm, logTextPane, optionsPanel);
-            appStatus.setLoading(false);
-          } catch (PcapNativeException e) {
-            throw new RuntimeException(e);
-          } catch (NotOpenException e) {
-            throw new RuntimeException(e);
-          }
+//          } catch (PcapNativeException e) {
+//            throw new RuntimeException(e);
+//          } catch (NotOpenException e) {
+//            throw new RuntimeException(e);
+//          }
         });
       executor.shutdown();
     }

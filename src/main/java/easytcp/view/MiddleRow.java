@@ -259,9 +259,11 @@ public class MiddleRow {
   public void setConnectionInformation(TCPConnection selectedConnection) {
     model.setSelectedItem(selectedConnection);
     SwingUtilities.invokeLater(() -> {
-      selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(selectedConnection));
-      selectedConnectionInfoPane.revalidate();
-      selectedConnectionInfoPane.repaint();
+      if (selectedConnection != null) {
+        selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(selectedConnection));
+        selectedConnectionInfoPane.revalidate();
+        selectedConnectionInfoPane.repaint();
+      }
     });
     connectionSelector.revalidate();
     connectionSelector.repaint();

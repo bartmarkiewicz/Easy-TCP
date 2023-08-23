@@ -45,10 +45,10 @@ public class PacketContainer {
       .toList();
   }
 
-  public Optional<EasyTCPacket> findLatestPacketWithSeqNumberLessThan(Long ackNumber) {
+  public Optional<EasyTCPacket> findLatestPacketWithSeqNumberLessThan(Long ackNumber, boolean outgoing) {
     return new ArrayList<>(packets)
       .stream()
-      .filter(pkt -> ackNumber > pkt.getSequenceNumber())
+      .filter(pkt -> ackNumber > pkt.getSequenceNumber() && pkt.getOutgoingPacket() != outgoing)
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 

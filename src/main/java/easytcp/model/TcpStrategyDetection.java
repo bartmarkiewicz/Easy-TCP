@@ -1,9 +1,9 @@
 package easytcp.model;
 
 public enum TcpStrategyDetection {
-  LENIENT(2, 100, 0.7, 1.4),
-  BALANCED(3, 150, 0.5, 1.7),
-  STRICT(4, 200, 0.3, 2);
+  LENIENT(2, 100, 0.7, 0.75),
+  BALANCED(3, 150, 0.5, 0.85),
+  STRICT(4, 200, 0.3, 0.95);
 
   private final int delayedAckCountThreshold;
   private final int delayedAckCountMsThreshold;

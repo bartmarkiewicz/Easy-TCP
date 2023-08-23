@@ -2,6 +2,7 @@ package easytcp.view;
 
 import easytcp.model.application.FiltersForm;
 import easytcp.service.ServiceProvider;
+import easytcp.view.menu.MenuToolbar;
 import mdlaf.MaterialLookAndFeel;
 import mdlaf.themes.MaterialLiteTheme;
 

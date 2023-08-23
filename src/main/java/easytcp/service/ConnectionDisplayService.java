@@ -79,7 +79,7 @@ public class ConnectionDisplayService {
 
   private void appendTcpConnectionFeatures(StringBuilder stringBuilder, TCPConnection connection) {
     var packetContainer = connection.getPacketContainer();
-    int currentIndex = packetContainer.getPackets().size() - 1;
+    int currentIndex = 0;
     int delayedAckPossibilityOutgoing = 0;
     int delayedAckPossibilityIncoming = 0;
 
@@ -147,11 +147,11 @@ public class ConnectionDisplayService {
       }
     }
 
-    while (currentIndex >= 0) {
+    while (currentIndex < packetContainer.getPackets().size()) {
       //detects the various tcp strategies
       var currentPacket = packetContainer.getPackets().get(currentIndex);
       var currentPacketFromStart = packetContainer.getPackets().get(0);
-      var packetBeingAcked = packetContainer.findLatestPacketWithSeqNumberLessThan(currentPacket.getAckNumber());
+      var packetBeingAcked = packetContainer.findLatestPacketWithSeqNumberLessThan(currentPacket.getAckNumber() + currentPacket.getSequenceNumber(), currentPacket.getOutgoingPacket());
 
       if (packetBeingAcked.isPresent() && packetBeingAcked.get().getOutgoingPacket()) {
         lastOutgoingPacketHadData = packetBeingAcked.get().getDataPayloadLength() > 0;
@@ -193,26 +193,55 @@ public class ConnectionDisplayService {
         ackCounter = 0;
       }
 
+
       if (currentPacket.getOutgoingPacket() && sendingMss.isPresent()) {
         var sendingMssBytes = ((TcpMaximumSegmentSizeOption) sendingMss.get()).getMaxSegSize();
         var nagleThreshold =
-          (sendingMssBytes - (sendingMssBytes*filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier()));
-        if (currentPacket.getDataPayloadLength() >= nagleThreshold) {
-          LOGGER.debug("Possibly nagle enabled on outgoing connection");
-          nagleAlgorithmPossibilityOutgoing++;
+          (sendingMssBytes * filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier());
+        var outgoingPackets = packetContainer.getOutgoingPackets();
+        var outGoingPacketIndx = outgoingPackets.indexOf(currentPacket);
+        if (outGoingPacketIndx >= 0 && (outGoingPacketIndx + 1) < outgoingPackets.size()) {
+          //if more data to sent
+          if (currentPacket.getWindowSize() >= currentPacket.getDataPayloadLength()
+            && currentPacket.getDataPayloadLength() >= nagleThreshold) {
+            LOGGER.debug("Possibly nagle enabled on outgoing connection payload - %s, threshold %s, %s win size"
+              .formatted(currentPacket.getDataPayloadLength(), sendingMssBytes, currentPacket.getWindowSize()));
+            nagleAlgorithmPossibilityOutgoing++;
+          } else if ((outGoingPacketIndx - 1) > 0){
+            var previousPkt = outgoingPackets.get(outGoingPacketIndx - 1);
+            var previousPktAckSeq = previousPkt.getAckNumber() + previousPkt.getDataPayloadLength();
+            var acksForPreviousPacket = packetContainer.findPacketsWithSeqNum(previousPktAckSeq);
+            if (acksForPreviousPacket.isEmpty()) {
+              LOGGER.debug("No ack for previous packet so is not nagling here");
+            } else {
+              if (currentPacket.getTimestamp().getTime() > acksForPreviousPacket.get(0).getTimestamp().getTime()) {
+                // this is probably right
+                nagleAlgorithmPossibilityOutgoing++;
+                LOGGER.debug("current packet checked timestamp %s, ack for previous outgoing packet timestamp %s"
+                  .formatted(currentPacket.getTimestamp().toString(), acksForPreviousPacket.get(0).getTimestamp().toString()));
+              } else {
+                LOGGER.debug("Ack came after packet");
+              }
+            }
+          }
         }
       }
+
       if (!currentPacket.getOutgoingPacket() && receivingMss.isPresent()) {
         var receivingMssBytes = ((TcpMaximumSegmentSizeOption) receivingMss.get()).getMaxSegSize();
         var nagleThreshold =
-          (receivingMssBytes - (receivingMssBytes*filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier()));
+          (receivingMssBytes *filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier());
         if (currentPacket.getDataPayloadLength() >= nagleThreshold) {
-          LOGGER.debug("Possibly nagle enabled on incoming connection");
+          LOGGER.debug("Possibly nagle enabled on incoming payload - %s, threshold %s, %s win size"
+            .formatted(currentPacket.getDataPayloadLength(), nagleThreshold, currentPacket.getWindowSize()));
+          if (packetBeingAcked.isPresent()) {
+            LOGGER.debug("Other win size %s".formatted(packetBeingAcked.get().getWindowSize()));
+          }
           nagleAlrogithmPossibilityIncoming++;
         }
       }
 
-      currentIndex--;
+      currentIndex++;
     }
 
     var detectedTcpFeatures = 0;
@@ -249,7 +278,7 @@ public class ConnectionDisplayService {
 
     if (sendingMss.isPresent() || receivingMss.isPresent()) {
       //check for nagle
-      if (nagleAlgorithmPossibilityOutgoing > ((packetContainer.getOutgoingPackets().size()/2))) {
+      if (nagleAlgorithmPossibilityOutgoing > ((packetContainer.getOutgoingPackets().size()/3))) {
         detectedTcpFeatures++;
         if (detectedTcpFeatures == 1) {
           stringBuilder.append("Detected tcp features\n");
@@ -257,7 +286,7 @@ public class ConnectionDisplayService {
         stringBuilder.append("Nagle's algorithm is enabled on the client\n");
       }
 
-      if (nagleAlrogithmPossibilityIncoming > ((packetContainer.getIncomingPackets().size()/2))) {
+      if (nagleAlrogithmPossibilityIncoming > ((packetContainer.getIncomingPackets().size()/3))) {
         detectedTcpFeatures++;
         if (detectedTcpFeatures == 1) {
           stringBuilder.append("Detected tcp features\n");
@@ -271,6 +300,8 @@ public class ConnectionDisplayService {
     var outgoingPackets = packetContainer.getOutgoingPackets();
     var incomingPackets = packetContainer.getIncomingPackets();
     var format = NumberFormat.getPercentInstance();
+
+    //todo this isn't very accurate
     if (packetsSentRetransmissions > 0) {
       var packetLoss = (double) packetsSentRetransmissions / outgoingPackets.size();
       stringBuilder.append("Approximate packet loss on send %s \n"

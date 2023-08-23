@@ -1,4 +1,7 @@
-package easytcp.view;
+package easytcp.view.menu;
+
+import easytcp.view.menu.help.AboutTCPHelpScreen;
+import easytcp.view.menu.help.GeneralHelpScreen;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
@@ -21,7 +24,7 @@ public class MenuToolbar {
 
     private void createMenuBar () {
       var fileMenu = new JMenu("File");
-
+      var helpMenu = new JMenu("Help");
       var exitMenuItem = new JMenuItem("Exit");
       exitMenuItem.setToolTipText("Exit application");
       exitMenuItem.addActionListener((event) -> System.exit(0));
@@ -31,11 +34,26 @@ public class MenuToolbar {
       fileMenu.add(saveMenuItem);
       fileMenu.addSeparator();
       fileMenu.add(exitMenuItem);
+      var general = new JMenuItem("General");;
+      addItemListener(general, i -> {
+        new GeneralHelpScreen();
+      });
+      var aboutTcp =  new JMenuItem("About Tcp");
+      addItemListener(aboutTcp, i -> {
+        new AboutTCPHelpScreen();
+      });
+      helpMenu.add(aboutTcp);
+      helpMenu.add(general);
 
       menuBar.add(fileMenu);
+      menuBar.add(helpMenu);
       menuBar.setVisible(true);
 
     }
+
+  public void addItemListener(JMenuItem menuItem, ActionListener actionListener) {
+    menuItem.addActionListener(actionListener);
+  }
 
   public void addNewMenuItemListener(ActionListener actionListener) {
     newMenuItem.addActionListener(actionListener);

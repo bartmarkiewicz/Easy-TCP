@@ -89,7 +89,7 @@ public class PacketDisplayService {
   public String getStatusLabelForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
-        .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber());
+        .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber()+pkt.getDataPayloadLength(), pkt.getOutgoingPacket());
     var currentPacketFlags = pkt.getTcpFlags();
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
@@ -220,9 +220,8 @@ public class PacketDisplayService {
       }
       case TIME_WAIT -> LOGGER.debug("time wait");
       case UNKNOWN -> {
-        LOGGER.debug("Established");
-        if (!pkt.getOutgoingPacket()
-          && packetBeingAcked.isPresent() && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
+        LOGGER.debug("unknown");
+        if (pkt.getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
           return ConnectionStatus.CLOSED.getDisplayText();
         } else if (currentPacketFlags.get(TCPFlag.RST)) {
@@ -235,6 +234,13 @@ public class PacketDisplayService {
           && currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
           return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+        } else if (packetBeingAcked.isPresent()
+          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.RST)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
+          return ConnectionStatus.REJECTED.getDisplayText();
+        } else if (packetBeingAcked.isPresent()) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
+          return ConnectionStatus.ESTABLISHED.getDisplayText();
         }
       }
     }
