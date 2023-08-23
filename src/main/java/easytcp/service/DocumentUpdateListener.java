@@ -1,4 +1,4 @@
-package easytcp.view;
+package easytcp.service;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;

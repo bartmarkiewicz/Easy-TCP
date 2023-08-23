@@ -5,14 +5,14 @@ import easytcp.model.packet.TCPConnection;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.PcapNetworkInterface;
 
+/*Represents the current selected filters, singleton model class.
+ */
 public class FiltersForm {
   private static FiltersForm filtersForm;
   private PcapNetworkInterface selectedInterface;
   private boolean showIpv4;
   private boolean showIpv6;
   private boolean resolveHostnames;
-  private boolean fullConnectionOnly;
-  private boolean scrollDiagram;
   private boolean showAckAndSeqNumbers;
   private boolean showHeaderFlags;
   private boolean showWindowSize;
@@ -62,6 +62,7 @@ public class FiltersForm {
   }
 
   public void restoreDefaults() {
+    //sets the default values for the different filters
     this.resolveHostnames = false;
     this.showIpv4 = true;
     this.showIpv6 = false;
@@ -94,6 +95,8 @@ public class FiltersForm {
   }
 
   public String toBfpExpression() {
+    //Transforms the filter values into a BPF expression
+    //Omits connection, which is only a post-capture filter
     var filterBuilder = new StringBuilder();
     filterBuilder.append("(tcp");
     if (isShowIpv4() && isShowIpv6()) {
@@ -135,22 +138,6 @@ public class FiltersForm {
 
   public void setSelectedConnection(TCPConnection selectedConnection) {
     this.selectedConnection = selectedConnection;
-  }
-
-  public boolean isFullConnectionOnly() {
-    return fullConnectionOnly;
-  }
-
-  public void setFullConnectionOnly(boolean fullConnectionOnly) {
-    this.fullConnectionOnly = fullConnectionOnly;
-  }
-
-  public boolean isScrollDiagram() {
-    return scrollDiagram;
-  }
-
-  public void setScrollDiagram(boolean scrollDiagram) {
-    this.scrollDiagram = scrollDiagram;
   }
 
   public boolean isShowAckAndSeqNumbers() {

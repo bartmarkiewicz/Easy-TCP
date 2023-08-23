@@ -7,6 +7,9 @@ import org.pcap4j.packet.namednumber.TcpOptionKind;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/*
+ * A wrapper around a list of packets providing helper methods and handling concurrency issues.
+ */
 public class PacketContainer {
   private final List<EasyTCPacket> packets = new ArrayList<>();
 
@@ -52,20 +55,6 @@ public class PacketContainer {
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
-  public Optional<EasyTCPacket> findPacketWithAckNumberAndFlag(Long ackNumber, TCPFlag flag) {
-    return new ArrayList<>(packets)
-      .stream()
-      .filter(pkt -> ackNumber.equals(pkt.getAckNumber()) && pkt.getTcpFlags().get(flag))
-      .findFirst();
-  }
-
-  public Optional<EasyTCPacket> findPacketWithSequenceNumberAndFlag(Long seqNumber, TCPFlag flag) {
-    return new ArrayList<>(packets)
-      .stream()
-      .filter(pkt -> seqNumber.equals(pkt.getSequenceNumber()) && pkt.getTcpFlags().get(flag))
-      .findFirst();
-  }
-
   public void addPacketToContainer(EasyTCPacket easyTCPacket) {
     synchronized (packets) {
       packets.add(easyTCPacket);
@@ -77,7 +66,7 @@ public class PacketContainer {
     return new ArrayList<>(packets)
       .stream()
       .filter(pkt -> pkt.getTcpFlags().get(flag))
-      .collect(Collectors.partitioningBy((EasyTCPacket pkt) -> pkt.getOutgoingPacket() == true));
+      .collect(Collectors.partitioningBy(EasyTCPacket::getOutgoingPacket));
   }
 
   public List<EasyTCPacket> getPackets() {

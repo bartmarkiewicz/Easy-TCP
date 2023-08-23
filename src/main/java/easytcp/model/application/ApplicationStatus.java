@@ -4,12 +4,14 @@ import easytcp.model.CaptureStatus;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Tracks the current status of EasyTCP
+ */
 public class ApplicationStatus {
   private static ApplicationStatus currentApplicationStatus;
-
   private CaptureStatus methodOfCapture;
-  private AtomicBoolean isLiveCapturing = new AtomicBoolean(false);
-  private AtomicBoolean isLoading = new AtomicBoolean(false);
+  private final AtomicBoolean isLiveCapturing = new AtomicBoolean(false);
+  private final AtomicBoolean isLoading = new AtomicBoolean(false);
 
   private ApplicationStatus() {
   }

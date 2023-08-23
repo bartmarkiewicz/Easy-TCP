@@ -171,9 +171,7 @@ public class ArrowDiagram extends JPanel implements Scrollable {
         }
         if (currentVerticalPosition >= currentHeight) {
           currentHeight += 100;
-          if (scrollPane != null && filtersForm.isScrollDiagram()) {
-            scrollPane.getViewport().setViewPosition(new Point(0, currentHeight+100));
-          }
+          scrollPane.getViewport().setViewPosition(new Point(0, currentHeight+100));
         }
         g2d.setColor(Color.BLACK);
       });

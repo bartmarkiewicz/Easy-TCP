@@ -7,6 +7,8 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Objects;
 
+/*Represents a host internet address, alongside the port its on
+ */
 public class InternetAddress {
   private String alphanumericalAddress;
   private String hostName;
@@ -82,21 +84,6 @@ public class InternetAddress {
       && Arrays.equals(pcap4jAddress.getAddress(), that.pcap4jAddress.getAddress())
       && Objects.equals(port, that.port);
   }
-
-  //  @Override
-//  public boolean equals(Object obj) {
-//    if (this == obj)
-//      return true;
-//    if (obj == null)
-//      return false;
-//    if (getClass() != obj.getClass())
-//      return false;
-//    InternetAddress otherAddress = (InternetAddress) obj;
-//    return Objects.equals(this.port, otherAddress.port)
-//      && (Objects.equals(this.alphanumericalAddress, otherAddress.alphanumericalAddress)
-//      || Objects.equals(this.pcap4jAddress.getHostAddress(), otherAddress.getPcap4jAddress().getHostAddress())
-//      || Objects.equals(this.hostName, otherAddress.hostName));
-//  }
 
   @Override
   public String toString() {

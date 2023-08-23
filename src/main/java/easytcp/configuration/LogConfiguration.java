@@ -13,11 +13,13 @@ import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 public class LogConfiguration {
 
   public static void configureLog4j() {
+    //configures Log4J to print logs to the console
     ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
     builder.setVerbosity("disable");
     builder.setPackages("easytcp");
     AppenderComponentBuilder appenderBuilder = builder.newAppender("Console", "CONSOLE")
       .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT);
+    // sets the log pattern
     appenderBuilder.add(builder.newLayout("PatternLayout")
       .addAttribute("pattern", "%d %p %c [%t] %m%n"));
 
@@ -27,7 +29,9 @@ public class LogConfiguration {
     builder.add(appenderBuilder);
     builder.add(rootLogger);
     Configurator.reconfigure(builder.build());
+    //logs everything from easytcp
     Configurator.setLevel("easytcp", Level.ALL);
+    //omits most pcap4j library logs
     Configurator.setLevel("org.pcap4j", Level.FATAL);
   }
 }

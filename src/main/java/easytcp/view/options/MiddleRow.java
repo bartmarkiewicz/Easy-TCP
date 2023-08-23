@@ -1,4 +1,4 @@
-package easytcp.view;
+package easytcp.view.options;
 
 import easytcp.model.TcpStrategyDetection;
 import easytcp.model.application.CaptureData;
@@ -7,6 +7,8 @@ import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.TCPConnection;
 import easytcp.service.ConnectionDisplayService;
 import easytcp.service.ServiceProvider;
+import easytcp.view.ArrowDiagram;
+import easytcp.service.DocumentUpdateListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,17 +17,19 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
 
+/*
+ * Class representing the middle row in the options panel
+ */
 public class MiddleRow {
   private static MiddleRow middleRow;
   private final JPanel middleRowPanel;
-  private final JTextPane connectionInformationPane;
-  private final JScrollPane packetViewScroll;
-  private final JTextPane selectedConnectionInfoPane;
-  private final JComboBox<TCPConnection> connectionSelector;
+  private JTextPane connectionInformationPane;
+  private JScrollPane packetViewScroll;
+  private JTextPane selectedConnectionInfoPane;
+  private JComboBox<TCPConnection> connectionSelector;
   private final ConnectionDisplayService connectionDisplayService;
   private JTextField hostInput;
   private JTextField portInput;
-
   private DefaultComboBoxModel<TCPConnection> model;
 
   public MiddleRow(FiltersForm filtersForm) {
@@ -35,18 +39,15 @@ public class MiddleRow {
     middleRowLayout.setRows(1);
     middleRowLayout.setColumns(3);
     middleRowPanel.setLayout(middleRowLayout);
-    var firstColPanel = new JPanel();
-    var firstColPanelLt = new GridLayout();
-    firstColPanelLt.setColumns(1);
-    firstColPanelLt.setRows(2);
-    firstColPanel.setLayout(firstColPanelLt);
-    connectionInformationPane = new JTextPane();
-    packetViewScroll = new JScrollPane(connectionInformationPane);
-    connectionInformationPane.setEditable(false);
-    connectionInformationPane.setFont(
-      new Font(connectionInformationPane.getFont().getName(), Font.PLAIN, 11));
-    packetViewScroll.setAutoscrolls(false);
+    var firstColPanel = getFirstColPanel(filtersForm);
+    var middlePanel = getConnectionInfoAndSelectorContainer(filtersForm);
+    var rightColumn = getRightColumnPanel(filtersForm);
+    middleRowPanel.add(firstColPanel);
+    middleRowPanel.add(middlePanel);
+    middleRowPanel.add(rightColumn);
+  }
 
+  private JPanel getConnectionInfoAndSelectorContainer(FiltersForm filtersForm) {
     var connectionSelectorPanel = new JPanel();
     connectionSelectorPanel.setLayout(new BorderLayout());
     model = new DefaultComboBoxModel<>();
@@ -61,8 +62,35 @@ public class MiddleRow {
     var scrollPane = new JScrollPane(selectedConnectionInfoPane);
     connectionInfoAndSelectorContainer.add(scrollPane, BorderLayout.CENTER);
     setConnectionStatusLabel(CaptureData.getCaptureData());
-    var connectionInformationSettingsPanel = new JPanel();
-    addConnectionFeatureSettings(connectionInformationSettingsPanel, filtersForm);
+    return connectionInfoAndSelectorContainer;
+  }
+
+  private JPanel getFirstColPanel(FiltersForm filtersForm) {
+    var firstColPanel = new JPanel();
+    var firstColPanelLt = new GridLayout();
+    firstColPanelLt.setColumns(1);
+    firstColPanelLt.setRows(2);
+    firstColPanel.setLayout(firstColPanelLt);
+    connectionInformationPane = new JTextPane();
+    packetViewScroll = new JScrollPane(connectionInformationPane);
+    connectionInformationPane.setEditable(false);
+    connectionInformationPane.setFont(
+      new Font(connectionInformationPane.getFont().getName(), Font.PLAIN, 11));
+    packetViewScroll.setAutoscrolls(false);
+    var connectionDescriptionSettingPanel = getConnectionDescriptionSettingPanel(filtersForm);
+    firstColPanel.add(connectionDescriptionSettingPanel);
+    firstColPanel.add(packetViewScroll);
+    return firstColPanel;
+  }
+
+  private JPanel getConnectionDescriptionSettingPanel(FiltersForm filtersForm) {
+    var connectionDescriptionSettingPanel = new JPanel();
+    addConnectionDescriptionSettings(connectionDescriptionSettingPanel, filtersForm);
+    return connectionDescriptionSettingPanel;
+  }
+
+  private JPanel getRightColumnPanel(FiltersForm filtersForm) {
+    var rightColPanel = new JPanel();
     var inputFieldsContainer = new JPanel();
     var inputFieldsLayout = new GridLayout();
     inputFieldsLayout.setRows(2);
@@ -92,23 +120,18 @@ public class MiddleRow {
     hostInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> {
       filtersForm.setHostSelected(hostInput.getText());
     });
-    var connectionDescriptionSettingPanel = new JPanel();
-    addConnectionDescriptionSettings(connectionDescriptionSettingPanel, filtersForm);
-    var rightColumn = new JPanel();
+
     var rightColLayout = new GridLayout();
     rightColLayout.setColumns(1);
     rightColLayout.setRows(2);
-    rightColumn.setLayout(rightColLayout);
-    rightColumn.add(connectionInformationSettingsPanel);
+    rightColPanel.setLayout(rightColLayout);
+    var connectionInformationSettingsPanel = new JPanel();
+    addConnectionFeatureSettings(connectionInformationSettingsPanel, filtersForm);
+    rightColPanel.add(connectionInformationSettingsPanel);
     inputFieldsContainer.add(portContainer);
     inputFieldsContainer.add(hostContainer);
-    rightColumn.add(inputFieldsContainer);
-    firstColPanel.add(connectionDescriptionSettingPanel);
-//    firstColPanel.add(connectionInformationSettingsPanel);
-    firstColPanel.add(packetViewScroll);
-    middleRowPanel.add(firstColPanel);
-    middleRowPanel.add(connectionInfoAndSelectorContainer);
-    middleRowPanel.add(rightColumn);
+    rightColPanel.add(inputFieldsContainer);
+    return rightColPanel;
   }
 
   private String getDefaultSelectedConnectionText() {

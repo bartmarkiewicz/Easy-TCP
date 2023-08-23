@@ -1,4 +1,4 @@
-package easytcp.view;
+package easytcp.view.options;
 
 import easytcp.model.application.CaptureData;
 

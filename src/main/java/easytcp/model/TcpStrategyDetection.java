@@ -1,5 +1,8 @@
 package easytcp.model;
 
+/* Enum encapsulating the different values for the TCP strategy detection thresholds,
+ * this is to set the sensitivity of detection algorithms which cannot be 100% accurate from a tcpdump.
+ */
 public enum TcpStrategyDetection {
   LENIENT(2, 100, 0.7, 0.75),
   BALANCED(3, 150, 0.5, 0.85),

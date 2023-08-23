@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/*Represents a single TCP packet alongside some IP header information
+ */
 public class EasyTCPacket {
   private Timestamp timestamp;
   private IPprotocol iPprotocol;
@@ -122,9 +124,9 @@ public class EasyTCPacket {
         .formatted(
         timestamp.toString(),
       iPprotocol.getDisplayName(),
-      sourceAddress.getAddressString(), //check if resolve hostnames enabled then resolve or print ip
-      destinationAddress.getAddressString(), // gethostname or getcanonical hostname results in huge performance impacts
-      getTcpFlagsDisplayable(),                 // best option would be to get a hashmap of ip to hostname check that then do the library call
+      sourceAddress.getAddressString(),
+      destinationAddress.getAddressString(),
+      getTcpFlagsDisplayable(),
       getSequenceNumber(),
       getAckNumber(),
       getWindowSize(),

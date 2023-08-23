@@ -204,8 +204,8 @@ public class ConnectionDisplayService {
           //if more data to sent
           if (currentPacket.getWindowSize() >= currentPacket.getDataPayloadLength()
             && currentPacket.getDataPayloadLength() >= nagleThreshold) {
-            LOGGER.debug("Possibly nagle enabled on outgoing connection payload - %s, threshold %s, %s win size"
-              .formatted(currentPacket.getDataPayloadLength(), sendingMssBytes, currentPacket.getWindowSize()));
+            LOGGER.debug("Possibly nagle enabled on outgoing connection payload - {}, threshold {}, {} win size",
+              currentPacket.getDataPayloadLength(), sendingMssBytes, currentPacket.getWindowSize());
             nagleAlgorithmPossibilityOutgoing++;
           } else if ((outGoingPacketIndx - 1) > 0){
             var previousPkt = outgoingPackets.get(outGoingPacketIndx - 1);
@@ -217,8 +217,8 @@ public class ConnectionDisplayService {
               if (currentPacket.getTimestamp().getTime() > acksForPreviousPacket.get(0).getTimestamp().getTime()) {
                 // this is probably right
                 nagleAlgorithmPossibilityOutgoing++;
-                LOGGER.debug("current packet checked timestamp %s, ack for previous outgoing packet timestamp %s"
-                  .formatted(currentPacket.getTimestamp().toString(), acksForPreviousPacket.get(0).getTimestamp().toString()));
+                LOGGER.debug("current packet checked timestamp {}, ack for previous outgoing packet timestamp {}",
+                  currentPacket.getTimestamp(), acksForPreviousPacket.get(0).getTimestamp());
               } else {
                 LOGGER.debug("Ack came after packet");
               }

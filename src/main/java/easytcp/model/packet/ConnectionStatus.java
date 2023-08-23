@@ -1,5 +1,7 @@
 package easytcp.model.packet;
 
+/*Represents the different TCP connection statuses.
+ */
 public enum ConnectionStatus {
   SYN_SENT("Syn sent"),
   SYN_RECEIVED("Syn received"),

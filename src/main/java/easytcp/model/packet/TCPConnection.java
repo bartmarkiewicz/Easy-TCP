@@ -2,12 +2,14 @@ package easytcp.model.packet;
 
 import java.util.Objects;
 
+/*Class representing a TCP connection from the interface host to another host.
+ */
 public class TCPConnection {
   private ConnectionStatus connectionStatus;
   private InternetAddress host;
   private InternetAddress hostTwo;
   private PacketContainer packetContainer = new PacketContainer();
-  private boolean fullConnection;
+  private boolean fullConnection; // indicates weather a TCP handshake was captured
   public TCPConnection() {
   }
 
@@ -16,6 +18,7 @@ public class TCPConnection {
     this.host = connection.getHost();
     this.hostTwo = connection.getHostTwo();
     this.packetContainer = new PacketContainer(connection.getPacketContainer());
+    this.fullConnection = connection.isFullConnection();
   }
 
   public ConnectionStatus getConnectionStatus() {

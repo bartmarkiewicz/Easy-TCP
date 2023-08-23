@@ -7,6 +7,8 @@ import easytcp.service.LiveCaptureService;
 import easytcp.service.PacketDisplayService;
 import easytcp.service.PcapFileReaderService;
 import easytcp.service.ServiceProvider;
+import easytcp.view.options.MiddleRow;
+import easytcp.view.options.OptionsPanel;
 import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
@@ -20,12 +22,13 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 import java.io.File;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static easytcp.service.LiveCaptureService.setLogTextPane;
 
+/*Class for displaying the text based capture log.
+ */
 public class PacketLog {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketLog.class);
@@ -35,108 +38,68 @@ public class PacketLog {
   private final PacketDisplayService packetDisplayService;
   private final LiveCaptureService liveCaptureService;
   private PcapHandle pcapHandle;
-  private CaptureData captureData;
+  private final CaptureData captureData;
   private final ApplicationStatus appStatus;
 
   public PacketLog(FiltersForm filtersForm, ServiceProvider serviceProvider) {
     this.filtersForm = filtersForm;
-    this.logTextPane = new JTextPane();
     this.captureData = CaptureData.getInstance();
-    logTextPane.setEditable(false);
-    logTextPane.setContentType("text/html");
-    var hed = new HTMLEditorKit();
-    var defaultStyle = hed.getStyleSheet();
-    var style = new StyleSheet();
-    style.addStyleSheet(defaultStyle);
-    style.addRule("body {font-family:\"Monospaced\"; font-size:9px;}");
-    style.addRule("a {color:#000000; text-decoration: none;}");
-    hed.setStyleSheet(style);
-    logTextPane.setEditorKit(hed);
-    logTextPane.setDocument(hed.createDefaultDocument());
-    logTextPane.addHyperlinkListener(e -> {
-      if(e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
-        var url = e.getDescription().split(":");
-        var sequenceNumber = url[0];
-        var payloadLength = url[1];
-        var ackNumber = url[2];
-        var tcpFlagsDisplayable = url[3];
-        var tcpConnectionHostAddress = url[4];
-        var addressOpt = this.captureData.getTcpConnectionMap().keySet()
-          .stream()
-          .filter(addr -> addr.toString().equals(tcpConnectionHostAddress))
-          .findFirst();
-        if (addressOpt.isPresent()) {
-          var tcpConnectionOfPacket = captureData
-            .getTcpConnectionMap()
-            .get(addressOpt.get());
-          var selectedPkt = tcpConnectionOfPacket.getPacketContainer()
-            .findPacketWith(
-              Long.parseLong(sequenceNumber),
-              Long.parseLong(ackNumber),
-              Integer.parseInt(payloadLength),
-              tcpFlagsDisplayable);
-          selectedPkt.ifPresent(packet ->
-            SwingUtilities.invokeLater(() -> {
-              ArrowDiagram.getInstance().setSelectedPacket(packet);
-              var mr = MiddleRow.getInstance();
-              mr.setConnectionInformation(tcpConnectionOfPacket);
-
-          }));
-        }
-      }
-    });
+    this.logTextPane = getTextPane();
     this.appStatus = ApplicationStatus.getStatus();
     this.pcapFileReaderService = serviceProvider.getPcapFileReaderService();
     this.packetDisplayService = serviceProvider.getPacketDisplayService();
     this.liveCaptureService = serviceProvider.getLiveCaptureService();
   }
 
-  public void readSelectedFile(File selectedFile, OptionsPanel optionsPanel) throws PcapNativeException, NotOpenException, ExecutionException, InterruptedException {
+  /* Reads the selected pcap file
+   */
+  public void readSelectedFile(File selectedFile, OptionsPanel optionsPanel) {
     if (appStatus.isLoading().get() || appStatus.isLiveCapturing().get()) {
+      //Cannot read a file while a file is already being loaded or packets are being live captured.
       LOGGER.debug("Attempted to read a file while live capturing");
       JOptionPane.showMessageDialog(
         optionsPanel.getPanel(), "Error, cannot read file while " +
           "already live capturing packets, please stop the capture first.");
     } else {
       var executor = Executors.newSingleThreadExecutor();
+      //runs the file reading on another thread to not hang the Swing UI thread which calls readSelectedFile.
       executor
-        .execute(() -> {
-//          try {
-            this.pcapFileReaderService.readPacketFile(
-              selectedFile, filtersForm, logTextPane, optionsPanel);
-//          } catch (PcapNativeException e) {
-//            throw new RuntimeException(e);
-//          } catch (NotOpenException e) {
-//            throw new RuntimeException(e);
-//          }
-        });
-      executor.shutdown();
+        .execute(() -> this.pcapFileReaderService.readPacketFile(
+          selectedFile, filtersForm, logTextPane, optionsPanel));
+      executor.shutdown(); //This ensures the thread is shutdown after the work on it is done, to not hog system resources.
     }
   }
 
+  /* This method begins or stops the live packet capture process.
+   */
   public void startPacketCapture(PcapNetworkInterface networkInterface,
                                  OptionsPanel optionsPanel) throws PcapNativeException, NotOpenException {
-    var appStatus = ApplicationStatus.getStatus();
     if (!appStatus.isLiveCapturing().get() && pcapHandle == null) {
+      //checks if currently is capturing, prevents another call to capture
       SwingUtilities.invokeLater(() -> {
+        //sets the filters on the ArrowDiagram and repaints it on the UI thread.
         ArrowDiagram.getInstance().setFilters(filtersForm);
         ArrowDiagram.getInstance().repaint();
       });
       this.pcapHandle = liveCaptureService.startCapture(
         networkInterface, filtersForm, logTextPane, optionsPanel);
-      MiddleRow.getInstance().addConnectionOptions(captureData);
     } else if (this.pcapHandle != null) {
+      // this stops the live capture while its in progress
       pcapHandle.breakLoop();
       pcapHandle.close();
-      System.out.println("Stopping live capture");
+      LOGGER.debug("Stopping live capture");
       ApplicationStatus.getStatus().setLiveCapturing(false);
+      //this updates the views one last time after capture has stopped.
       SwingUtilities.invokeLater(() -> {
         setLogTextPane(filtersForm, logTextPane, captureData, packetDisplayService, optionsPanel);
+        MiddleRow.getInstance().addConnectionOptions(captureData);
       });
       this.pcapHandle = null;
     }
   }
 
+  /*This restores defaults everywhere and clears the data once the user click file -> new
+   */
   public void newLog() {
     captureData.clear();
     if (pcapHandle != null && pcapHandle.isOpen()) {
@@ -144,9 +107,9 @@ public class PacketLog {
         pcapHandle.breakLoop();
       } catch (NotOpenException e) {
         LOGGER.debug(e.getMessage());
-        throw new RuntimeException(e);
       }
       pcapHandle.close();
+      pcapHandle = null;
     }
     filtersForm.restoreDefaults();
     SwingUtilities.invokeLater(() -> {
@@ -161,6 +124,8 @@ public class PacketLog {
     });
   }
 
+  /* This handles the filter button click, by re-setting the packet text.
+   */
   public void refilterPackets() {
     var packetText = getPacketText();
 
@@ -186,6 +151,8 @@ public class PacketLog {
     return this.logTextPane;
   }
 
+  /* This returns html text for the packet log after applying the filters.
+   */
   private String getPacketText() {
     var sb = new StringBuilder();
     sb.append("<html>");
@@ -198,4 +165,61 @@ public class PacketLog {
     sb.append("</html>");
     return sb.toString();
   }
+
+  private void handlePacketClick(HyperlinkEvent e) {
+    //if hyperlink is clicked
+    if(e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+      var url = e.getDescription().split(":"); //the separator between the values in the href
+      var sequenceNumber = url[0];
+      var payloadLength = url[1];
+      var ackNumber = url[2];
+      var tcpFlagsDisplayable = url[3];
+      var tcpConnectionHostAddress = url[4];
+
+      //extracts the address from the url and looks through the map of tcp connections
+      //to find the object for it.
+      var addressOpt = this.captureData.getTcpConnectionMap().keySet()
+        .stream()
+        .filter(addr -> addr.toString().equals(tcpConnectionHostAddress))
+        .findFirst();
+      if (addressOpt.isPresent()) {
+        var tcpConnectionOfPacket = captureData
+          .getTcpConnectionMap()
+          .get(addressOpt.get());
+        //gets the selected packet object from the connection
+        var selectedPkt = tcpConnectionOfPacket.getPacketContainer()
+          .findPacketWith(
+            Long.parseLong(sequenceNumber),
+            Long.parseLong(ackNumber),
+            Integer.parseInt(payloadLength),
+            tcpFlagsDisplayable);
+        selectedPkt.ifPresent(packet ->
+          //if packet found, updates the arrow diagram and selects the connection on the UI thread
+          SwingUtilities.invokeLater(() -> {
+            ArrowDiagram.getInstance().setSelectedPacket(packet);
+            var mr = MiddleRow.getInstance();
+            mr.setConnectionInformation(tcpConnectionOfPacket);
+          }));
+      }
+    }
+  }
+
+  private JTextPane getTextPane() {
+    var textPane = new JTextPane();
+    textPane.setEditable(false);
+    textPane.setContentType("text/html");
+    var hed = new HTMLEditorKit();
+    var defaultStyle = hed.getStyleSheet();
+    var style = new StyleSheet();
+    style.addStyleSheet(defaultStyle);
+    style.addRule("body {font-family:\"Monospaced\"; font-size:9px;}");
+    style.addRule("a {color:#000000; text-decoration: none;}");
+    //Ensures capture log packets are correctly read as html and edits the default hyperlink styling.
+    hed.setStyleSheet(style);
+    textPane.setEditorKit(hed);
+    textPane.setDocument(hed.createDefaultDocument());
+    textPane.addHyperlinkListener(this::handlePacketClick);
+    return textPane;
+  }
+
 }

@@ -10,11 +10,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+
+/*Singleton class to store the capture data
+ */
 public class CaptureData {
   private static CaptureData captureData;
-  private ConcurrentHashMap<String, String> resolvedHostnames = new ConcurrentHashMap<>();
-  private PacketContainer packets = new PacketContainer();
-  private ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> resolvedHostnames = new ConcurrentHashMap<>();
+  private final PacketContainer packets = new PacketContainer();
+  private final ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionMap = new ConcurrentHashMap<>();
 
   private CaptureData() {
   }
@@ -44,33 +47,17 @@ public class CaptureData {
     return resolvedHostnames;
   }
 
-  public void setResolvedHostnames(ConcurrentHashMap<String, String> resolvedHostnames) {
-    this.resolvedHostnames = resolvedHostnames;
-  }
-
   public PacketContainer getPackets() {
     return packets;
-  }
-
-  public void setPackets(PacketContainer packets) {
-    this.packets = packets;
   }
 
   public static CaptureData getCaptureData() {
     return captureData;
   }
 
-  public static void setCaptureData(CaptureData captureData) {
-    CaptureData.captureData = captureData;
-  }
-
   public ConcurrentHashMap<InternetAddress, TCPConnection>
   getTcpConnectionMap() {
     return tcpConnectionMap;
-  }
-
-  public void setTcpConnectionMap(ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionMap) {
-    this.tcpConnectionMap = tcpConnectionMap;
   }
 
   public void clear() {
