@@ -4,20 +4,26 @@ package easytcp.model;
  * this is to set the sensitivity of detection algorithms which cannot be 100% accurate from a tcpdump.
  */
 public enum TcpStrategyDetection {
-  LENIENT(2, 100, 0.7, 0.75),
-  BALANCED(3, 150, 0.5, 0.85),
-  STRICT(4, 200, 0.3, 0.95);
+  LENIENT(2, 100, 0.7, 0.75, 0.2),
+  BALANCED(3, 150, 0.5, 0.85, 0.4),
+  STRICT(4, 200, 0.3, 0.95, 0.5);
 
   private final int delayedAckCountThreshold;
   private final int delayedAckCountMsThreshold;
   private final double slowStartThreshold;
   private final double nagleThresholdModifier;
+  private final double percentOfPackets;
 
-  TcpStrategyDetection(int delayedAckCountThreshold, int delayedAckCountMsThreshold, double slowStartThreshold, double nagleThresholdModifier) {
+  TcpStrategyDetection(int delayedAckCountThreshold,
+                       int delayedAckCountMsThreshold,
+                       double slowStartThreshold,
+                       double nagleThresholdModifier,
+                       double percentOfPackets) {
     this.delayedAckCountThreshold = delayedAckCountThreshold;
     this.delayedAckCountMsThreshold = delayedAckCountMsThreshold;
     this.slowStartThreshold = slowStartThreshold;
     this.nagleThresholdModifier = nagleThresholdModifier;
+    this.percentOfPackets = percentOfPackets;
   }
 
   public int getDelayedAckCountThreshold() {
@@ -34,5 +40,9 @@ public enum TcpStrategyDetection {
 
   public double getSlowStartThreshold() {
     return slowStartThreshold;
+  }
+
+  public double getPercentOfPackets() {
+    return percentOfPackets;
   }
 }

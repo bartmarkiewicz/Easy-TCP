@@ -27,7 +27,7 @@ public class CaptureDescriptionPanel {
   public void updateCaptureStats(CaptureData captureData) {
     setConnectionCountLabel(captureData);
     packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets().getPackets().size()));
-    descriptionPanel.revalidate();
+    descriptionPanel.revalidate(); //todo make packets captured update with
     descriptionPanel.repaint();
   }
 

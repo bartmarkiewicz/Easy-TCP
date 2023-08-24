@@ -14,7 +14,7 @@ public enum ConnectionStatus {
   CLOSED("Closed"),
   CLOSING("Closing"),
   REJECTED("Rejected"),
-  UNKNOWN("Unknown");
+  UNKNOWN("");
   private final String displayText;
 
   ConnectionStatus(String displayText) {

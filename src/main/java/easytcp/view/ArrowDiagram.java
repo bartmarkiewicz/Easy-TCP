@@ -118,7 +118,7 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           rightPoint.x = rightXPos;
           rightPoint.y = currentVerticalPosition;
           g2d.drawString(
-            packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), leftXLabelPos, currentVerticalPosition-65);
+            packetDisplayService.getStatusForPacket(pkt, selectedConnection).getDisplayText(), leftXLabelPos, currentVerticalPosition-65);
           g2d.drawString(packetDisplayService.getSegmentLabel(pkt), leftXLabelPos, currentVerticalPosition-76);
           g2d.drawString(
             packetDisplayService.getConnectionTimestampForPacket(pkt), leftXLabelPos-10, currentVerticalPosition-90);
@@ -147,7 +147,7 @@ public class ArrowDiagram extends JPanel implements Scrollable {
           currentVerticalPosition = currentVerticalPosition + 70;
           leftPoint.y = currentVerticalPosition;
           rightPoint.x = rightXPos;
-          g2d.drawString(packetDisplayService.getStatusLabelForPacket(pkt, selectedConnection), rightXLabelPos, currentVerticalPosition-65);
+          g2d.drawString(packetDisplayService.getStatusForPacket(pkt, selectedConnection).getDisplayText(), rightXLabelPos, currentVerticalPosition-65);
           g2d.drawString(packetDisplayService.getSegmentLabel(pkt), rightXLabelPos, currentVerticalPosition-76);
           g2d.drawString(
             packetDisplayService.getConnectionTimestampForPacket(pkt), rightXLabelPos, currentVerticalPosition-90);

@@ -86,28 +86,28 @@ public class PacketDisplayService {
       );
   }
 
-  public String getStatusLabelForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
+  public ConnectionStatus getStatusForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
         .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber()+pkt.getDataPayloadLength(), pkt.getOutgoingPacket());
     var currentPacketFlags = pkt.getTcpFlags();
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
-      LOGGER.debug("Null status, setting closed as default");
+      LOGGER.debug("Null status, setting unknown as default");
     }
     switch (tcpConnection.getConnectionStatus()) {
       case CLOSED -> {
         //determine initial connection status
         if (currentPacketFlags.get(TCPFlag.SYN) && !currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
-          return ConnectionStatus.SYN_SENT.getDisplayText();
+          return ConnectionStatus.SYN_SENT;
         } else if (currentPacketFlags.get(TCPFlag.SYN)
           && currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+          return ConnectionStatus.SYN_RECEIVED;
         } else if (currentPacketFlags.get(TCPFlag.RST)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
-          return ConnectionStatus.REJECTED.getDisplayText();
+          return ConnectionStatus.REJECTED;
         }
       }
       case SYN_SENT -> {
@@ -117,19 +117,19 @@ public class PacketDisplayService {
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+          return ConnectionStatus.SYN_RECEIVED;
         } else if (currentPacketFlags.get(TCPFlag.SYN)) {
           // simultaneous open
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
 
-          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+          return ConnectionStatus.SYN_RECEIVED;
         } else if (currentPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
 
-          return ConnectionStatus.ESTABLISHED.getDisplayText();
+          return ConnectionStatus.ESTABLISHED;
         }
       }
       case SYN_RECEIVED -> {
@@ -138,7 +138,7 @@ public class PacketDisplayService {
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
 
-          return ConnectionStatus.ESTABLISHED.getDisplayText();
+          return ConnectionStatus.ESTABLISHED;
         }
       }
       case ESTABLISHED -> {
@@ -146,17 +146,11 @@ public class PacketDisplayService {
         if (!pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
-          return ConnectionStatus.CLOSE_WAIT.getDisplayText();
+          return ConnectionStatus.CLOSE_WAIT;
         } else if (pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_1);
-          return ConnectionStatus.FIN_WAIT_1.getDisplayText();
-        } else if (pkt.getOutgoingPacket()
-          && currentPacketFlags.get(TCPFlag.ACK)
-          && packetBeingAcked.isPresent()
-          && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
-          tcpConnection.setConnectionStatus(ConnectionStatus.CLOSE_WAIT);
-          return ConnectionStatus.CLOSE_WAIT.getDisplayText();
+          return ConnectionStatus.FIN_WAIT_1;
         }
       }
       case CLOSE_WAIT -> {
@@ -165,7 +159,7 @@ public class PacketDisplayService {
           && currentPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.LAST_ACK);
 
-          return ConnectionStatus.LAST_ACK.getDisplayText();
+          return ConnectionStatus.LAST_ACK;
         }
       }
       case LAST_ACK -> {
@@ -176,8 +170,7 @@ public class PacketDisplayService {
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
-
-          return ConnectionStatus.CLOSED.getDisplayText();
+          return ConnectionStatus.CLOSED;
         }
       }
       case FIN_WAIT_1 -> {
@@ -189,21 +182,18 @@ public class PacketDisplayService {
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)
           && !packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSING);
-
-          return ConnectionStatus.CLOSING.getDisplayText();
+          return ConnectionStatus.CLOSING;
         } else if (pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
-
-          return ConnectionStatus.TIME_WAIT.getDisplayText();
+          return ConnectionStatus.TIME_WAIT;
         } else if (!pkt.getOutgoingPacket()
           && currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_2);
-
-          return ConnectionStatus.FIN_WAIT_2.getDisplayText();
+          return ConnectionStatus.FIN_WAIT_2;
         }
       }
       case FIN_WAIT_2 -> {
@@ -215,7 +205,7 @@ public class PacketDisplayService {
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.TIME_WAIT);
 
-          return ConnectionStatus.TIME_WAIT.getDisplayText();
+          return ConnectionStatus.TIME_WAIT;
         }
       }
       case TIME_WAIT -> LOGGER.debug("time wait");
@@ -223,29 +213,36 @@ public class PacketDisplayService {
         LOGGER.debug("unknown");
         if (pkt.getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
-          return ConnectionStatus.CLOSED.getDisplayText();
+          return ConnectionStatus.CLOSED;
         } else if (currentPacketFlags.get(TCPFlag.RST)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
-          return ConnectionStatus.REJECTED.getDisplayText();
+          return ConnectionStatus.REJECTED;
         } else if (currentPacketFlags.get(TCPFlag.SYN) && !currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
-          return ConnectionStatus.SYN_SENT.getDisplayText();
+          return ConnectionStatus.SYN_SENT;
         } else if (currentPacketFlags.get(TCPFlag.SYN)
           && currentPacketFlags.get(TCPFlag.ACK)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-          return ConnectionStatus.SYN_RECEIVED.getDisplayText();
+          return ConnectionStatus.SYN_RECEIVED;
         } else if (packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.RST)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
-          return ConnectionStatus.REJECTED.getDisplayText();
+          return ConnectionStatus.REJECTED;
         } else if (packetBeingAcked.isPresent()) {
           tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
-          return ConnectionStatus.ESTABLISHED.getDisplayText();
+          return ConnectionStatus.ESTABLISHED;
+        }
+      }
+      case REJECTED -> {
+        if (currentPacketFlags.get(TCPFlag.SYN)
+          && currentPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+          return ConnectionStatus.SYN_RECEIVED;
         }
       }
     }
 
-    return "";
+    return ConnectionStatus.UNKNOWN;
   }
 
   public String getTcpFlagsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {

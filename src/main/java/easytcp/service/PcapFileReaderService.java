@@ -61,20 +61,31 @@ public class PcapFileReaderService {
           if (ipPacket != null) {
             var tcpPacket = ipPacket.get(TcpPacket.class);
             if (tcpPacket != null) {
-              var easyTCPacket = packetTransformerService.fromPackets(
-                ipPacket, tcpPacket, finalHandle.getTimestamp(), captureData, filtersForm);
-              captureData.getPackets().addPacketToContainer(easyTCPacket);
-              if (!isSettingText.get()) {
-                //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates
-                isSettingText.set(true);
-                SwingUtilities.invokeLater(() -> {
-                  LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
-                  isSettingText.set(false);
-                });
-              }
+              packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, finalHandle.getTimestamp());
+//              var easyTCPacket = packetTransformerService.fromPackets(
+//                ipPacket, tcpPacket, finalHandle.getTimestamp(), captureData, filtersForm);
+//              captureData.getPackets().addPacketToContainer(easyTCPacket);
+//              if (!isSettingText.get()) {
+//                //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates
+//                isSettingText.set(true);
+//                SwingUtilities.invokeLater(() -> {
+//                  LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
+//                  isSettingText.set(false);
+//                });
+//              }
             }
           }
         }, threadPool);
+        captureData.clear();
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()) {
+          Thread.sleep(1000);
+        }
+        packetTransformerService.transformCapturedPackets();
+        SwingUtilities.invokeLater(() -> {
+          LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
+          isSettingText.set(false);
+        });
       } catch (Exception e) {
         LOGGER.debug(e.getMessage());
         LOGGER.debug("Error sniffing packet");

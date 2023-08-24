@@ -3,6 +3,8 @@ package easytcp.service;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+/*Wrapper around a DocumentListener to remove some boilerplate code
+ */
 @FunctionalInterface
 public interface DocumentUpdateListener extends DocumentListener {
   void update(DocumentEvent e);

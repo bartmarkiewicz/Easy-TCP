@@ -9,6 +9,11 @@ public class TCPConnection {
   private InternetAddress host;
   private InternetAddress hostTwo;
   private PacketContainer packetContainer = new PacketContainer();
+  private Long maximumSegmentSizeClient;
+  private Long maximumSegmentSizeServer;
+  private Integer windowScaleClient;
+  private Integer windowScaleServer;
+
   private boolean fullConnection; // indicates weather a TCP handshake was captured
   public TCPConnection() {
   }
@@ -19,6 +24,8 @@ public class TCPConnection {
     this.hostTwo = connection.getHostTwo();
     this.packetContainer = new PacketContainer(connection.getPacketContainer());
     this.fullConnection = connection.isFullConnection();
+    this.maximumSegmentSizeClient = connection.getMaximumSegmentSizeClient();
+    this.maximumSegmentSizeServer = connection.getMaximumSegmentSizeServer();
   }
 
   public ConnectionStatus getConnectionStatus() {
@@ -59,6 +66,38 @@ public class TCPConnection {
 
   public void setFullConnection(boolean fullConnection) {
     this.fullConnection = fullConnection;
+  }
+
+  public Long getMaximumSegmentSizeClient() {
+    return maximumSegmentSizeClient;
+  }
+
+  public void setMaximumSegmentSizeClient(Long maximumSegmentSizeClient) {
+    this.maximumSegmentSizeClient = maximumSegmentSizeClient;
+  }
+
+  public Long getMaximumSegmentSizeServer() {
+    return maximumSegmentSizeServer;
+  }
+
+  public void setMaximumSegmentSizeServer(Long maximumSegmentSizeServer) {
+    this.maximumSegmentSizeServer = maximumSegmentSizeServer;
+  }
+
+  public Integer getWindowScaleClient() {
+    return windowScaleClient;
+  }
+
+  public void setWindowScaleClient(Integer windowScaleClient) {
+    this.windowScaleClient = windowScaleClient;
+  }
+
+  public Integer getWindowScaleServer() {
+    return windowScaleServer;
+  }
+
+  public void setWindowScaleServer(Integer windowScaleServer) {
+    this.windowScaleServer = windowScaleServer;
   }
 
   @Override

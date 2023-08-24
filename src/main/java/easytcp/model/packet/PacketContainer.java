@@ -62,6 +62,13 @@ public class PacketContainer {
     }
   }
 
+  public List<EasyTCPacket> getAllPacketsWithoutFlag(TCPFlag flag, boolean outgoing) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(pkt -> !pkt.getTcpFlags().get(flag) && outgoing == pkt.getOutgoingPacket())
+      .toList();
+  }
+
   public Map<Boolean, List<EasyTCPacket>> findPacketsWithFlagOutGoingOrNot(TCPFlag flag) {
     return new ArrayList<>(packets)
       .stream()
