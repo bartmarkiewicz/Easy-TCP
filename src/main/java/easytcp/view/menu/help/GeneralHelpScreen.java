@@ -1,12 +1,12 @@
 package easytcp.view.menu.help;
 
+import easytcp.view.ScrollableJPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
@@ -25,16 +25,27 @@ public class GeneralHelpScreen {
     var heading = new JLabel("Easy TCP user guide");
     heading.setHorizontalAlignment(SwingConstants.CENTER);
     frame.add(heading, BorderLayout.NORTH);
+    var containerScrollPanel = new ScrollableJPanel(true);
+    containerScrollPanel.currentHeight = 2000;
+    containerScrollPanel.COMPONENT_WIDTH = frame.getWidth()+200;
+
+    containerScrollPanel.setLayout(new GridLayout(1,1));
     this.containerPanel = new JPanel();
     var panelLayout = new GridLayout();
-    panelLayout.setRows(2);
+    panelLayout.setRows(3);
 
-    panelLayout.setColumns(2);
+    panelLayout.setColumns(3);
     panelLayout.setVgap(30);
     panelLayout.setHgap(30);
+
     containerPanel.setLayout(panelLayout);
+    containerScrollPanel.add(containerPanel);
+
+    var containerScrollPane = new JScrollPane(
+      containerScrollPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     addContents(containerPanel);
-    frame.add(containerPanel, BorderLayout.CENTER);
+
+    frame.add(containerScrollPane, BorderLayout.CENTER);
     var closeBt = new JButton("Close");
     closeBt.addActionListener(e ->
       frame.dispose()
@@ -46,7 +57,7 @@ public class GeneralHelpScreen {
 
   private void addContents(JPanel containerPanel) {
     try {
-      BufferedImage myPicture = ImageIO.read(new File("src/main/resources/arrowsDiagram.png"));
+      var arrowDiagramImg = ImageIO.read(new File("src/main/resources/arrowsDiagram.png"));
       var arrowDiagramDescription = new JTextPane();
       arrowDiagramDescription.setEditable(false);
       var arrowDiagramDescriptionScrollPane = new JScrollPane(arrowDiagramDescription);
@@ -74,7 +85,7 @@ public class GeneralHelpScreen {
       JLabel picLabel = new JLabel();
       containerPanel.add(arrowDiagramDescriptionScrollPane);
       containerPanel.add(picLabel);
-      var scaledImg = myPicture.getScaledInstance((frame.getWidth()/2)-40, (frame.getHeight()/2)-40, Image.SCALE_SMOOTH);
+      var scaledImg = arrowDiagramImg.getScaledInstance((frame.getWidth()/2)-40, (frame.getHeight()/2)-40, Image.SCALE_SMOOTH);
       picLabel.setIcon(new ImageIcon(scaledImg));
       var optionsDescription = new JTextPane();
       optionsDescription.setEditable(false);
@@ -123,14 +134,40 @@ public class GeneralHelpScreen {
       The buttons on the last row allow the user to restore the default filters - which show the most vital information, and allow the user
       to re-filter the output after a capture or file read.
       """);
-      arrowDiagramDescription.setCaretPosition(0);
-      BufferedImage optionsPic = ImageIO.read(new File("src/main/resources/optionsPic.png"));
-      var scaledOptImg = optionsPic.getScaledInstance((frame.getWidth()/2)-40, (frame.getHeight()/2)-40, Image.SCALE_SMOOTH);
+      optionsDescription.setCaretPosition(0);
+      var optionsPic = ImageIO.read(new File("src/main/resources/optionsPic.png"));
+      var scaledOptImg = optionsPic.getScaledInstance((frame.getWidth()/2)-40, (int) (frame.getHeight()/1.5), Image.SCALE_SMOOTH);
 
-      JLabel optionsPicLabel = new JLabel(new ImageIcon(scaledOptImg));
+      var optionsPicLabel = new JLabel(new ImageIcon(scaledOptImg));
       containerPanel.add(optionsDescriptionScrollPane);
       containerPanel.add(optionsPicLabel);
 
+
+
+      var packetLogImg = ImageIO.read(new File("src/main/resources/packetLog.png"));
+      var packetLogDescription = new JTextPane();
+      packetLogDescription.setEditable(false);
+      var packetLogDescriptionScrollPane = new JScrollPane(packetLogDescription);
+      packetLogDescription.setText("""
+      The packet log
+      
+      The packet log shows a text based output of the captured packets in a format akin to a tcpdump. \
+      The packets have the timestamp of having been received or sent from the network interface which is doing the capturing \
+      this is followed by their protocol version, followed by the IP address or hostname depending on the filters, first the sender address \
+      followed by the receiver. This is then followed by the flags on the TCP connection, the flags are abbreviated to just the first letter, and \
+      a dot for the ACK. Then the sequence number and the ack number is displayed. Followed by the window size and  \
+      the options field in the form of a list of bit values, lastly the length of the payload is displayed. 
+      
+      The user can click on a packet on the packet log to view the packet on the arrows diagram. This will immediately show the diagram \
+      for that connection and highlight the captured packet in blue. 
+      """);
+      packetLogDescription.setCaretPosition(0);
+      var packetLogPicLabel = new JLabel();
+      containerPanel.add(packetLogDescriptionScrollPane);
+      var scaledPktLogImg = packetLogImg.getScaledInstance((int)(frame.getWidth()/1.5), packetLogImg.getHeight(), Image.SCALE_SMOOTH);
+      containerPanel.add(packetLogPicLabel);
+
+      packetLogPicLabel.setIcon(new ImageIcon(scaledPktLogImg));
     } catch (IOException e) {
       LOGGER.debug(e.getMessage());
     }

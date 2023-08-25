@@ -14,13 +14,10 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 
-public class ArrowDiagram extends JPanel implements Scrollable {
+public class ArrowDiagram extends ScrollableJPanel {
   private static final Logger LOGGER = LoggerFactory.getLogger(ArrowDiagram.class);
-  private static final int COMPONENT_WIDTH = 675;
   private static final int INITIAL_VERTICAL_POSITION = 100;
-  private int maxUnitIncrement = 3;
   private int currentVerticalPosition;
-  private int currentHeight;
   private final int leftXPos = 110;
   private final int rightXPos = COMPONENT_WIDTH - 110;
   private final int rightXLabelPos = rightXPos + 5;
@@ -204,51 +201,6 @@ public class ArrowDiagram extends JPanel implements Scrollable {
 
   private Point midpoint(Point p1, Point p2) {
     return new Point((int) ((p1.x + p2.x)/2.0), (int) ((p1.y + p2.y)/2.0));
-  }
-
-  @Override
-  public Dimension getPreferredSize() {
-    return new Dimension(COMPONENT_WIDTH, currentHeight);
-  }
-
-  @Override
-  public Dimension getPreferredScrollableViewportSize() {
-    return null;
-  }
-
-  @Override
-  public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
-    int currentPosition = 0;
-    if (orientation == SwingConstants.HORIZONTAL) {
-      currentPosition = visibleRect.x;
-    } else {
-      currentPosition = visibleRect.y;
-    }
-
-    if (direction < 0) {
-      int newPosition = currentPosition - (currentPosition / maxUnitIncrement) * maxUnitIncrement;
-      return (newPosition == 0) ? maxUnitIncrement : newPosition;
-    } else {
-      return ((currentPosition / maxUnitIncrement) + 1) * maxUnitIncrement - currentPosition;
-    }
-  }
-
-  @Override
-  public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
-    if (orientation == SwingConstants.HORIZONTAL)
-      return visibleRect.width - maxUnitIncrement;
-    else
-      return visibleRect.height - maxUnitIncrement;
-  }
-
-  @Override
-  public boolean getScrollableTracksViewportWidth() {
-    return false;
-  }
-
-  @Override
-  public boolean getScrollableTracksViewportHeight() {
-    return false;
   }
 
   public void setFilters(FiltersForm filtersForm) {
