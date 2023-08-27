@@ -53,12 +53,13 @@ public class ConnectionDisplayService {
     }
     if (filters.isShowTcpFeatures()) {
       appendTcpStrategiesFound(sb, tcpConnection, filters.getTcpStrategyThreshold());
+      sb.append("\n");
     }
 
     if (filters.isShowTcpOptions()) {
-      appendTcpConnectionOptions(sb, packetContainer);
+      appendTcpConnectionOptions(sb, tcpConnection, true);
+      appendTcpConnectionOptions(sb, tcpConnection, false);
     }
-
     if (filters.isShowHeaderFlags()) {
       var synMap = packetContainer.findPacketsWithFlagOutGoingOrNot(TCPFlag.SYN);
       var urgMap = packetContainer.findPacketsWithFlagOutGoingOrNot(TCPFlag.URG);
@@ -91,12 +92,16 @@ public class ConnectionDisplayService {
     var clientSlowStartEnabled = slowStartLst.get(0)
       >= (pktContainer.getOutgoingPackets().size() * tcpStrategyDetection.getPercentOfPackets());
     if (clientStrategiesCount == 0 && clientSlowStartEnabled) {
+      clientStrategiesCount++;
       sb.append("TCP features on the client\n");
       sb.append("Slow start is enabled\n");
     } else if (clientSlowStartEnabled) {
+      clientStrategiesCount++;
       sb.append("Slow start is enabled\n");
     }
-
+    if (clientStrategiesCount >= 1) {
+      sb.append("\n");
+    }
     var serverStrategiesCount = detectTcpStrategiesAndAppend(
       sb, tcpConnection, tcpStrategyDetection, pktContainer.getIncomingPackets());
     var serverSlowStartEnabled = slowStartLst.get(1)
@@ -107,6 +112,10 @@ public class ConnectionDisplayService {
     } else if (serverSlowStartEnabled) {
       sb.append("Slow start is enabled\n");
     }
+
+    if (serverStrategiesCount > 0) {
+      sb.append("\n");
+    }
   }
 
 
@@ -114,22 +123,31 @@ public class ConnectionDisplayService {
                                            TCPConnection tcpConnection,
                                            TcpStrategyDetection tcpStrategyDetection,
                                            List<EasyTCPacket> sentOrReceivedPkts) {
+    if (sentOrReceivedPkts.isEmpty()) {
+      return 0;
+    }
     var packetContainer = tcpConnection.getPacketContainer();
+
+    //values which indicate signs of nagle and delayed ack respectively
     var naglePossibility = 0;
     var delayedAckPossibility = 0;
-    var isClient = sentOrReceivedPkts.size() > 0 ? sentOrReceivedPkts.get(0).getOutgoingPacket()
+
+    var isClient = !sentOrReceivedPkts.isEmpty() ? sentOrReceivedPkts.get(0).getOutgoingPacket()
       : false;
+    //gets mss that can be sent
     var receivingMSS = isClient
       ? tcpConnection.getMaximumSegmentSizeServer()
       : tcpConnection.getMaximumSegmentSizeClient();
     var nagleThreshold = receivingMSS != null ? (receivingMSS * tcpStrategyDetection.getNagleThresholdModifier())
-      : 0;
+      : 0; // the mss sensitivity modifier for signs of nagle
+
     var ackCounter = 0;
 
+    //loops through all outgoing or received packets, based on weather the server or the client is being analysed.
     for (EasyTCPacket pkt: sentOrReceivedPkts) {
-      if (nagleThreshold > 0) {
-        naglePossibility += detectNagleOnPacket(pkt, packetContainer, nagleThreshold, sentOrReceivedPkts);
-      }
+      //looks for signs of nagle on the packet
+      naglePossibility += detectNagleOnPacket(pkt, packetContainer, nagleThreshold, sentOrReceivedPkts);
+
       //checks for delayed ack, returns array where index 0 = ack counter, index 1 = possibility
       var delayedAckResult = detectDelayedAckOnPacket(pkt, packetContainer, ackCounter, tcpStrategyDetection);
       ackCounter = delayedAckResult.get(0);
@@ -139,6 +157,8 @@ public class ConnectionDisplayService {
     var percentDetectionThreshold = tcpStrategyDetection.getPercentOfPackets();
     var detectedTcpFeatures = 0;
     var onThe = sentOrReceivedPkts.get(0).getOutgoingPacket() ? "client" : "server";
+    //checks the number of nagle possibilities against the percentage of the packets without the PSH flag - which disables nagle
+    //and checks if it is within the percent detection threshold
     if (nagleThreshold > 0
       && naglePossibility > (packetContainer.getAllPacketsWithoutFlag(TCPFlag.PSH, isClient).size() * percentDetectionThreshold)) {
       detectedTcpFeatures++;
@@ -155,6 +175,8 @@ public class ConnectionDisplayService {
     return detectedTcpFeatures;
   }
 
+  /*Detects TCP slow start
+   */
   public List<Integer> detectSlowStart(PacketContainer packetContainer, TcpStrategyDetection tcpStrategyDetection) {
     int currentIndex = 0;
     var slowStartPossibilityReceiving = 0;
@@ -200,12 +222,12 @@ public class ConnectionDisplayService {
   }
 
   private List<Integer> detectDelayedAckOnPacket(EasyTCPacket pkt,
-                                             PacketContainer packetContainer,
-                                             Integer ackCounter,
-                                             TcpStrategyDetection tcpStrategyDetection) {
+                                                 PacketContainer packetContainer,
+                                                 Integer ackCounter,
+                                                 TcpStrategyDetection tcpStrategyDetection) {
     //latest ack
     var packetBeingAcked = packetContainer.findLatestPacketWithSeqNumberLessThan(
-      pkt.getAckNumber() + pkt.getSequenceNumber(), pkt.getOutgoingPacket());
+      pkt.getAckNumber() - pkt.getDataPayloadLength(), !pkt.getOutgoingPacket());
     var lastOutgoingPacketHadData = false;
     var delayedAckThreshold = tcpStrategyDetection.getDelayedAckCountThreshold();
     var delayedAckTimeoutThreshold = tcpStrategyDetection.getDelayedAckCountMsThreshold();
@@ -222,6 +244,7 @@ public class ConnectionDisplayService {
         }
         if (Duration.between(packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
           .toMillis() >= delayedAckTimeoutThreshold) {
+          //checks if the delay before sending an ack is greater than the timeout threshold
           delayedAckPossibility++;
           LOGGER.debug("Delayed ack possibility + 1 duration - between ack and packet {}", Duration.between(
               packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
@@ -234,6 +257,9 @@ public class ConnectionDisplayService {
     return  List.of(ackCounter, delayedAckPossibility);
   }
 
+  /*
+   * Checks for signs of nagle on the packet 'pkt'
+   */
   private int detectNagleOnPacket(EasyTCPacket pkt,
                                   PacketContainer packetContainer,
                                   double nagleThreshold,
@@ -249,20 +275,22 @@ public class ConnectionDisplayService {
     var recentAckedPkt = packetContainer.findLatestPacketWithSeqNumberLessThan(
       pkt.getAckNumber(), !pkt.getOutgoingPacket());
 
-    if (packetIndx >= 0 && (packetIndx + 1) < packets.size()) {
-      if (recentAckedPkt.isPresent()) {
-        naglePossiblity = checkIfPayloadNearMss(
-          pkt, nagleThreshold, naglePossiblity, windowSizeScale * recentAckedPkt.get().getWindowSize());
-      }
-      if ((packetIndx - 1) > 0) {
-        //checks if previous packet
-        var previousPkt = packets.get(packetIndx - 1);
-        var previousPktAckSeq = previousPkt.getAckNumber() + previousPkt.getDataPayloadLength();
-        var acksForPreviousPacket = packetContainer.findPacketsWithSeqNum(
-          previousPktAckSeq);
-        naglePossiblity = checkIfPacketSentAfterAck(pkt, acksForPreviousPacket, naglePossiblity);
-      }
+    //if the packet has been acked, and there is mss
+    if (packetIndx >= 0 && recentAckedPkt.isPresent() && nagleThreshold > 0) {
+      //if mss is null, when the packet for it hasn't been captured, the captured nagle threshold is 0,
+      // there is no possibility of detecting nagle through checking the payload
+      naglePossiblity = checkIfPayloadNearMss(
+        pkt, nagleThreshold, naglePossiblity, windowSizeScale * recentAckedPkt.get().getWindowSize());
     }
+    if ((packetIndx - 1) > 0) {
+      //checks if previous packet sent by the host has been acked before the current packet has been sent
+      var previousPkt = packets.get(packetIndx - 1);
+      var previousPktAckSeq = previousPkt.getAckNumber() + previousPkt.getDataPayloadLength();
+      var acksForPreviousPacket = packetContainer.findPacketsWithSeqNum(
+        previousPktAckSeq, !pkt.getOutgoingPacket());
+      naglePossiblity = checkIfPacketSentAfterAck(pkt, acksForPreviousPacket, naglePossiblity);
+    }
+
     if (naglePossiblity == 2) {
       LOGGER.debug("Very likely nagle involved here");
     }
@@ -273,8 +301,8 @@ public class ConnectionDisplayService {
     if (acksForPreviousPacket.isEmpty()) {
       LOGGER.debug("No ack for previous packet so is not nagling here");
     } else {
+      //if current packet is being sent after the ack for the previous packet
       if (pkt.getTimestamp().getTime() > acksForPreviousPacket.get(0).getTimestamp().getTime()) {
-        // this is probably right
         naglePossiblity++;
         LOGGER.debug("current packet checked timestamp {}, ack for previous outgoing packet timestamp {}",
           pkt.getTimestamp(), acksForPreviousPacket.get(0).getTimestamp());
@@ -295,255 +323,56 @@ public class ConnectionDisplayService {
     return naglePossiblity;
   }
 
-  /*Appends any detected tcp connection strategies or features spotted
-   * todo remove
-   */
-//  private void appendTcpConnectionFeatures(StringBuilder stringBuilder, TCPConnection connection) {
-//    var packetContainer = connection.getPacketContainer();
-//    int currentIndex = 0;
-//    int delayedAckPossibilityOutgoing = 0;
-//    int delayedAckPossibilityIncoming = 0;
-//    int nagleAlgorithmPossibilityOutgoing = 0;
-//    int nagleAlrogithmPossibilityIncoming = 0;
-//    var filtersForm = FiltersForm.getInstance();
-//    var mssPackets = packetContainer.findPacketsWithOption(TcpOptionKind.MAXIMUM_SEGMENT_SIZE)
-//      .stream()
-//      .collect(Collectors.partitioningBy(EasyTCPacket::getOutgoingPacket));
-//    var receivingMss = mssPackets.get(true).stream()
-//      .max(Comparator.comparing(EasyTCPacket::getTimestamp))
-//      .flatMap(pkt -> pkt.getTcpOptions()
-//        .stream()
-//        .filter(opt -> opt.getKind().equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE))
-//        .findFirst());
-//    var sendingMss = mssPackets.get(false).stream()
-//      .max(Comparator.comparing(EasyTCPacket::getTimestamp))
-//      .flatMap(pkt -> pkt.getTcpOptions()
-//        .stream()
-//        .filter(opt -> opt.getKind().equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE))
-//        .findFirst());
-//    var tcpThreshold = filtersForm.getTcpStrategyThreshold();
-//    var delayedAckThreshold = tcpThreshold.getDelayedAckCountThreshold();
-//    var delayedAckTimeout = tcpThreshold.getDelayedAckCountMsThreshold();
-//    var lastOutgoingPacketHadData = false;
-//    var lastIncomingPacketHadData = false;
-//    var slowStartPossibilityReceiving = 0;
-//    var slowStartPossibilitySending = 0;
-//    var ackCounter = 0;
-//    var currentReceivingWindowSize = 0;
-//    var currentSendingWindowSize = 0;
-//    var consecutivePacketsRcvd = 0;
-//    var consecutivePacketsSent = 0;
-//
-//    for(EasyTCPacket pkt: packetContainer.getPackets()) {
-//      //check for slow start
-//      if (pkt.getOutgoingPacket()) {
-//        currentReceivingWindowSize = 0;
-//        consecutivePacketsRcvd = 0;
-//        consecutivePacketsSent++;
-//        var previousSendingWindow = currentSendingWindowSize;
-//        currentSendingWindowSize += pkt.getDataPayloadLength();
-//        if (consecutivePacketsSent > 1
-//          && currentSendingWindowSize > previousSendingWindow * tcpThreshold.getSlowStartThreshold()
-//          && currentSendingWindowSize > 0
-//          && previousSendingWindow > 0) {
-//          slowStartPossibilitySending++;
-//          LOGGER.debug("Window size increased from {} to {} on outgoing, likely slow start",
-//            previousSendingWindow, currentSendingWindowSize);
-//        }
-//      } else {
-//        currentSendingWindowSize = 0;
-//        consecutivePacketsRcvd++;
-//        consecutivePacketsSent = 0;
-//        var previousReceivingWindow = currentReceivingWindowSize;
-//        currentReceivingWindowSize += pkt.getDataPayloadLength();
-//        if (consecutivePacketsRcvd > 1
-//          && currentReceivingWindowSize > previousReceivingWindow * tcpThreshold.getSlowStartThreshold()
-//          && currentReceivingWindowSize > 0
-//          && previousReceivingWindow > 0) {
-//          slowStartPossibilityReceiving++;
-//          LOGGER.debug("Window size increased from {} to {} on incoming, likely slow start",
-//            previousReceivingWindow, currentReceivingWindowSize);
-//        }
-//      }
-//    }
-//
-//    while (currentIndex < packetContainer.getPackets().size()) {
-//      //detects the various tcp strategies
-//      var currentPacket = packetContainer.getPackets().get(currentIndex);
-//      var packetBeingAcked = packetContainer.findLatestPacketWithSeqNumberLessThan(currentPacket.getAckNumber() + currentPacket.getSequenceNumber(), currentPacket.getOutgoingPacket());
-//
-//      if (packetBeingAcked.isPresent() && packetBeingAcked.get().getOutgoingPacket()) {
-//        lastOutgoingPacketHadData = packetBeingAcked.get().getDataPayloadLength() > 0;
-//      } else if (packetBeingAcked.isPresent()){
-//        lastIncomingPacketHadData = packetBeingAcked.get().getDataPayloadLength() > 0;
-//      }
-//
-//      if (currentPacket.getTcpFlags().get(TCPFlag.ACK)) {
-//        if (currentPacket.getOutgoingPacket() && lastOutgoingPacketHadData) {
-//          ackCounter++;
-//          if (ackCounter >= delayedAckThreshold) {
-//            delayedAckPossibilityOutgoing++;
-//            ackCounter = 0;
-//          }
-//        } else if (!currentPacket.getOutgoingPacket() && lastIncomingPacketHadData) {
-//          ackCounter++;
-//          if (ackCounter >= delayedAckThreshold) {
-//            delayedAckPossibilityIncoming++;
-//            ackCounter = 0;
-//          }
-//        }
-//        if (currentPacket.getOutgoingPacket() && packetBeingAcked.isPresent() && Duration.between(
-//            packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
-//          .toMillis() >= delayedAckTimeout) {
-//          delayedAckPossibilityOutgoing++;
-//          LOGGER.debug("Delayed ack possibility + 1 duration - between ack and packet %s".formatted(Duration.between(
-//              packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
-//            .toMillis()));
-//        }
-//        if (!currentPacket.getOutgoingPacket() && packetBeingAcked.isPresent() && Duration.between(
-//            packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
-//          .toMillis() >= delayedAckTimeout) {
-//          delayedAckPossibilityIncoming++;
-//          LOGGER.debug("Delayed ack possibility + 1 duration - %s ".formatted(Duration.between(
-//              packetBeingAcked.get().getTimestamp().toInstant(), currentPacket.getTimestamp().toInstant())
-//            .toMillis()));
-//        }
-//      } else {
-//        ackCounter = 0;
-//      }
-//
-//
-//      if (currentPacket.getOutgoingPacket() && sendingMss.isPresent()) {
-//        var sendingMssBytes = ((TcpMaximumSegmentSizeOption) sendingMss.get()).getMaxSegSize();
-//        var nagleThreshold =
-//          (sendingMssBytes * filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier());
-//        var outgoingPackets = packetContainer.getOutgoingPackets();
-//        var outGoingPacketIndx = outgoingPackets.indexOf(currentPacket);
-//        if (outGoingPacketIndx >= 0 && (outGoingPacketIndx + 1) < outgoingPackets.size()) {
-//          //if more data to sent
-//          if (currentPacket.getWindowSize() >= currentPacket.getDataPayloadLength()
-//            && currentPacket.getDataPayloadLength() >= nagleThreshold) {
-//            LOGGER.debug("Possibly nagle enabled on outgoing connection payload - {}, threshold {}, {} win size",
-//              currentPacket.getDataPayloadLength(), sendingMssBytes, currentPacket.getWindowSize());
-//            nagleAlgorithmPossibilityOutgoing++;
-//          } else if ((outGoingPacketIndx - 1) > 0){
-//            var previousPkt = outgoingPackets.get(outGoingPacketIndx - 1);
-//            var previousPktAckSeq = previousPkt.getAckNumber() + previousPkt.getDataPayloadLength();
-//            var acksForPreviousPacket = packetContainer.findPacketsWithSeqNum(previousPktAckSeq);
-//            if (acksForPreviousPacket.isEmpty()) {
-//              LOGGER.debug("No ack for previous packet so is not nagling here");
-//            } else {
-//              if (currentPacket.getTimestamp().getTime() > acksForPreviousPacket.get(0).getTimestamp().getTime()) {
-//                // this is probably right
-//                nagleAlgorithmPossibilityOutgoing++;
-//                LOGGER.debug("current packet checked timestamp {}, ack for previous outgoing packet timestamp {}",
-//                  currentPacket.getTimestamp(), acksForPreviousPacket.get(0).getTimestamp());
-//              } else {
-//                LOGGER.debug("Ack came after packet");
-//              }
-//            }
-//          }
-//        }
-//      }
-//
-//      if (!currentPacket.getOutgoingPacket() && receivingMss.isPresent()) {
-//        var receivingMssBytes = ((TcpMaximumSegmentSizeOption) receivingMss.get()).getMaxSegSize();
-//        var nagleThreshold =
-//          (receivingMssBytes *filtersForm.getTcpStrategyThreshold().getNagleThresholdModifier());
-//        if (currentPacket.getDataPayloadLength() >= nagleThreshold) {
-//          LOGGER.debug("Possibly nagle enabled on incoming payload - %s, threshold %s, %s win size"
-//            .formatted(currentPacket.getDataPayloadLength(), nagleThreshold, currentPacket.getWindowSize()));
-//          if (packetBeingAcked.isPresent()) {
-//            LOGGER.debug("Other win size %s".formatted(packetBeingAcked.get().getWindowSize()));
-//          }
-//          nagleAlrogithmPossibilityIncoming++;
-//        }
-//      }
-//
-//      currentIndex++;
-//    }
-//
-//    var detectedTcpFeatures = 0;
-//
-//    if (slowStartPossibilitySending > 1) { // (packetContainer.getOutgoingPackets().size()/2)) {
-//      detectedTcpFeatures++;
-//      stringBuilder.append("Detected tcp features\n");
-//      stringBuilder.append("Slow start is enabled on the client\n");
-//    }
-//
-//    if (slowStartPossibilityReceiving > 1 ) { //(packetContainer.getIncomingPackets().size()/2)) {
-//      detectedTcpFeatures++;
-//      if (detectedTcpFeatures == 1) {
-//        stringBuilder.append("Detected tcp features\n");
-//      }
-//      stringBuilder.append("Slow start is enabled on the server\n");
-//    }
-//
-//    if (delayedAckPossibilityIncoming > (packetContainer.getIncomingPackets().size()/2)) {
-//      detectedTcpFeatures++;
-//      if (detectedTcpFeatures == 1) {
-//        stringBuilder.append("Detected tcp features\n");
-//      }
-//      stringBuilder.append("Delayed ack is enabled on the client\n");
-//    }
-//
-//    if (delayedAckPossibilityOutgoing > (packetContainer.getOutgoingPackets().size()/2)) {
-//      detectedTcpFeatures++;
-//      if (detectedTcpFeatures == 1) {
-//        stringBuilder.append("Detected tcp features\n");
-//      }
-//      stringBuilder.append("Delayed ack is enabled on the server\n");
-//    }
-//
-//    if (sendingMss.isPresent() || receivingMss.isPresent()) {
-//      //check for nagle
-//      if (nagleAlgorithmPossibilityOutgoing > ((packetContainer.getOutgoingPackets().size()/3))) {
-//        detectedTcpFeatures++;
-//        if (detectedTcpFeatures == 1) {
-//          stringBuilder.append("Detected tcp features\n");
-//        }
-//        stringBuilder.append("Nagle's algorithm is enabled on the client\n");
-//      }
-//
-//      if (nagleAlrogithmPossibilityIncoming > ((packetContainer.getIncomingPackets().size()/3))) {
-//        detectedTcpFeatures++;
-//        if (detectedTcpFeatures == 1) {
-//          stringBuilder.append("Detected tcp features\n");
-//        }
-//        stringBuilder.append("Nagle's algorithm is enabled on the server\n");
-//      }
-//    }
-//
-//    var packetsSentRetransmissions = packetContainer.getPacketsCountRetransmissions(true);
-//    var packetsReceivedRetransmissions = packetContainer.getPacketsCountRetransmissions(false);
-//    var outgoingPackets = packetContainer.getOutgoingPackets();
-//    var incomingPackets = packetContainer.getIncomingPackets();
-//    var format = NumberFormat.getPercentInstance();
-//
-//    //todo this isn't very accurate
-//    if (packetsSentRetransmissions > 0) {
-//      var packetLoss = (double) packetsSentRetransmissions / outgoingPackets.size();
-//      stringBuilder.append("Approximate packet loss on send %s \n"
-//        .formatted(format.format(packetLoss)));
-//    }
-//
-//    if (packetsReceivedRetransmissions > 0) {
-//      var packetLoss = (double) packetsReceivedRetransmissions / incomingPackets.size();
-//      stringBuilder.append("Approximate packet loss on receive %s \n"
-//        .formatted(format.format(packetLoss)));
-//    }
-//
-//
-//  }
-
-  private void appendTcpConnectionOptions(StringBuilder sb, PacketContainer packetContainer) {
-    var uniqueOptionsOnConnection = packetContainer.getUniqueTcpOptions();
+  private void appendTcpConnectionOptions(StringBuilder sb, TCPConnection connection, boolean outgoingCon) {
+    var uniqueOptionsOnConnection = connection.getPacketContainer().getUniqueTcpOptions(outgoingCon);
+    var counter = 0;
     for (TcpOptionKind opt : uniqueOptionsOnConnection) {
       if (opt.valueAsString().equals(TcpOptionKind.SACK_PERMITTED.valueAsString())) {
+        counter++;
+        if (counter <= 1) {
+          sb.append("TCP options on the %s".formatted(outgoingCon ? "Client" : "Server"));
+        }
         sb.append("Selective acknowledgement (SACK) permitted\n");
+      } else if (opt.valueAsString().equals(TcpOptionKind.WINDOW_SCALE.valueAsString())) {
+
+        if (outgoingCon && connection.getWindowScaleClient() != null) {
+          counter++;
+          if (counter <= 1) {
+            sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+          }
+          sb.append("Window scale - %s\n".formatted(connection.getWindowScaleClient()));
+        } else if (connection.getWindowScaleServer() != null) {
+          counter++;
+          if (counter <= 1) {
+            sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+          }
+          sb.append("Window scale - %s\n".formatted(connection.getWindowScaleServer()));
+        }
+      } else if (opt.valueAsString().equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE.valueAsString())) {
+
+        if (outgoingCon && connection.getMaximumSegmentSizeClient() != null) {
+          if (counter <= 1) {
+            counter++;
+            sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+          }
+          sb.append("MSS - %s\n".formatted(connection.getMaximumSegmentSizeClient()));
+        } else if (connection.getMaximumSegmentSizeServer() != null) {
+          counter++;
+          if (counter <= 1) {
+            sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+          }
+          sb.append("MSS - %s\n".formatted(connection.getMaximumSegmentSizeServer()));
+        }
       } else if (!opt.valueAsString().equals(TcpOptionKind.SACK.valueAsString())) {
-        sb.append("%s\n".formatted(opt.name()));
+        counter++;
+        if (counter <= 1) {
+          sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+        }
+        sb.append("%s".formatted(opt.valueAsString()));
       }
+    }
+    if (counter > 0) {
+      sb.append("\n");
     }
   }
 

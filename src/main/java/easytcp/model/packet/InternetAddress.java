@@ -4,7 +4,6 @@ import org.apache.logging.log4j.util.Strings;
 import org.pcap4j.packet.namednumber.TcpPort;
 
 import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.Objects;
 
 /*Represents a host internet address, alongside the port its on
@@ -72,7 +71,7 @@ public class InternetAddress {
 
   @Override
   public int hashCode() {
-    return Objects.hash(alphanumericalAddress, hostName, port);
+    return Objects.hash(alphanumericalAddress, port);
   }
 
   @Override
@@ -81,7 +80,7 @@ public class InternetAddress {
     if (o == null || getClass() != o.getClass()) return false;
     InternetAddress that = (InternetAddress) o;
     return Objects.equals(alphanumericalAddress, that.alphanumericalAddress)
-      && Arrays.equals(pcap4jAddress.getAddress(), that.pcap4jAddress.getAddress())
+//      && Arrays.equals(pcap4jAddress.getAddress(), that.pcap4jAddress.getAddress())
       && Objects.equals(port, that.port);
   }
 

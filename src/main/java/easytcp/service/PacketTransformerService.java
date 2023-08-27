@@ -23,12 +23,13 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PacketTransformerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketTransformerService.class);
   private static AtomicInteger threadsInProgress = new AtomicInteger(0);
-  private final ArrayList<PcapCaptureData> pcapCaptureData = new ArrayList<>();
+  private static final ArrayList<PcapCaptureData> pcapCaptureData = new ArrayList<>();
 
 
   public EasyTCPacket fromPackets(IpPacket ipPacket,
@@ -84,17 +85,23 @@ public class PacketTransformerService {
     if (ApplicationStatus.getStatus().getMethodOfCapture() == CaptureStatus.LIVE_CAPTURE) {
       interfaceAddresses = filtersForm.getSelectedInterface() != null
         ? filtersForm.getSelectedInterface().getAddresses().stream()
-        .map(pcapAddress -> "/" + pcapAddress.getAddress().getHostAddress()).toList()
+        .map(pcapAddress ->  pcapAddress.getAddress().getHostAddress()).toList()
         : List.of();
     } else {
       interfaceAddresses = new ArrayList<>();
+
       // when reading a file, interface address is not known from the .pcap file, though usually it begins with 192 or 172
-      if (easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("/192") //private address ranges
-        || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("/172")) {
+      if (tcpConnectionHashMap.get(easyTcpPacket.getSourceAddress()) == null
+        && easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+        || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("172")) {
         interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
-      } else if (easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("/192") //private address ranges
-        || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("/172")) {
+      } else if (tcpConnectionHashMap.get(easyTcpPacket.getDestinationAddress()) == null
+        && easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+        || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("172")) {
         interfaceAddresses.add(easyTcpPacket.getDestinationAddress().getAddressString());
+      } else {
+        LOGGER.debug("Unclear which is the interface address %s or %s".formatted(
+          easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress()));
       }
     }
     InternetAddress addressOfConnection;
@@ -174,7 +181,7 @@ public class PacketTransformerService {
     }
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
-        .findLatestPacketWithSeqNumberLessThan(latestPacket.getAckNumber(), latestPacket.getOutgoingPacket());
+        .findLatestPacketWithSeqNumberLessThan(latestPacket.getAckNumber(), !latestPacket.getOutgoingPacket());
     var latestPacketFlags = latestPacket.getTcpFlags();
 
     //default status is unknown
@@ -313,42 +320,47 @@ public class PacketTransformerService {
   /**
    * Sets addresses and hostnames for the tcp packet, resolves hostnames if enabled
    */
-  private void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
+  private synchronized void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
                                         TcpPacket.TcpHeader tcpHeader,
                                         EasyTCPacket packet,
                                         ConcurrentHashMap<String, String> resolvedHostNames,
                                         FiltersForm filtersForm) {
 
-    var destHostName = resolvedHostNames.get(String.valueOf(ipHeader.getDstAddr()));
+    var destHostName = resolvedHostNames.get(String.valueOf(ipHeader.getDstAddr().getHostAddress()));
     var destinationAddress = new InternetAddress(
-      ipHeader.getDstAddr(), destHostName, ipHeader.getDstAddr(), tcpHeader.getDstPort());
+      ipHeader.getDstAddr().getHostAddress(), destHostName, ipHeader.getDstAddr(), tcpHeader.getDstPort().valueAsInt());
     packet.setDestinationAddress(destinationAddress);
-    if (filtersForm.isResolveHostnames() && destHostName == null) {
-      new Thread(() -> {
+    if (destHostName == null) {
+      var executor = Executors.newSingleThreadExecutor();
+      executor.execute(() -> {
         // resolving a hostname is a heavy operation so it needs to be done on another thread
         // to not hang the application
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getDstAddr().getHostName();
         // is added to a hashmap to allow it to retrieve it from there rather than doing another
         // slow DNS call or cache lookup through pcap4j's .getHostName().
-        resolvedHostNames.put(String.valueOf(ipHeader.getDstAddr()), resolvedHostname);
+        resolvedHostNames.put(String.valueOf(ipHeader.getDstAddr().getHostAddress()), resolvedHostname);
         destinationAddress.setHostName(resolvedHostname);
         threadsInProgress.decrementAndGet();
-      }).start();
+      });
+      executor.shutdown();
     }
-    var srcHostName = resolvedHostNames.get(String.valueOf(ipHeader.getSrcAddr()));
+    var srcHostName = resolvedHostNames.get(String.valueOf(ipHeader.getSrcAddr().getHostAddress()));
     var sourceAddress = new InternetAddress(
-      ipHeader.getSrcAddr(), srcHostName, ipHeader.getSrcAddr(), tcpHeader.getSrcPort());
+      ipHeader.getSrcAddr().getHostAddress(), srcHostName, ipHeader.getSrcAddr(), tcpHeader.getSrcPort().valueAsInt());
     packet.setSourceAddress(sourceAddress);
-    if (filtersForm.isResolveHostnames() && srcHostName == null) {
-      new Thread(() -> {
+    if (srcHostName == null) {
+      var executor = Executors.newSingleThreadExecutor();
+
+      executor.execute(() -> {
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getSrcAddr().getHostName();
-        resolvedHostNames.put(String.valueOf(ipHeader.getSrcAddr()), resolvedHostname);
+        resolvedHostNames.put(String.valueOf(ipHeader.getSrcAddr().getHostAddress()), resolvedHostname);
         sourceAddress.setHostName(resolvedHostname);
         threadsInProgress.decrementAndGet();
         LOGGER.debug("thread count %s".formatted(threadsInProgress.get()));
-      }).start();
+      });
+      executor.shutdown();
       LOGGER.debug("thread count, on easytcp.main thread %s".formatted(threadsInProgress.get()));
     }
   }
@@ -366,5 +378,9 @@ public class PacketTransformerService {
         fromPackets(pcapCaptureDatum.ipPacket(), pcapCaptureDatum.tcpPacket(),
           pcapCaptureDatum.timestamp(), captureData, ff));
     }
+  }
+
+  public static List<PcapCaptureData> getPcapCaptureData() {
+    return pcapCaptureData;
   }
 }

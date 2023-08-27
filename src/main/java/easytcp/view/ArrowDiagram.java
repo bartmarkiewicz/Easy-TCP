@@ -13,6 +13,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ArrowDiagram extends ScrollableJPanel {
   private static final Logger LOGGER = LoggerFactory.getLogger(ArrowDiagram.class);
@@ -28,6 +29,8 @@ public class ArrowDiagram extends ScrollableJPanel {
   private FiltersForm filtersForm;
   private static ArrowDiagram arrowDiagram;
   private EasyTCPacket selectedPkt;
+  private AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
+  private Integer selectedPktYPos = 0;
 
   public static ArrowDiagram getInstance() {
     if (arrowDiagram == null) {
@@ -170,8 +173,17 @@ public class ArrowDiagram extends ScrollableJPanel {
           currentHeight += 100;
           scrollPane.getViewport().setViewPosition(new Point(0, currentHeight+100));
         }
+        if(selectedPkt != null
+          && selectedPkt.equals(pkt)) {
+          selectedPktYPos = currentVerticalPosition - 210;
+        }
         g2d.setColor(Color.BLACK);
       });
+    if (setViewportToSelectedPkt.get()) {
+      setViewportToSelectedPkt.set(false);
+      scrollPane.getViewport().setViewPosition(new Point(0, selectedPktYPos));
+    }
+
     selectedConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
   }
 
@@ -211,21 +223,15 @@ public class ArrowDiagram extends ScrollableJPanel {
     this.selectedPkt = pkt;
     revalidate();
     repaint();
-//    var verticalOffset = 80;
     if (pkt != null) {
       var packets = pkt.getTcpConnection().getPacketContainer().getPackets();
       var packetLocY = INITIAL_VERTICAL_POSITION - 70;
       for (EasyTCPacket currentPacket : packets) {
         if (currentPacket.equals(selectedPkt)) {
-          if (selectedPkt.getOutgoingPacket()) {
-            scrollPane.getViewport().setViewPosition(new Point(0, packetLocY));
-          } else {
-            scrollPane.getViewport().setViewPosition(new Point(0, packetLocY));
-          }
+          setViewportToSelectedPkt.set(true);
+          this.selectedPktYPos = packetLocY;
         }
         packetLocY += 140;
-//        packetLocY *= verticalOffset;
-//        verticalOffset += 10;
       }
     }
   }

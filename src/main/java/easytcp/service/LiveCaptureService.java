@@ -60,8 +60,10 @@ public class LiveCaptureService {
           if (ipPacket != null) {
             var tcpPacket = ipPacket.get(TcpPacket.class);
             if (tcpPacket != null) {
+              var timestamp = handle.getTimestamp();
               var easyTCPacket = packetTransformerService.fromPackets(
-                ipPacket, tcpPacket, handle.getTimestamp(), captureData, filtersForm);
+                ipPacket, tcpPacket, timestamp, captureData, filtersForm);
+              packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, timestamp);
               captureData.getPackets().addPacketToContainer(easyTCPacket);
               if (!isSettingText.get()) {
                 //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates

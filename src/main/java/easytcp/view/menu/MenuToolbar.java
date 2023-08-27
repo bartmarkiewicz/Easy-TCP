@@ -1,5 +1,6 @@
 package easytcp.view.menu;
 
+import easytcp.service.ServiceProvider;
 import easytcp.view.menu.help.AboutTCPHelpScreen;
 import easytcp.view.menu.help.GeneralHelpScreen;
 
@@ -10,7 +11,7 @@ public class MenuToolbar {
   private final JMenuBar menuBar;
   private final JMenuItem newMenuItem = new JMenuItem("New");;
   private final JMenuItem openMenuItem =  new JMenuItem("Open");
-  private final JMenuItem saveMenuItem = new JMenuItem("Save");
+  private final JMenuItem saveMenuItem = new JMenuItem("Save capture file");
 
   public MenuToolbar() {
     super();
@@ -44,6 +45,18 @@ public class MenuToolbar {
       });
       helpMenu.add(aboutTcp);
       helpMenu.add(general);
+      var fileChooser = new JFileChooser();
+      fileChooser.addActionListener(s -> {
+        var fileSelected = fileChooser.getSelectedFile();
+        ServiceProvider.getInstance().getCaptureSaveService().saveCapture(fileSelected.getPath());
+      });
+
+      addItemListener(saveMenuItem, i -> {
+        fileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+        fileChooser.showSaveDialog(menuBar);
+        fileChooser.setMultiSelectionEnabled(false);
+        fileChooser.setVisible(true);
+      });
 
       menuBar.add(fileMenu);
       menuBar.add(helpMenu);

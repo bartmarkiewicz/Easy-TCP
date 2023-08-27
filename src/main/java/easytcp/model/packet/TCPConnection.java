@@ -1,5 +1,7 @@
 package easytcp.model.packet;
 
+import easytcp.model.application.FiltersForm;
+
 import java.util.Objects;
 
 /*Class representing a TCP connection from the interface host to another host.
@@ -102,7 +104,8 @@ public class TCPConnection {
 
   @Override
   public String toString() {
-    return connectionStatus.getDisplayText() + " to " + host.getAddressString()
+    return connectionStatus.getDisplayText() + " to " +
+      (FiltersForm.getFiltersForm().isResolveHostnames() ? host.getAddressString() : host.getAlphanumericalAddress())
       + " pkts =" + packetContainer.getPackets().size()
       + (fullConnection ? " with handshake" : "");
   }

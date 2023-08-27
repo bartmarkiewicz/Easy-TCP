@@ -20,10 +20,10 @@ public class PacketContainer {
     this.packets.addAll(packetContainer.getPackets());
   }
 
-  public List<EasyTCPacket> findPacketsWithSeqNum(Long seq) {
+  public List<EasyTCPacket> findPacketsWithSeqNum(Long seq, boolean outgoing) {
     return new ArrayList<>(packets)
       .stream()
-      .filter(pkt -> seq.equals(pkt.getSequenceNumber()))
+      .filter(pkt -> seq.equals(pkt.getSequenceNumber()) && pkt.getOutgoingPacket() == outgoing)
       .toList();
   }
 
@@ -38,8 +38,10 @@ public class PacketContainer {
       .toList();
   }
 
-  public List<TcpOptionKind> getUniqueTcpOptions() {
-    return new ArrayList<>(packets)
+  public List<TcpOptionKind> getUniqueTcpOptions(boolean outgoingPacket) {
+    var tempArr = outgoingPacket ? new ArrayList<>(getOutgoingPackets()) : new ArrayList<>(getIncomingPackets());
+
+    return tempArr
       .stream()
       .filter(pkt -> !pkt.getTcpOptions().isEmpty())
       .flatMap(pkt -> pkt.getTcpOptions().stream().filter(i -> !i.getKind().equals(TcpOptionKind.NO_OPERATION)))
@@ -51,7 +53,7 @@ public class PacketContainer {
   public Optional<EasyTCPacket> findLatestPacketWithSeqNumberLessThan(Long ackNumber, boolean outgoing) {
     return new ArrayList<>(packets)
       .stream()
-      .filter(pkt -> ackNumber > pkt.getSequenceNumber() && pkt.getOutgoingPacket() != outgoing)
+      .filter(pkt -> ackNumber > pkt.getSequenceNumber() && pkt.getOutgoingPacket() == outgoing)
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
@@ -115,23 +117,5 @@ public class PacketContainer {
         && pkt.getDataPayloadLength().equals(payloadLen))
       .findFirst();
 
-  }
-
-  public long getPacketsCountRetransmissions(boolean outgoingPacket) {
-    return new ArrayList<>(packets)
-      .stream()
-      .filter(pkt -> outgoingPacket == pkt.getOutgoingPacket())
-      .filter(pkt -> findPacketsWithSeqNum(pkt.getSequenceNumber())
-        .stream()
-        .filter(i -> {
-          var payloadIsSame = i.getDataPayloadLength().equals(pkt.getDataPayloadLength());
-          if (payloadIsSame) {
-            return i.getAckNumber().equals(pkt.getAckNumber());
-          } else {
-            return false;
-          }
-        })
-        .toList().size() > 1)
-      .count();
   }
 }

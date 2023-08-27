@@ -89,7 +89,7 @@ public class PacketDisplayService {
   public ConnectionStatus getStatusForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
-        .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber()+pkt.getDataPayloadLength(), pkt.getOutgoingPacket());
+        .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber()+pkt.getDataPayloadLength(), !pkt.getOutgoingPacket());
     var currentPacketFlags = pkt.getTcpFlags();
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
@@ -121,7 +121,6 @@ public class PacketDisplayService {
         } else if (currentPacketFlags.get(TCPFlag.SYN)) {
           // simultaneous open
           tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
-
           return ConnectionStatus.SYN_RECEIVED;
         } else if (currentPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()

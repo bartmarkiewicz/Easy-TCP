@@ -115,6 +115,7 @@ public class PacketLog {
     SwingUtilities.invokeLater(() -> {
       var middleRow = MiddleRow.getInstance();
       middleRow.resetConnectionInformation();
+      middleRow.addConnectionOptions(captureData);
       var arrowDiagram = ArrowDiagram.getInstance();
       arrowDiagram.setTcpConnection(null, filtersForm);
       arrowDiagram.repaint();

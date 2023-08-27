@@ -32,7 +32,7 @@ public class PcapFileReaderService {
   public CaptureData readPacketFile(File packetFile, FiltersForm filtersForm,
                                     JTextPane textPane, OptionsPanel optionsPanel) {
     var executor = Executors.newSingleThreadExecutor();
-
+    captureData.clear();
     executor.execute(() -> {
       PcapHandle handle;
       try {
@@ -62,17 +62,6 @@ public class PcapFileReaderService {
             var tcpPacket = ipPacket.get(TcpPacket.class);
             if (tcpPacket != null) {
               packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, finalHandle.getTimestamp());
-//              var easyTCPacket = packetTransformerService.fromPackets(
-//                ipPacket, tcpPacket, finalHandle.getTimestamp(), captureData, filtersForm);
-//              captureData.getPackets().addPacketToContainer(easyTCPacket);
-//              if (!isSettingText.get()) {
-//                //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates
-//                isSettingText.set(true);
-//                SwingUtilities.invokeLater(() -> {
-//                  LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
-//                  isSettingText.set(false);
-//                });
-//              }
             }
           }
         }, threadPool);

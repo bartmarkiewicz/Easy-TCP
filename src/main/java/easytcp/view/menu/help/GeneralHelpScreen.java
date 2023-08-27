@@ -26,7 +26,7 @@ public class GeneralHelpScreen {
     heading.setHorizontalAlignment(SwingConstants.CENTER);
     frame.add(heading, BorderLayout.NORTH);
     var containerScrollPanel = new ScrollableJPanel(true);
-    containerScrollPanel.currentHeight = 2000;
+    containerScrollPanel.currentHeight = 1600;
     containerScrollPanel.COMPONENT_WIDTH = frame.getWidth()+200;
 
     containerScrollPanel.setLayout(new GridLayout(1,1));
@@ -62,7 +62,7 @@ public class GeneralHelpScreen {
       arrowDiagramDescription.setEditable(false);
       var arrowDiagramDescriptionScrollPane = new JScrollPane(arrowDiagramDescription);
       arrowDiagramDescription.setText("""
-      The Arrow Diagram
+      Arrow Diagram
       
       The arrow diagram consists of the client on the left, which represents the network interface the packet \
       capture was started upon. The section on the right represents the server or the host the client initiates a contact with.
@@ -91,7 +91,7 @@ public class GeneralHelpScreen {
       optionsDescription.setEditable(false);
       var optionsDescriptionScrollPane = new JScrollPane(optionsDescription);
       optionsDescription.setText("""
-      Options panel
+      Options Panel
       
       The options on the right of Easy TCP allows customisation of what the user wants to see.
       
@@ -139,8 +139,8 @@ public class GeneralHelpScreen {
       var scaledOptImg = optionsPic.getScaledInstance((frame.getWidth()/2)-40, (int) (frame.getHeight()/1.5), Image.SCALE_SMOOTH);
 
       var optionsPicLabel = new JLabel(new ImageIcon(scaledOptImg));
-      containerPanel.add(optionsDescriptionScrollPane);
       containerPanel.add(optionsPicLabel);
+      containerPanel.add(optionsDescriptionScrollPane);
 
 
 
@@ -149,7 +149,7 @@ public class GeneralHelpScreen {
       packetLogDescription.setEditable(false);
       var packetLogDescriptionScrollPane = new JScrollPane(packetLogDescription);
       packetLogDescription.setText("""
-      The packet log
+      Packet Log
       
       The packet log shows a text based output of the captured packets in a format akin to a tcpdump. \
       The packets have the timestamp of having been received or sent from the network interface which is doing the capturing \

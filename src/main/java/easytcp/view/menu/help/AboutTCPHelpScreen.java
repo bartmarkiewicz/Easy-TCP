@@ -38,9 +38,7 @@ public class AboutTCPHelpScreen {
     containerPanel.add(leftPanel, BorderLayout.LINE_START);
     containerPanel.add(rightPanel, BorderLayout.CENTER);
     var closeBt = new JButton("Close");
-    closeBt.addActionListener(e -> {
-      frame.dispose();
-    });
+    closeBt.addActionListener(e -> frame.dispose());
     containerPanel.add(closeBt, BorderLayout.PAGE_END);
   }
 
@@ -57,6 +55,9 @@ public class AboutTCPHelpScreen {
       TCP or Transmission Control Protocol is a communications standard that enables applications and computingn \
       devices to communicate over a network. It is designed to send packets between two devices across a network and \
       ensure the successful delivery of data.
+      
+      Each packet consists of a header and its data, on the right you can see the TCP header. A packet is a segment of data
+      that goes through an internet connection, which could be wireless or ethernet.
       
       It is the most commonly used protocol used on the internet, it complements the lower level IP protocol. Due to its popularity  \
       the entire protocol suite is often referred as TCP/IP.

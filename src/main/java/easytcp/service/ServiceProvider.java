@@ -6,6 +6,7 @@ public class ServiceProvider {
   private static PcapFileReaderService pcapFileReaderService;
   private static ConnectionDisplayService connectionDisplayService;
   private static LiveCaptureService liveCaptureService;
+  private static CaptureSaveService captureSaveService;
   private static ServiceProvider serviceProvider;
 
   public synchronized static ServiceProvider getInstance() {
@@ -48,5 +49,12 @@ public class ServiceProvider {
       connectionDisplayService = new ConnectionDisplayService();
     }
     return connectionDisplayService;
+  }
+
+  public synchronized  CaptureSaveService getCaptureSaveService() {
+    if (captureSaveService == null) {
+      captureSaveService = new CaptureSaveService();
+    }
+    return captureSaveService;
   }
 }
