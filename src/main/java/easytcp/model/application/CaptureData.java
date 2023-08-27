@@ -56,7 +56,7 @@ public class CaptureData {
     return captureData;
   }
 
-  public ConcurrentHashMap<InternetAddress, TCPConnection>
+  public ConcurrentMap<InternetAddress, TCPConnection>
   getTcpConnectionMap() {
     return tcpConnectionMap;
   }

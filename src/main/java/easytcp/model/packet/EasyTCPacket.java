@@ -177,4 +177,6 @@ public class EasyTCPacket {
   public int hashCode() {
     return Objects.hash(timestamp, iPprotocol, sourceAddress, destinationAddress, sequenceNumber, ackNumber, windowSize, dataPayloadLength, headerPayloadLength, tcpFlags, tcpOptions, tcpConnection, outgoingPacket);
   }
+
+
 }

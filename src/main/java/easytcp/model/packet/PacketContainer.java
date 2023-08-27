@@ -27,17 +27,6 @@ public class PacketContainer {
       .toList();
   }
 
-  public List<EasyTCPacket> findPacketsWithOption(TcpOptionKind tcpOptionKind) {
-    return new ArrayList<>(packets)
-      .stream()
-      .filter(pkt -> pkt.getTcpOptions()
-        .stream()
-        .map(TcpPacket.TcpOption::getKind)
-        .toList()
-        .contains(tcpOptionKind))
-      .toList();
-  }
-
   public List<TcpOptionKind> getUniqueTcpOptions(boolean outgoingPacket) {
     var tempArr = outgoingPacket ? new ArrayList<>(getOutgoingPackets()) : new ArrayList<>(getIncomingPackets());
 
@@ -116,6 +105,5 @@ public class PacketContainer {
         && pkt.getTcpFlagsDisplayable().equals(tcpFlagsDisplayable)
         && pkt.getDataPayloadLength().equals(payloadLen))
       .findFirst();
-
   }
 }

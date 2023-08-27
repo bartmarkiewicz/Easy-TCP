@@ -1,9 +1,9 @@
 package easytcp.model.packet;
 
 import org.apache.logging.log4j.util.Strings;
-import org.pcap4j.packet.namednumber.TcpPort;
 
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Objects;
 
 /*Represents a host internet address, alongside the port its on
@@ -20,17 +20,6 @@ public class InternetAddress {
     this.hostName = hostName;
     this.pcap4jAddress = addressPcap4j;
     this.port = tcpPort;
-  }
-
-  public InternetAddress(
-    InetAddress alphanumericalAddress,
-    String hostName,
-    InetAddress addressPcap4j,
-    TcpPort tcpPort) {
-    this.alphanumericalAddress = alphanumericalAddress.getHostAddress() != null ? alphanumericalAddress.toString() : "";
-    this.hostName = hostName;
-    this.pcap4jAddress = addressPcap4j;
-    this.port = tcpPort.valueAsInt();
   }
 
   public InetAddress getPcap4jAddress() {
@@ -80,7 +69,7 @@ public class InternetAddress {
     if (o == null || getClass() != o.getClass()) return false;
     InternetAddress that = (InternetAddress) o;
     return Objects.equals(alphanumericalAddress, that.alphanumericalAddress)
-//      && Arrays.equals(pcap4jAddress.getAddress(), that.pcap4jAddress.getAddress())
+      && Arrays.equals(pcap4jAddress.getAddress(), that.pcap4jAddress.getAddress())
       && Objects.equals(port, that.port);
   }
 

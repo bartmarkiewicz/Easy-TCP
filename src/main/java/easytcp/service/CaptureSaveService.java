@@ -9,11 +9,6 @@ import org.slf4j.LoggerFactory;
 
 public class CaptureSaveService {
   private static final Logger LOGGER = LoggerFactory.getLogger(CaptureSaveService.class);
-  private PacketTransformerService packetTransformerService;
-
-  public CaptureSaveService() {
-    this.packetTransformerService = ServiceProvider.getInstance().getPacketTransformerService();
-  }
 
   public void saveArrowDiagram(String fileName) {
     ArrowDiagram.getInstance().saveDiagram(fileName);

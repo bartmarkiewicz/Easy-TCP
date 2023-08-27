@@ -1,6 +1,6 @@
 package easytcp.model.packet;
 
-/*Represents the different TCP connection statuses.
+/*Represents the different TCP connection statuses. Some of which are my invention such as 'unknown' or 'rejected'.
  */
 public enum ConnectionStatus {
   SYN_SENT("Syn sent"),

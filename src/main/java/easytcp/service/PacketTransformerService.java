@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,7 +78,7 @@ public class PacketTransformerService {
    * @param filtersForm
    */
   private synchronized void setTcpConnection(EasyTCPacket easyTcpPacket,
-                                             ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionHashMap,
+                                             ConcurrentMap<InternetAddress, TCPConnection> tcpConnectionHashMap,
                                              FiltersForm filtersForm) {
     List<String> interfaceAddresses;
     // extracts the capturing device interface address
