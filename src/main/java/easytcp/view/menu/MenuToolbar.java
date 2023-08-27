@@ -9,9 +9,10 @@ import java.awt.event.ActionListener;
 
 public class MenuToolbar {
   private final JMenuBar menuBar;
-  private final JMenuItem newMenuItem = new JMenuItem("New");;
+  private final JMenuItem newMenuItem = new JMenuItem("New");
   private final JMenuItem openMenuItem =  new JMenuItem("Open");
-  private final JMenuItem saveMenuItem = new JMenuItem("Save capture file");
+  private final JMenuItem savePcapMenuItem = new JMenuItem("Save capture file");
+  private final JMenuItem saveCaptureDiagramMenuItem = new JMenuItem("Save arrows diagram");
 
   public MenuToolbar() {
     super();
@@ -28,34 +29,44 @@ public class MenuToolbar {
       var helpMenu = new JMenu("Help");
       var exitMenuItem = new JMenuItem("Exit");
       exitMenuItem.setToolTipText("Exit application");
-      exitMenuItem.addActionListener((event) -> System.exit(0));
+      exitMenuItem.addActionListener(event -> System.exit(0));
 
       fileMenu.add(newMenuItem);
       fileMenu.add(openMenuItem);
-      fileMenu.add(saveMenuItem);
+      fileMenu.add(savePcapMenuItem);
+      fileMenu.add(saveCaptureDiagramMenuItem);
       fileMenu.addSeparator();
       fileMenu.add(exitMenuItem);
-      var general = new JMenuItem("General");;
-      addItemListener(general, i -> {
-        new GeneralHelpScreen();
-      });
+      var general = new JMenuItem("General");
+      addItemListener(general, i -> new GeneralHelpScreen());
       var aboutTcp =  new JMenuItem("About Tcp");
-      addItemListener(aboutTcp, i -> {
-        new AboutTCPHelpScreen();
-      });
+      addItemListener(aboutTcp, i -> new AboutTCPHelpScreen());
       helpMenu.add(aboutTcp);
       helpMenu.add(general);
-      var fileChooser = new JFileChooser();
-      fileChooser.addActionListener(s -> {
-        var fileSelected = fileChooser.getSelectedFile();
+      var savePcapFileChooser = new JFileChooser();
+      savePcapFileChooser.addActionListener(s -> {
+        var fileSelected = savePcapFileChooser.getSelectedFile();
         ServiceProvider.getInstance().getCaptureSaveService().saveCapture(fileSelected.getPath());
       });
 
-      addItemListener(saveMenuItem, i -> {
-        fileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
-        fileChooser.showSaveDialog(menuBar);
-        fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setVisible(true);
+      var saveArrowsDiagramFileChooser = new JFileChooser();
+      saveArrowsDiagramFileChooser.addActionListener(i -> {
+        var fileSelected = saveArrowsDiagramFileChooser.getSelectedFile();
+        ServiceProvider.getInstance().getCaptureSaveService().saveArrowDiagram(fileSelected.getPath());
+      });
+
+      addItemListener(saveCaptureDiagramMenuItem, i -> {
+        saveArrowsDiagramFileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+        saveArrowsDiagramFileChooser.showSaveDialog(menuBar);
+        saveArrowsDiagramFileChooser.setMultiSelectionEnabled(false);
+        saveArrowsDiagramFileChooser.setVisible(true);
+      });
+
+      addItemListener(savePcapMenuItem, i -> {
+        savePcapFileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+        savePcapFileChooser.showSaveDialog(menuBar);
+        savePcapFileChooser.setMultiSelectionEnabled(false);
+        savePcapFileChooser.setVisible(true);
       });
 
       menuBar.add(fileMenu);
@@ -77,7 +88,7 @@ public class MenuToolbar {
   }
 
   public void addSaveMenuItemListener(ActionListener actionListener) {
-    saveMenuItem.addActionListener(actionListener);
+    savePcapMenuItem.addActionListener(actionListener);
   }
 
   public JMenuBar getMenuBar() {

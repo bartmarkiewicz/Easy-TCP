@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 
 /*Singleton class to store the capture data
@@ -22,7 +23,7 @@ public class CaptureData {
   private CaptureData() {
   }
 
-  public synchronized static CaptureData getInstance() {
+  public static synchronized CaptureData getInstance() {
     if (captureData == null) {
       captureData = new CaptureData();
       return captureData;
@@ -43,7 +44,7 @@ public class CaptureData {
       .toList();
   }
 
-  public ConcurrentHashMap<String, String> getResolvedHostnames() {
+  public ConcurrentMap<String, String> getResolvedHostnames() {
     return resolvedHostnames;
   }
 

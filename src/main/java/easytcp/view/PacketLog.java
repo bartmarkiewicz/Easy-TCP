@@ -169,7 +169,7 @@ public class PacketLog {
 
   private void handlePacketClick(HyperlinkEvent e) {
     //if hyperlink is clicked
-    if(e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+    if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
       var url = e.getDescription().split(":"); //the separator between the values in the href
       var sequenceNumber = url[0];
       var payloadLength = url[1];
@@ -183,6 +183,7 @@ public class PacketLog {
         .stream()
         .filter(addr -> addr.toString().equals(tcpConnectionHostAddress))
         .findFirst();
+
       if (addressOpt.isPresent()) {
         var tcpConnectionOfPacket = captureData
           .getTcpConnectionMap()
@@ -200,6 +201,16 @@ public class PacketLog {
             ArrowDiagram.getInstance().setSelectedPacket(packet);
             var mr = MiddleRow.getInstance();
             mr.setConnectionInformation(tcpConnectionOfPacket);
+          }));
+      } else {
+        var packetOpt = this.captureData.getPackets().findPacketWith(
+          Long.valueOf(sequenceNumber), Long.valueOf(ackNumber), Integer.valueOf(payloadLength), tcpFlagsDisplayable);
+        packetOpt.ifPresent(packet ->
+          //if packet found, updates the arrow diagram and selects the connection on the UI thread
+          SwingUtilities.invokeLater(() -> {
+            ArrowDiagram.getInstance().setSelectedPacket(packet);
+            var mr = MiddleRow.getInstance();
+            mr.setConnectionInformation(packetOpt.get().getTcpConnection());
           }));
       }
     }

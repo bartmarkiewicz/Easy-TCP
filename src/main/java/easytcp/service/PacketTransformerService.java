@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,7 +59,7 @@ public class PacketTransformerService {
         Map.entry(TCPFlag.SYN, tcpHeader.getSyn())
       ));
     setAddressesAndHostnames(
-      ipHeader, tcpHeader, easyTcpPacket, captureData.getResolvedHostnames(), filtersForm);
+      ipHeader, tcpHeader, easyTcpPacket, captureData.getResolvedHostnames());
     easyTcpPacket.setTimestamp(timestamp);
     easyTcpPacket.setSequenceNumber(tcpHeader.getSequenceNumberAsLong());
     easyTcpPacket.setWindowSize(tcpHeader.getWindowAsInt());
@@ -323,8 +324,7 @@ public class PacketTransformerService {
   private synchronized void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
                                         TcpPacket.TcpHeader tcpHeader,
                                         EasyTCPacket packet,
-                                        ConcurrentHashMap<String, String> resolvedHostNames,
-                                        FiltersForm filtersForm) {
+                                        ConcurrentMap<String, String> resolvedHostNames) {
 
     var destHostName = resolvedHostNames.get(String.valueOf(ipHeader.getDstAddr().getHostAddress()));
     var destinationAddress = new InternetAddress(

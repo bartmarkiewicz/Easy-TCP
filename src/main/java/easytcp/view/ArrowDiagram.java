@@ -9,10 +9,13 @@ import easytcp.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ArrowDiagram extends ScrollableJPanel {
@@ -31,6 +34,8 @@ public class ArrowDiagram extends ScrollableJPanel {
   private EasyTCPacket selectedPkt;
   private AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
   private Integer selectedPktYPos = 0;
+  private AtomicBoolean saveDiagramFlag = new AtomicBoolean(false);
+  private String diagramName;
 
   public static ArrowDiagram getInstance() {
     if (arrowDiagram == null) {
@@ -97,6 +102,7 @@ public class ArrowDiagram extends ScrollableJPanel {
       drawArrows(g2d);
     }
     currentVerticalPosition = INITIAL_VERTICAL_POSITION;
+
     g.dispose();
   }
 
@@ -234,5 +240,21 @@ public class ArrowDiagram extends ScrollableJPanel {
         packetLocY += 140;
       }
     }
+  }
+
+  public void saveDiagram(String fileName) {
+    this.diagramName = fileName;
+    var bi = new BufferedImage(this.getSize().width, this.getSize().height, BufferedImage.TYPE_INT_ARGB);
+    Graphics imageG = bi.createGraphics();
+    this.paint(imageG);  //this == JComponent
+    imageG.dispose();
+    try{
+      ImageIO.write(bi,"png", new File("%s.png".formatted(fileName)));
+    } catch (Exception e) {
+      LOGGER.error("Error saving diagram png");
+    }
+
+//    repaint();
+//    revalidate();
   }
 }
