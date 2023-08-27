@@ -18,6 +18,7 @@ import java.util.Comparator;
 
 public class PacketDisplayService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketDisplayService.class);
+
   public boolean isVisible(EasyTCPacket packet, FiltersForm filtersForm) {
     var matchesFilter = true;
 
@@ -150,6 +151,12 @@ public class PacketDisplayService {
           && currentPacketFlags.get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.FIN_WAIT_1);
           return ConnectionStatus.FIN_WAIT_1;
+        } else if (currentPacketFlags.get(TCPFlag.RST)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
+          return ConnectionStatus.REJECTED;
+        } else if (packetBeingAcked.isPresent() && packetBeingAcked.get().getDataPayloadLength() > 0) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.ESTABLISHED);
+          return ConnectionStatus.ESTABLISHED;
         }
       }
       case CLOSE_WAIT -> {
@@ -241,7 +248,7 @@ public class PacketDisplayService {
       }
     }
 
-    return ConnectionStatus.UNKNOWN;
+    return tcpConnection.getConnectionStatus();
   }
 
   public String getTcpFlagsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {

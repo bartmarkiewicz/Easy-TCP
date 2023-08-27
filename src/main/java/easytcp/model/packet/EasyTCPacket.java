@@ -140,6 +140,7 @@ public class EasyTCPacket {
       .stream()
       .filter(Map.Entry::getValue)
       .map(flag -> flag.getKey().getDisplayName())
+      .sorted()
       .collect(Collectors.joining());
   }
 

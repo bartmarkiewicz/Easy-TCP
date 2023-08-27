@@ -370,7 +370,7 @@ public class PacketTransformerService {
 
   public void transformCapturedPackets() {
     var ff = FiltersForm.getFiltersForm();
-    var captureData = CaptureData.getCaptureData();
+    var captureData = CaptureData.getInstance();
     pcapCaptureData.sort(Comparator.comparing(PcapCaptureData::timestamp));
     for (PcapCaptureData pcapCaptureDatum : pcapCaptureData) {
       captureData.getPackets().addPacketToContainer(

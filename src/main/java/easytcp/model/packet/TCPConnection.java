@@ -105,7 +105,7 @@ public class TCPConnection {
   @Override
   public String toString() {
     return connectionStatus.getDisplayText() + " to " +
-      (FiltersForm.getFiltersForm().isResolveHostnames() ? host.getAddressString() : host.getAlphanumericalAddress())
+      (FiltersForm.getInstance().isResolveHostnames() ? host.getAddressString() : host.getAlphanumericalAddress())
       + " pkts =" + packetContainer.getPackets().size()
       + (fullConnection ? " with handshake" : "");
   }
