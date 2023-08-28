@@ -3,7 +3,6 @@ package easytcp.model.packet;
 import easytcp.TestUtils;
 import easytcp.model.TCPFlag;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.pcap4j.packet.TcpMaximumSegmentSizeOption;
 import org.pcap4j.packet.TcpWindowScaleOption;
@@ -17,7 +16,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Disabled
 class PacketContainerTest {
 
   private PacketContainer underTest;
@@ -157,7 +155,7 @@ class PacketContainerTest {
     var result = underTest.findPacketWith(1L, 0L, 0, "S");
     assertThat(result).contains(synSentPacket);
 
-    var result2 = underTest.findPacketWith(2L, 1L, 0, "S.");
+    var result2 = underTest.findPacketWith(2L, 1L, 0, ".S");
     assertThat(result2).contains(synReceivedPacket);
   }
 }

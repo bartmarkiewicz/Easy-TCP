@@ -10,8 +10,8 @@ import easytcp.model.packet.InternetAddress;
 import easytcp.model.packet.TCPConnection;
 import easytcp.view.ArrowDiagram;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.namednumber.IpNumber;
@@ -28,7 +28,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 class CaptureSaveServiceTest {
   private CaptureSaveService underTest = new CaptureSaveService();
   @Test
@@ -44,7 +44,7 @@ class CaptureSaveServiceTest {
 
   @Test
   void saveCapture_thenRead() throws Exception{
-    CaptureData.getCaptureData().clear();
+    CaptureData.getInstance().clear();
     PacketTransformerService.getPcapCaptureData().clear();
     var fishFile = new File("fish.pcap");
     var packetTransformerService = new PacketTransformerService();

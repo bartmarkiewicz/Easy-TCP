@@ -5,8 +5,8 @@ import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import easytcp.view.options.OptionsPanel;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.swing.*;
 import java.io.File;
@@ -14,7 +14,7 @@ import java.io.File;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 class PcapFileReaderServiceTest {
   private PcapFileReaderService pcapFileReaderService = new PcapFileReaderService(new PacketTransformerService());
 
