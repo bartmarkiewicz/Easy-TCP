@@ -40,7 +40,6 @@ public class LiveCaptureService {
     LOGGER.info("Beginning capture on " + networkInterface);
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setLiveCapturing(true);
-
     appStatus.setMethodOfCapture(CaptureStatus.LIVE_CAPTURE);
     // begin capture
     final PcapHandle handle =

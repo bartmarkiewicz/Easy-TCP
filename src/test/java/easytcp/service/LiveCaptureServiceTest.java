@@ -1,33 +1,35 @@
 package easytcp.service;
 
+import easytcp.model.CaptureStatus;
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import easytcp.view.options.CaptureDescriptionPanel;
-import org.junit.Before;
+import easytcp.view.options.MiddleRow;
+import easytcp.view.options.OptionsPanel;
 import org.junit.Test;
-import org.junit.jupiter.api.Disabled;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.Pcaps;
+
+import javax.swing.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-@Disabled
 public class LiveCaptureServiceTest {
-  private final static int SNAPSHOT_LENGTH = 65536;
-  private final static int READ_TIMEOUT = 10;
 
-  @Mock
-  private PacketTransformerService packetTransformerService;
 
   @Mock
   private PacketDisplayService packetDisplayService;
 
-  private CaptureData captureData;
-  private FiltersForm filtersForm;
-  private CaptureDescriptionPanel captureDescriptionPanel;
+  private FiltersForm filtersForm = FiltersForm.getInstance();
+  private CaptureData captureData = CaptureData.getInstance();
 
   @Mock
   private ServiceProvider serviceProvider;
@@ -35,23 +37,51 @@ public class LiveCaptureServiceTest {
   @InjectMocks
   private LiveCaptureService liveCaptureService;
 
-  @Before
-  public void setUp() {
-//    when(serviceProvider.getPacketTransformerService()).thenReturn(packetTransformerService);
-//    when(serviceProvider.getPacketDisplayService()).thenReturn(packetDisplayService);
+  @Test
+  public void startCapture_assertHandleReturned() throws PcapNativeException, NotOpenException, InterruptedException {
+    var networkInterface = Pcaps.findAllDevs().get(0);
+    var optionsPanel = mock(OptionsPanel.class);
+    var result = liveCaptureService.startCapture(
+        networkInterface, filtersForm, new JTextPane(), optionsPanel);
+    assertThat(result.isOpen()).isTrue();
+    var appStatus = ApplicationStatus.getStatus();
+
+    assertThat(appStatus.isLiveCapturing()).isTrue();
+    assertThat(appStatus.getMethodOfCapture()).isEqualTo(CaptureStatus.LIVE_CAPTURE);
+
+    result.breakLoop();
+    result.close();
   }
 
   @Test
-  public void startCapture_assertHandleReturned() throws PcapNativeException, NotOpenException, InterruptedException {
-//    var networkInterface = mock(PcapNetworkInterface.class);
-//    var handle = mock(PcapHandle.class);
-//    when(networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, READ_TIMEOUT))
-//      .thenReturn(handle);
-////    doThrow(PcapNativeException.class)
-////      .when(handle).loop(eq(Integer.MAX_VALUE), any(PacketListener.class), any());
-////    var result = liveCaptureService.startCapture(
-////        networkInterface, filtersForm, new JTextPane(), new MiddleRow(filtersForm), captureDescriptionPanel);
-//    Thread.sleep(2000);
-//    assertThat(result).isEqualTo(handle);
+  public void setLogTextPane_whenEmptyCaptureData() {
+    var textPane = new JTextPane();
+    var optionsPanel = mock(OptionsPanel.class);
+
+    var mr = mock(MiddleRow.class);
+    var cap = mock(CaptureDescriptionPanel.class);
+
+    when(optionsPanel.getMiddleRow()).thenReturn(mr);
+    when(optionsPanel.getCaptureDescriptionPanel()).thenReturn(cap);
+
+
+    LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
+
+    assertThat(textPane.getText())
+      .isEqualToIgnoringWhitespace("""
+        <html>
+          <head>
+
+          </head>
+          <body>
+            <p style="margin-top: 0">
+              
+            </p>
+          </body>
+        </html>
+        """);
+
+    verify(mr).setConnectionStatusLabel(captureData);
+    verify(cap).updateCaptureStats(captureData);
   }
 }

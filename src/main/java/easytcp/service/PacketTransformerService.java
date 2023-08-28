@@ -89,21 +89,21 @@ public class PacketTransformerService {
         : List.of();
     } else {
       interfaceAddresses = new ArrayList<>();
-
-      // when reading a file, interface address is not known from the .pcap file, though usually it begins with 192 or 172
-      if (tcpConnectionHashMap.get(easyTcpPacket.getSourceAddress()) == null
-        && easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
-        || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("172")) {
-        interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
-      } else if (tcpConnectionHashMap.get(easyTcpPacket.getDestinationAddress()) == null
-        && easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
-        || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("172")) {
-        interfaceAddresses.add(easyTcpPacket.getDestinationAddress().getAddressString());
-      } else {
-        LOGGER.debug("Unclear which is the interface address %s or %s".formatted(
-          easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress()));
-      }
     }
+    // when reading a file, interface address is not known from the .pcap file, though usually it begins with 192 or 172
+    if (tcpConnectionHashMap.get(easyTcpPacket.getSourceAddress()) == null
+      && easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+      || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("172")) {
+      interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
+    } else if (tcpConnectionHashMap.get(easyTcpPacket.getDestinationAddress()) == null
+      && easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+      || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("172")) {
+      interfaceAddresses.add(easyTcpPacket.getDestinationAddress().getAddressString());
+    } else {
+      LOGGER.debug("Unclear which is the interface address %s or %s".formatted(
+        easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress()));
+    }
+
     InternetAddress addressOfConnection;
     TCPConnection tcpConnection;
 
@@ -165,7 +165,7 @@ public class PacketTransformerService {
       .findFirst();
   }
 
-  private void determineStatusOfConnection(
+  private synchronized void determineStatusOfConnection(
     TCPConnection tcpConnection, EasyTCPacket easyTCPacket) {
 
     var packetList = tcpConnection.getPacketContainer().getPackets();

@@ -61,6 +61,8 @@ class PacketTransformerServiceTest {
         }
       })
       .build();
+    CaptureData.getCaptureData().clear();
+    PacketTransformerService.getPcapCaptureData().clear();
   }
 
   @Test
