@@ -1,13 +1,17 @@
-package easytcp.service;
+package easytcp.service.capture;
 
 import easytcp.model.CaptureStatus;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
+import easytcp.service.PacketDisplayService;
+import easytcp.service.PacketTransformerService;
+import easytcp.service.ServiceProvider;
 import easytcp.view.options.OptionsPanel;
-import org.pcap4j.core.*;
-import org.pcap4j.packet.IpPacket;
-import org.pcap4j.packet.TcpPacket;
+import org.pcap4j.core.BpfProgram;
+import org.pcap4j.core.PcapHandle;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.Pcaps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,15 +60,7 @@ public class PcapFileReaderService {
       try {
         int maxPackets = Integer.MAX_VALUE;
         finalHandle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
-        finalHandle.loop(maxPackets, (PacketListener) packet -> {
-          var ipPacket = packet.get(IpPacket.class);
-          if (ipPacket != null) {
-            var tcpPacket = ipPacket.get(TcpPacket.class);
-            if (tcpPacket != null) {
-              packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, finalHandle.getTimestamp());
-            }
-          }
-        }, threadPool);
+        finalHandle.loop(maxPackets, new FilePacketListener(packetTransformerService, finalHandle), threadPool);
         captureData.clear();
         threadPool.shutdown();
         while (!threadPool.isTerminated()) {

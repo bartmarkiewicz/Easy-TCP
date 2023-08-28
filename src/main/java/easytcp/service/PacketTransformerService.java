@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class PacketTransformerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketTransformerService.class);
@@ -85,8 +86,8 @@ public class PacketTransformerService {
     if (ApplicationStatus.getStatus().getMethodOfCapture() == CaptureStatus.LIVE_CAPTURE) {
       interfaceAddresses = filtersForm.getSelectedInterface() != null
         ? filtersForm.getSelectedInterface().getAddresses().stream()
-        .map(pcapAddress ->  pcapAddress.getAddress().getHostAddress()).toList()
-        : List.of();
+        .map(pcapAddress ->  pcapAddress.getAddress().getHostAddress()).collect(Collectors.toList())
+        : new ArrayList<>();
     } else {
       interfaceAddresses = new ArrayList<>();
     }

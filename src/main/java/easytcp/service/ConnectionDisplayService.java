@@ -53,7 +53,6 @@ public class ConnectionDisplayService {
     }
     if (filters.isShowTcpFeatures()) {
       appendTcpStrategiesFound(sb, tcpConnection, filters.getTcpStrategyThreshold());
-      sb.append("\n");
     }
 
     if (filters.isShowTcpOptions()) {
@@ -177,7 +176,7 @@ public class ConnectionDisplayService {
 
   /*Detects TCP slow start
    */
-  public List<Integer> detectSlowStart(PacketContainer packetContainer, TcpStrategyDetection tcpStrategyDetection) {
+  private List<Integer> detectSlowStart(PacketContainer packetContainer, TcpStrategyDetection tcpStrategyDetection) {
     int currentIndex = 0;
     var slowStartPossibilityReceiving = 0;
     var slowStartPossibilitySending = 0;
@@ -232,28 +231,32 @@ public class ConnectionDisplayService {
     var delayedAckThreshold = tcpStrategyDetection.getDelayedAckCountThreshold();
     var delayedAckTimeoutThreshold = tcpStrategyDetection.getDelayedAckCountMsThreshold();
     var delayedAckPossibility = 0;
-    if (packetBeingAcked.isPresent()) {
-      lastOutgoingPacketHadData = packetBeingAcked.get().getDataPayloadLength() > 0;
-      if (pkt.getTcpFlags().get(TCPFlag.ACK)) {
+    var lastReceivedPkt = packetContainer.findPreviousPacketReceived(pkt);
+    if (lastReceivedPkt.isPresent()) {
+      lastOutgoingPacketHadData = lastReceivedPkt.get().getDataPayloadLength() > 0;
+      if (pkt.getTcpFlags().get(TCPFlag.ACK) && pkt.getDataPayloadLength() > 0) {
         if (lastOutgoingPacketHadData) {
           ackCounter++;
           if (ackCounter >= delayedAckThreshold) {
-            delayedAckPossibility++;
+            delayedAckPossibility += 0.5;
+            //has less of a weight due to likelihood of it meeting the delayed ack threshold due to other factors
             ackCounter = 0;
           }
         }
-        if (Duration.between(packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
-          .toMillis() >= delayedAckTimeoutThreshold) {
-          //checks if the delay before sending an ack is greater than the timeout threshold
-          delayedAckPossibility++;
-          LOGGER.debug("Delayed ack possibility + 1 duration - between ack and packet {}", Duration.between(
-              packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
-            .toMillis());
-        }
-      } else {
-        ackCounter = 0;
       }
+    } else {
+      ackCounter = 0;
     }
+    if (packetBeingAcked.isPresent()
+      && Duration.between(packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
+      .toMillis() >= delayedAckTimeoutThreshold) {
+      //checks if the delay before sending an ack is greater than the timeout threshold
+      delayedAckPossibility++;
+      LOGGER.debug("Delayed ack possibility + 1 duration - between ack and packet {}", Duration.between(
+          packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
+        .toMillis());
+    }
+
     return  List.of(ackCounter, delayedAckPossibility);
   }
 

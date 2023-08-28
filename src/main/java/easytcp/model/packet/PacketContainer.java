@@ -46,6 +46,14 @@ public class PacketContainer {
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
+  public Optional<EasyTCPacket> findPreviousPacketReceived(EasyTCPacket pkt) {
+    return new ArrayList<>(packets)
+      .stream()
+      .filter(other -> !(pkt.getOutgoingPacket().equals(other.getOutgoingPacket()))
+        && other.getTimestamp().getTime() < pkt.getTimestamp().getTime())
+      .max(Comparator.comparing(EasyTCPacket::getTimestamp));
+  }
+
   public void addPacketToContainer(EasyTCPacket easyTCPacket) {
     synchronized (packets) {
       packets.add(easyTCPacket);

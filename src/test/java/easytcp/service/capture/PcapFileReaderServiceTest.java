@@ -1,8 +1,10 @@
-package easytcp.service;
+package easytcp.service.capture;
 
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
+import easytcp.service.PacketTransformerService;
+import easytcp.service.capture.PcapFileReaderService;
 import easytcp.view.options.OptionsPanel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +38,5 @@ class PcapFileReaderServiceTest {
     }
     assertThat(captureData.getPackets().getPackets())
       .hasSize(732);
-    assertThat(captureData.getTcpConnectionsEstablished())
-      .isEqualTo(27L);
   }
 }

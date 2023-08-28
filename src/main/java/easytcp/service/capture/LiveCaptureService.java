@@ -1,14 +1,18 @@
-package easytcp.service;
+package easytcp.service.capture;
 
 import easytcp.model.CaptureStatus;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.EasyTCPacket;
+import easytcp.service.PacketDisplayService;
+import easytcp.service.PacketTransformerService;
+import easytcp.service.ServiceProvider;
 import easytcp.view.options.OptionsPanel;
-import org.pcap4j.core.*;
-import org.pcap4j.packet.IpPacket;
-import org.pcap4j.packet.TcpPacket;
+import org.pcap4j.core.BpfProgram;
+import org.pcap4j.core.PcapHandle;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.PcapNetworkInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +30,7 @@ public class LiveCaptureService {
   private final PacketTransformerService packetTransformerService;
   private final PacketDisplayService packetDisplayService;
   private AtomicBoolean isSettingText;
+  private LivePacketListener livePacketListener;
 
   public LiveCaptureService(ServiceProvider serviceProvider) {
     this.captureData = CaptureData.getInstance();
@@ -50,40 +55,11 @@ public class LiveCaptureService {
     isSettingText.set(false);
     executor.execute(() -> {
       var threadPool = Executors.newCachedThreadPool();
-
       try {
         int maxPackets = Integer.MAX_VALUE;
         handle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
-        handle.loop(maxPackets, (PacketListener) packet -> {
-          var ipPacket = packet.get(IpPacket.class);
-          if (ipPacket != null) {
-            var tcpPacket = ipPacket.get(TcpPacket.class);
-            if (tcpPacket != null) {
-              var timestamp = handle.getTimestamp();
-              var easyTCPacket = packetTransformerService.fromPackets(
-                ipPacket, tcpPacket, timestamp, captureData, filtersForm);
-              packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, timestamp);
-              captureData.getPackets().addPacketToContainer(easyTCPacket);
-              if (!isSettingText.get()) {
-                //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates
-                isSettingText.set(true);
-                SwingUtilities.invokeLater(() -> {
-                  setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
-                  isSettingText.set(false);
-                });
-              }
-            }
-          }
-          if(!appStatus.isLiveCapturing().get()) {
-            LOGGER.debug("Stopping live capture forcefully");
-            try {
-              handle.breakLoop();
-            } catch (NotOpenException e) {
-              LOGGER.error(e.getMessage());
-            }
-            handle.close();
-          }
-        }, threadPool);
+        handle.loop(maxPackets, new LivePacketListener(handle, packetTransformerService, captureData,
+          filtersForm, isSettingText, textPane, packetDisplayService, optionsPanel), threadPool);
       } catch (Exception e) {
         LOGGER.debug(e.getMessage());
         LOGGER.debug("Error sniffing packet");

@@ -8,6 +8,7 @@ import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.EasyTCPacket;
 import easytcp.model.packet.InternetAddress;
 import easytcp.model.packet.TCPConnection;
+import easytcp.service.capture.PcapFileReaderService;
 import easytcp.view.ArrowDiagram;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

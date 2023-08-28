@@ -3,9 +3,9 @@ package easytcp.view;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.service.LiveCaptureService;
+import easytcp.service.capture.LiveCaptureService;
 import easytcp.service.PacketDisplayService;
-import easytcp.service.PcapFileReaderService;
+import easytcp.service.capture.PcapFileReaderService;
 import easytcp.service.ServiceProvider;
 import easytcp.view.options.MiddleRow;
 import easytcp.view.options.OptionsPanel;
@@ -25,7 +25,7 @@ import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import static easytcp.service.LiveCaptureService.setLogTextPane;
+import static easytcp.service.capture.LiveCaptureService.setLogTextPane;
 
 /*Class for displaying the text based capture log.
  */

@@ -1,5 +1,8 @@
 package easytcp.service;
 
+import easytcp.service.capture.LiveCaptureService;
+import easytcp.service.capture.PcapFileReaderService;
+
 public class ServiceProvider {
   private static PacketTransformerService packetTransformerService;
   private static PacketDisplayService packetDisplayService;

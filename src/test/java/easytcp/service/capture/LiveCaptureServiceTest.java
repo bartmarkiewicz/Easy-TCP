@@ -1,9 +1,12 @@
-package easytcp.service;
+package easytcp.service.capture;
 
 import easytcp.model.CaptureStatus;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
+import easytcp.service.PacketDisplayService;
+import easytcp.service.ServiceProvider;
+import easytcp.service.capture.LiveCaptureService;
 import easytcp.view.options.CaptureDescriptionPanel;
 import easytcp.view.options.MiddleRow;
 import easytcp.view.options.OptionsPanel;
@@ -63,7 +66,6 @@ public class LiveCaptureServiceTest {
 
     when(optionsPanel.getMiddleRow()).thenReturn(mr);
     when(optionsPanel.getCaptureDescriptionPanel()).thenReturn(cap);
-
 
     LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
 

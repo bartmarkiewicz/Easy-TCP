@@ -8,7 +8,6 @@ import easytcp.model.packet.InternetAddress;
 import easytcp.model.packet.TCPConnection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
@@ -99,7 +98,7 @@ class PacketDisplayServiceTest {
     assertThat(result).contains("""
       <p> <a href=\"1:0:0:S:InternetAddress{alphanumericalAddress='192', hostName='fish.com', pcap4jAddress=null, port=80}\"> """,
       """
-      IPv4 333:80 > 192:80: Flags [S], seq 1, ack 0, win 50, options [], length 0 </a></p>""");
+      IPv4 333:80 > 192:80: Flags [S], seq 1, ack 0, win 50, options [2], length 0 </a></p>""");
 
     var result2 = underTest.prettyPrintPacket(pshSentPkt, FiltersForm.getFiltersForm());
 
@@ -187,7 +186,7 @@ class PacketDisplayServiceTest {
     assertThat(result).isEqualTo("Win 50\n");
     FiltersForm.getInstance().setShowTcpOptions(true);
     var result2 = underTest.getTcpOptionsForPacket(synSentPkt, FiltersForm.getFiltersForm());
-    assertThat(result2).isEqualTo("Win 50\n<>");
+    assertThat(result2).isEqualTo("Win 50\n<MSS 100 bytes >");
   }
 
   @Test
