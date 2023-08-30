@@ -1,5 +1,6 @@
 package easytcp.view;
 
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.EasyTCPacket;
@@ -22,20 +23,21 @@ public class ArrowDiagram extends ScrollableJPanel {
   private static final Logger LOGGER = LoggerFactory.getLogger(ArrowDiagram.class);
   private static final int INITIAL_VERTICAL_POSITION = 100;
   private int currentVerticalPosition;
-  private final int leftXPos = 110;
-  private final int rightXPos = COMPONENT_WIDTH - 110;
-  private final int rightXLabelPos = rightXPos + 5;
-  private final int leftXLabelPos = 15;
+  private int leftXPos = ApplicationStatus.getStatus().getFrameDimension().width / 10;
+  private int arrowDiagramWidth = (ApplicationStatus.getStatus().getFrameDimension().width / 2) - 60;
+  private int rightXPos = arrowDiagramWidth - leftXPos;
+  private int rightXLabelPos = rightXPos + 5;
+  private int leftXLabelPos = leftXPos - 100;
   private final PacketDisplayService packetDisplayService;
+  private TCPConnection tempConnection;
   private TCPConnection selectedConnection;
+
   private JScrollPane scrollPane;
   private FiltersForm filtersForm;
   private static ArrowDiagram arrowDiagram;
   private EasyTCPacket selectedPkt;
-  private AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
+  private final AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
   private Integer selectedPktYPos = 0;
-  private AtomicBoolean saveDiagramFlag = new AtomicBoolean(false);
-  private String diagramName;
 
   public static ArrowDiagram getInstance() {
     if (arrowDiagram == null) {
@@ -60,35 +62,46 @@ public class ArrowDiagram extends ScrollableJPanel {
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
     this.currentHeight = 500;
     this.filtersForm = filtersForm;
+    this.selectedConnection = tcpConnection;
     if (tcpConnection == null) {
-      this.selectedConnection = null;
+      this.tempConnection = null;
       scrollPane.getViewport().setViewPosition(new Point(0, 0));
       return;
-    } else if (selectedConnection != null && !selectedConnection.equals(tcpConnection)) {
+    } else if (tempConnection != null && !tempConnection.equals(tcpConnection)) {
       scrollPane.getViewport().setViewPosition(new Point(0, 0));
     }
-    this.selectedConnection = new TCPConnection(tcpConnection); //copies the connection
-    selectedConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
+    this.tempConnection = new TCPConnection(tcpConnection); //copies the connection
+    tempConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
+    SwingUtilities.invokeLater(() -> {
+      repaint();
+      revalidate();
+    });
   }
 
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
 
+    leftXPos = ApplicationStatus.getStatus().getFrameDimension().width / 10;
+    arrowDiagramWidth = (ApplicationStatus.getStatus().getFrameDimension().width / 2) - 60;
+    rightXPos = arrowDiagramWidth - leftXPos;
+    rightXLabelPos = rightXPos + 5;
+    leftXLabelPos = leftXPos - 100;
+
     g.setColor(Color.BLACK);
     Graphics2D g2d = (Graphics2D) g;
     g.setFont(new Font(g.getFont().getName(), Font.BOLD, 16));
-    if (selectedConnection == null) {
-      g.drawString("Select a TCP connection to view a diagram", 115, 40);
+    if (tempConnection == null) {
+      g.drawString("Select a TCP connection to view a diagram", leftXPos + (leftXPos/2), 40);
       g.setFont(new Font(g.getFont().getName(), Font.BOLD, 12));
 
     } else {
-      g.drawString("Connection", 115, 40);
+      g.drawString("Connection", leftXPos * 2, 40);
       g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 12));
       g.drawString("Client", 5, 20);
-      g.drawString(selectedConnection.getHostTwo().getAddressString(), 5, 40);
+      g.drawString(tempConnection.getHostTwo().getAddressString(), 5, 40);
       g.drawString("Server", rightXPos+5, 20);
-      g.drawString(selectedConnection.getHost().getAddressString(), rightXPos+5, 40);
+      g.drawString(tempConnection.getHost().getAddressString(), rightXPos+5, 40);
     }
 
     //title bar
@@ -98,7 +111,7 @@ public class ArrowDiagram extends ScrollableJPanel {
     g.fillRect(rightXPos, 0, 1, getHeight());
     g.fillRect(leftXPos, 0, 1, getHeight());
 
-    if (selectedConnection != null) {
+    if (tempConnection != null) {
       drawArrows(g2d);
     }
     currentVerticalPosition = INITIAL_VERTICAL_POSITION;
@@ -107,7 +120,7 @@ public class ArrowDiagram extends ScrollableJPanel {
   }
 
   private void drawArrows(Graphics2D g2d) {
-    selectedConnection.getPacketContainer()
+    tempConnection.getPacketContainer()
       .getPackets()
       .forEach(pkt -> {
         var leftPoint = new Point();
@@ -124,7 +137,7 @@ public class ArrowDiagram extends ScrollableJPanel {
           rightPoint.x = rightXPos;
           rightPoint.y = currentVerticalPosition;
           g2d.drawString(
-            packetDisplayService.getStatusForPacket(pkt, selectedConnection).getDisplayText(), leftXLabelPos, currentVerticalPosition-65);
+            packetDisplayService.getStatusForPacket(pkt, tempConnection).getDisplayText(), leftXLabelPos, currentVerticalPosition-65);
           g2d.drawString(packetDisplayService.getSegmentLabel(pkt), leftXLabelPos, currentVerticalPosition-76);
           g2d.drawString(
             packetDisplayService.getConnectionTimestampForPacket(pkt), leftXLabelPos-10, currentVerticalPosition-90);
@@ -153,7 +166,7 @@ public class ArrowDiagram extends ScrollableJPanel {
           currentVerticalPosition = currentVerticalPosition + 70;
           leftPoint.y = currentVerticalPosition;
           rightPoint.x = rightXPos;
-          g2d.drawString(packetDisplayService.getStatusForPacket(pkt, selectedConnection).getDisplayText(), rightXLabelPos, currentVerticalPosition-65);
+          g2d.drawString(packetDisplayService.getStatusForPacket(pkt, tempConnection).getDisplayText(), rightXLabelPos, currentVerticalPosition-65);
           g2d.drawString(packetDisplayService.getSegmentLabel(pkt), rightXLabelPos, currentVerticalPosition-76);
           g2d.drawString(
             packetDisplayService.getConnectionTimestampForPacket(pkt), rightXLabelPos, currentVerticalPosition-90);
@@ -190,12 +203,13 @@ public class ArrowDiagram extends ScrollableJPanel {
       scrollPane.getViewport().setViewPosition(new Point(0, selectedPktYPos));
     }
 
-    selectedConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
+    tempConnection = new TCPConnection(selectedConnection);
+    tempConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
   }
 
   public void drawArrow(Graphics2D g2d, Point startPoint, Point endPoint) {
     int arrowSize = 16;
-    var angle = getRotation(startPoint, endPoint);
+    double angle = getRotation(startPoint, endPoint);
 
     g2d.setStroke(new BasicStroke(2));
     g2d.draw(new Line2D.Double(startPoint, endPoint));
@@ -213,8 +227,7 @@ public class ArrowDiagram extends ScrollableJPanel {
   private Double getRotation(Point startPoint, Point endPoint) {
     var dx = endPoint.getX() - startPoint.getX();
     var dy = endPoint.getY() - startPoint.getY();
-    var angle = Math.atan2(dy, dx);
-    return angle;
+    return Math.atan2(dy, dx);
   }
 
   private Point midpoint(Point p1, Point p2) {
@@ -227,8 +240,7 @@ public class ArrowDiagram extends ScrollableJPanel {
 
   public void setSelectedPacket(EasyTCPacket pkt) {
     this.selectedPkt = pkt;
-    revalidate();
-    repaint();
+
     if (pkt != null) {
       var packets = pkt.getTcpConnection().getPacketContainer().getPackets();
       var packetLocY = INITIAL_VERTICAL_POSITION - 70;
@@ -240,10 +252,12 @@ public class ArrowDiagram extends ScrollableJPanel {
         packetLocY += 140;
       }
     }
+
+    revalidate();
+    repaint();
   }
 
   public void saveDiagram(String fileName) {
-    this.diagramName = fileName;
     var bi = new BufferedImage(this.getSize().width, this.getSize().height, BufferedImage.TYPE_INT_ARGB);
     Graphics imageG = bi.createGraphics();
     this.paint(imageG);  //this == JComponent
@@ -253,8 +267,10 @@ public class ArrowDiagram extends ScrollableJPanel {
     } catch (Exception e) {
       LOGGER.error("Error saving diagram png");
     }
+  }
 
-//    repaint();
-//    revalidate();
+  @Override
+  public Dimension getPreferredSize() {
+    return new Dimension(arrowDiagramWidth, currentHeight);
   }
 }

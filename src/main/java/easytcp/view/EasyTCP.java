@@ -1,6 +1,8 @@
 package easytcp.view;
 
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.FiltersForm;
+import easytcp.service.ResizeListener;
 import easytcp.service.ServiceProvider;
 import easytcp.view.menu.MenuToolbar;
 import easytcp.view.options.OptionsPanel;
@@ -15,6 +17,7 @@ public class EasyTCP extends JFrame {
         super();
         this.setTitle("Easy TCP");
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        ApplicationStatus.getStatus().setFrameDimension(new Dimension(screenSize.width - 120, screenSize.height - 120));
         screenSize.setSize(screenSize.width - 120, screenSize.height - 120);
         this.setPreferredSize(screenSize);
         try {
@@ -22,6 +25,7 @@ public class EasyTCP extends JFrame {
         } catch (Exception e) {
             System.out.println("Error setting material styling, defaulting to swing styling.");
         }
+        addResizeHandler();
         initComponents();
     }
 
@@ -52,9 +56,7 @@ public class EasyTCP extends JFrame {
         packetViewScroll.setVerticalScrollBarPolicy(JScrollPane. VERTICAL_SCROLLBAR_AS_NEEDED);
 
         var menuToolbar = new MenuToolbar();
-        menuToolbar.addNewMenuItemListener((actionEvent) -> {
-            packetLogger.newLog();
-        });
+        menuToolbar.addNewMenuItemListener((actionEvent) -> packetLogger.newLog());
         var fileChooser = new JFileChooser();
         fileChooser.addActionListener(actionEvent -> {
             var fileSelected = fileChooser.getSelectedFile();
@@ -84,5 +86,9 @@ public class EasyTCP extends JFrame {
         layout.setRows(2);
         layout.setColumns(1);
         return layout;
+    }
+
+    private void addResizeHandler() {
+        addComponentListener(new ResizeListener());
     }
 }

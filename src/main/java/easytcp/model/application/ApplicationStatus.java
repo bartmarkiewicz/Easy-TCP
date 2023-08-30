@@ -2,6 +2,7 @@ package easytcp.model.application;
 
 import easytcp.model.CaptureStatus;
 
+import java.awt.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -10,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ApplicationStatus {
   private static ApplicationStatus currentApplicationStatus;
   private CaptureStatus methodOfCapture;
+  private Dimension frameDimension;
   private final AtomicBoolean isLiveCapturing = new AtomicBoolean(false);
   private final AtomicBoolean isLoading = new AtomicBoolean(false);
 
@@ -45,5 +47,13 @@ public class ApplicationStatus {
 
   public void setLoading(boolean loading) {
     isLoading.set(loading);
+  }
+
+  public Dimension getFrameDimension() {
+    return frameDimension;
+  }
+
+  public void setFrameDimension(Dimension frameDimension) {
+    this.frameDimension = frameDimension;
   }
 }

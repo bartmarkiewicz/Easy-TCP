@@ -113,13 +113,9 @@ public class MiddleRow {
     hostContainer.add(hostLabel, BorderLayout.LINE_START);
     hostContainer.add(hostInput, BorderLayout.CENTER);
 
-    portInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> {
-      filtersForm.setPortRangeSelected(portInput.getText());
-    });
+    portInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> filtersForm.setPortRangeSelected(portInput.getText()));
 
-    hostInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> {
-      filtersForm.setHostSelected(hostInput.getText());
-    });
+    hostInput.getDocument().addDocumentListener((DocumentUpdateListener) e -> filtersForm.setHostSelected(hostInput.getText()));
 
     var rightColLayout = new GridLayout();
     rightColLayout.setColumns(1);
@@ -143,13 +139,9 @@ public class MiddleRow {
     layout.setRows(2);
     connectionDescriptionSettingPanel.setLayout(layout);
     var showTcpFeatures = new JCheckBox("Show detected tcp features");
-    showTcpFeatures.addChangeListener((i) -> {
-      filtersForm.setShowTcpFeatures(showTcpFeatures.isSelected());
-    });
+    showTcpFeatures.addChangeListener((i) -> filtersForm.setShowTcpFeatures(showTcpFeatures.isSelected()));
     var showGeneralConnectionInformation = new JCheckBox("Show general information");
-    showTcpFeatures.addChangeListener((i) -> {
-      filtersForm.setShowGeneralInformation(showGeneralConnectionInformation.isSelected());
-    });
+    showTcpFeatures.addChangeListener((i) -> filtersForm.setShowGeneralInformation(showGeneralConnectionInformation.isSelected()));
     showGeneralConnectionInformation.setSelected(false);
 
     showTcpFeatures.setSelected(true);
@@ -211,10 +203,16 @@ public class MiddleRow {
     connectionSelectorPanel.add(connectionSelector, BorderLayout.CENTER);
 
     connectionSelector.addItemListener((i) -> {
-      if (i.getStateChange() == ItemEvent.SELECTED || i.getStateChange() == ItemEvent.DESELECTED) {
+      if (i.getStateChange() == ItemEvent.SELECTED
+        && (connectionSelector.getSelectedItem() != null && !connectionSelector.getSelectedItem().equals(filtersForm.getSelectedConnection())) ) {
           var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
           filtersForm.setSelectedConnection(selectedItem);
           ArrowDiagram.getInstance().setTcpConnection(selectedItem, filtersForm);
+      } else {
+        SwingUtilities.invokeLater(() -> {
+          ArrowDiagram.getInstance().revalidate();
+          ArrowDiagram.getInstance().repaint();
+        });
       }
     });
   }
@@ -240,7 +238,9 @@ public class MiddleRow {
         .toList());
       var ff = FiltersForm.getFiltersForm();
       model.setSelectedItem(ff.getSelectedConnection());
-
+      SwingUtilities.invokeLater(() -> {
+        ArrowDiagram.getInstance().repaint();
+      });
     }
   }
 
@@ -286,6 +286,7 @@ public class MiddleRow {
         selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(selectedConnection));
         selectedConnectionInfoPane.revalidate();
         selectedConnectionInfoPane.repaint();
+        ArrowDiagram.getInstance().repaint();
       }
     });
     connectionSelector.revalidate();
