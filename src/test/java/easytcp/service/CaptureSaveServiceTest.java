@@ -20,6 +20,7 @@ import org.pcap4j.packet.namednumber.IpVersion;
 import org.pcap4j.packet.namednumber.TcpPort;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -34,6 +35,7 @@ class CaptureSaveServiceTest {
   private CaptureSaveService underTest = new CaptureSaveService();
   @Test
   void saveArrowDiagram() {
+    ApplicationStatus.getStatus().setFrameDimension(new Dimension(50, 50));
     var ad = ArrowDiagram.getInstance();
     var fishFile = new File("fish.png");
     assertThat(fishFile.exists()).isFalse();
