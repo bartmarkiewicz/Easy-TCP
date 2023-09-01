@@ -89,7 +89,7 @@ public class ConnectionDisplayService {
       sb, tcpConnection, tcpStrategyDetection, pktContainer.getOutgoingPackets());
     var slowStartLst = detectSlowStart(pktContainer, tcpStrategyDetection);
     var clientSlowStartEnabled = slowStartLst.get(0)
-      >= (pktContainer.getOutgoingPackets().size() * tcpStrategyDetection.getPercentOfPackets());
+      >= (pktContainer.getOutgoingPackets().size() * (tcpStrategyDetection.getPercentOfPackets()-0.1));
     if (clientStrategiesCount == 0 && clientSlowStartEnabled) {
       clientStrategiesCount++;
       sb.append("TCP features on the client\n");
@@ -104,7 +104,7 @@ public class ConnectionDisplayService {
     var serverStrategiesCount = detectTcpStrategiesAndAppend(
       sb, tcpConnection, tcpStrategyDetection, pktContainer.getIncomingPackets());
     var serverSlowStartEnabled = slowStartLst.get(1)
-      >= (pktContainer.getIncomingPackets().size() * tcpStrategyDetection.getPercentOfPackets());
+      >= (pktContainer.getIncomingPackets().size() * (tcpStrategyDetection.getPercentOfPackets() - 0.1));
     if (serverStrategiesCount == 0 && serverSlowStartEnabled) {
       sb.append("TCP features on the server\n");
       sb.append("Slow start is enabled\n");
@@ -201,6 +201,8 @@ public class ConnectionDisplayService {
           LOGGER.debug("Window size increased from {} to {} on outgoing, likely slow start",
             previousSendingWindow, currentSendingWindowSize);
         }
+        LOGGER.debug("Window size increased from {} to {} on incoming, NOT LIKELY slow start",
+                previousSendingWindow, currentSendingWindowSize);
       } else {
         currentSendingWindowSize = 0;
         consecutivePacketsRcvd++;
@@ -215,6 +217,8 @@ public class ConnectionDisplayService {
           LOGGER.debug("Window size increased from {} to {} on incoming, likely slow start",
             previousReceivingWindow, currentReceivingWindowSize);
         }
+        LOGGER.debug("Window size increased from {} to {} on incoming, NOT LIKELY slow start",
+                previousReceivingWindow, currentReceivingWindowSize);
       }
     }
     return List.of(slowStartPossibilitySending, slowStartPossibilityReceiving);
@@ -233,6 +237,8 @@ public class ConnectionDisplayService {
     var delayedAckPossibility = 0;
     var lastReceivedPkt = packetContainer.findPreviousPacketReceived(pkt);
     if (lastReceivedPkt.isPresent()) {
+      //todo this is probably broken
+      //it should look if there were mutliple data packets before an ack was sent
       lastOutgoingPacketHadData = lastReceivedPkt.get().getDataPayloadLength() > 0;
       if (pkt.getTcpFlags().get(TCPFlag.ACK) && pkt.getDataPayloadLength() > 0) {
         if (lastOutgoingPacketHadData) {
@@ -341,7 +347,7 @@ public class ConnectionDisplayService {
         if (outgoingCon && connection.getWindowScaleClient() != null) {
           counter++;
           if (counter <= 1) {
-            sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+            sb.append("Client TCP options\n");
           }
           sb.append("Window scale - %s\n".formatted(connection.getWindowScaleClient()));
         } else if (connection.getWindowScaleServer() != null) {
@@ -356,7 +362,7 @@ public class ConnectionDisplayService {
         if (outgoingCon && connection.getMaximumSegmentSizeClient() != null) {
           if (counter <= 1) {
             counter++;
-            sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
+            sb.append("Client TCP options\n");
           }
           sb.append("MSS - %s\n".formatted(connection.getMaximumSegmentSizeClient()));
         } else if (connection.getMaximumSegmentSizeServer() != null) {

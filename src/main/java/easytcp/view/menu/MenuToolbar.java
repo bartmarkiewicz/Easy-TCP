@@ -39,7 +39,7 @@ public class MenuToolbar {
       fileMenu.add(exitMenuItem);
       var general = new JMenuItem("General");
       addItemListener(general, i -> new GeneralHelpScreen());
-      var aboutTcp =  new JMenuItem("About Tcp");
+      var aboutTcp =  new JMenuItem("About TCP");
       addItemListener(aboutTcp, i -> new AboutTCPHelpScreen());
       helpMenu.add(aboutTcp);
       helpMenu.add(general);
@@ -85,10 +85,6 @@ public class MenuToolbar {
 
   public void addOpenMenuItemListener(ActionListener actionListener) {
     openMenuItem.addActionListener(actionListener);
-  }
-
-  public void addSaveMenuItemListener(ActionListener actionListener) {
-    savePcapMenuItem.addActionListener(actionListener);
   }
 
   public JMenuBar getMenuBar() {

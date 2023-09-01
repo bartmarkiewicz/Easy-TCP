@@ -13,16 +13,16 @@ import java.io.IOException;
 public class GeneralHelpScreen {
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneralHelpScreen.class);
   private final JFrame frame;
-  private final JPanel containerPanel;
 
   public GeneralHelpScreen() {
-    this.frame = new JFrame("EasyTCP General Help");
+    this.frame = new JFrame("Easy TCP General Help");
     var screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     screenSize.setSize(screenSize.width - 120, screenSize.height - 120);
     frame.setSize(screenSize);
     frame.setPreferredSize(screenSize);
     frame.setLayout(new BorderLayout());
     var heading = new JLabel("Easy TCP user guide");
+    heading.setName("header");
     heading.setHorizontalAlignment(SwingConstants.CENTER);
     frame.add(heading, BorderLayout.NORTH);
     var containerScrollPanel = new ScrollableJPanel(true);
@@ -30,7 +30,7 @@ public class GeneralHelpScreen {
     containerScrollPanel.COMPONENT_WIDTH = frame.getWidth()+200;
 
     containerScrollPanel.setLayout(new GridLayout(1,1));
-    this.containerPanel = new JPanel();
+    JPanel containerPanel = new JPanel();
     var panelLayout = new GridLayout();
     panelLayout.setRows(3);
 

@@ -44,6 +44,7 @@ public class AboutTCPHelpScreen {
 
   private void addHeading(JPanel topPanel) {
     var headingLabel = new JLabel("Transmission Control Protocol - TCP");
+    headingLabel.setName("header");
     headingLabel.setPreferredSize(new Dimension(250, 50));
     topPanel.add(headingLabel);
   }

@@ -15,8 +15,8 @@ public class TCPConnection {
   private Long maximumSegmentSizeServer;
   private Integer windowScaleClient;
   private Integer windowScaleServer;
-
   private boolean fullConnection; // indicates weather a TCP handshake was captured
+
   public TCPConnection() {
   }
 
@@ -28,6 +28,8 @@ public class TCPConnection {
     this.fullConnection = connection.isFullConnection();
     this.maximumSegmentSizeClient = connection.getMaximumSegmentSizeClient();
     this.maximumSegmentSizeServer = connection.getMaximumSegmentSizeServer();
+    this.windowScaleClient = connection.getWindowScaleClient();
+    this.windowScaleServer = connection.getWindowScaleServer();
   }
 
   public ConnectionStatus getConnectionStatus() {

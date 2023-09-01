@@ -185,7 +185,6 @@ class ConnectionDisplayServiceTest {
       assertThat(result).isEqualToIgnoringWhitespace("""
       Connection status:
       TCP features on the client
-      Delayed ack is enabled
       Slow start is enabled
       """);
   } else {
