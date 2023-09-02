@@ -5,6 +5,7 @@ import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import easytcp.service.PacketDisplayService;
 import easytcp.service.PacketTransformerService;
+import easytcp.view.ArrowDiagram;
 import easytcp.view.options.OptionsPanel;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PacketListener;
@@ -62,6 +63,13 @@ public class LivePacketListener implements PacketListener {
           isSettingForm.set(true);
           SwingUtilities.invokeLater(() -> {
             setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
+            var arrowDiagram = ArrowDiagram.getInstance();
+            if (arrowDiagram.getSelectedConnection() != null
+                    && arrowDiagram.getSelectedConnection().equals(easyTCPacket.getTcpConnection())) {
+              //update diagram if a packet is added to the selected connection.
+              ArrowDiagram.getInstance().repaint();
+              ArrowDiagram.getInstance().revalidate();
+            }
             isSettingForm.set(false);
           });
         }

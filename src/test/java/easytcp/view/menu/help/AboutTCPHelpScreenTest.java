@@ -1,6 +1,6 @@
 package easytcp.view.menu.help;
 
-import easytcp.main;
+import easytcp.Application;
 import easytcp.view.EasyTCP;
 import org.assertj.swing.core.GenericTypeMatcher;
 import org.assertj.swing.testing.AssertJSwingTestCaseTemplate;
@@ -18,7 +18,7 @@ class AboutTCPHelpScreenTest extends AssertJSwingTestCaseTemplate {
     @BeforeEach
     public void onSetUp() {
         setUpRobot();
-        application(main.class).start();
+        application(Application.class).start();
     }
 
     @AfterEach

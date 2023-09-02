@@ -80,7 +80,8 @@ public class ArrowDiagram extends ScrollableJPanel {
 
   @Override
   protected void paintComponent(Graphics g) {
-    super.paintComponent(g);
+    var g2d = (Graphics2D) g;
+    super.paintComponent(g2d);
 
     leftXPos = ApplicationStatus.getStatus().getFrameDimension().width / 10;
     arrowDiagramWidth = (ApplicationStatus.getStatus().getFrameDimension().width / 2) - 60;
@@ -88,35 +89,34 @@ public class ArrowDiagram extends ScrollableJPanel {
     rightXLabelPos = rightXPos + 5;
     leftXLabelPos = leftXPos - 100;
 
-    g.setColor(Color.BLACK);
-    Graphics2D g2d = (Graphics2D) g;
-    g.setFont(new Font(g.getFont().getName(), Font.BOLD, 16));
+    g2d.setColor(Color.BLACK);
+    g2d.setFont(new Font(g2d.getFont().getName(), Font.BOLD, 16));
     if (tempConnection == null) {
-      g.drawString("Select a TCP connection to view a diagram", leftXPos + (leftXPos/2), 40);
-      g.setFont(new Font(g.getFont().getName(), Font.BOLD, 12));
+      g2d.drawString("Select a TCP connection to view a diagram", leftXPos + (leftXPos/2), 40);
+      g2d.setFont(new Font(g2d.getFont().getName(), Font.BOLD, 12));
 
     } else {
-      g.drawString("Connection", leftXPos * 2, 40);
-      g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 12));
-      g.drawString("Client", 5, 20);
-      g.drawString(tempConnection.getHostTwo().getAddressString(), 5, 40);
-      g.drawString("Server", rightXPos+5, 20);
-      g.drawString(tempConnection.getHost().getAddressString(), rightXPos+5, 40);
+      g2d.drawString("Connection", leftXPos * 2, 40);
+      g2d.setFont(new Font(g2d.getFont().getName(), Font.PLAIN, 12));
+      g2d.drawString("Client", 5, 20);
+      g2d.drawString(tempConnection.getHostTwo().getAddressString(), 5, 40);
+      g2d.drawString("Server", rightXPos+5, 20);
+      g2d.drawString(tempConnection.getHost().getAddressString(), rightXPos+5, 40);
     }
 
     //title bar
-    g.fillRect(0, 50, Integer.MAX_VALUE, 1);
+    g2d.fillRect(0, 50, Integer.MAX_VALUE, 1);
 
     //vertical bars
-    g.fillRect(rightXPos, 0, 1, getHeight());
-    g.fillRect(leftXPos, 0, 1, getHeight());
+    g2d.fillRect(rightXPos, 0, 1, getHeight());
+    g2d.fillRect(leftXPos, 0, 1, getHeight());
 
     if (tempConnection != null) {
       drawArrows(g2d);
     }
     currentVerticalPosition = INITIAL_VERTICAL_POSITION;
 
-    g.dispose();
+    g2d.dispose();
   }
 
   private void drawArrows(Graphics2D g2d) {
@@ -267,6 +267,10 @@ public class ArrowDiagram extends ScrollableJPanel {
     } catch (Exception e) {
       LOGGER.error("Error saving diagram png");
     }
+  }
+
+  public TCPConnection getSelectedConnection() {
+    return selectedConnection;
   }
 
   @Override

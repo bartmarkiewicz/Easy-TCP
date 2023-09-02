@@ -11,6 +11,13 @@ repositories {
     mavenCentral()
 }
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'easytcp.Application'
+    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
 test {
     useJUnitPlatform {
         includeEngines 'junit-jupiter', 'junit-vintage'

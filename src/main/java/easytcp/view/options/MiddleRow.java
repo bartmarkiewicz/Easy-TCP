@@ -16,6 +16,7 @@ import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 /*
  * Class representing the middle row in the options panel
@@ -196,7 +197,7 @@ public class MiddleRow {
   }
 
   private void addConnectionSelector(JPanel connectionSelectorPanel, FiltersForm filtersForm) {
-    connectionSelector.setFont(new Font(connectionSelector.getFont().getName(), 5, 10));
+    connectionSelector.setFont(new Font(connectionSelector.getFont().getName(), Font.PLAIN, 10));
     connectionSelector.setLightWeightPopupEnabled(false);
     connectionSelector.setToolTipText("Select a TCP connection");
     connectionSelectorPanel.add(new JLabel("Connection"), BorderLayout.NORTH);
@@ -238,9 +239,7 @@ public class MiddleRow {
         .toList());
       var ff = FiltersForm.getFiltersForm();
       model.setSelectedItem(ff.getSelectedConnection());
-      SwingUtilities.invokeLater(() -> {
-        ArrowDiagram.getInstance().repaint();
-      });
+      SwingUtilities.invokeLater(() -> ArrowDiagram.getInstance().repaint());
     }
   }
 
@@ -260,12 +259,21 @@ public class MiddleRow {
     connectionInformationPane.revalidate();
     connectionInformationPane.repaint();
     if (FiltersForm.getInstance().getSelectedConnection() != null) {
-      selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(FiltersForm.getFiltersForm().getSelectedConnection()));
+      var connectionDisplayThread = Executors.newSingleThreadExecutor();
+      connectionDisplayThread.execute(() -> {
+        //getting connection information is a heavy operation, so should be done on a seperate thread
+        var connectionDisplayInformation = connectionDisplayService.getConnectionInformation(FiltersForm.getFiltersForm().getSelectedConnection());
+        SwingUtilities.invokeLater(() -> {
+          selectedConnectionInfoPane.setText(connectionDisplayInformation);
+          selectedConnectionInfoPane.repaint();
+          selectedConnectionInfoPane.revalidate();
+        });
+      });
     } else {
       selectedConnectionInfoPane.setText(getDefaultSelectedConnectionText());
+      selectedConnectionInfoPane.repaint();
+      selectedConnectionInfoPane.revalidate();
     }
-    selectedConnectionInfoPane.repaint();
-    selectedConnectionInfoPane.revalidate();
     packetViewScroll.repaint();
     packetViewScroll.revalidate();
     addConnectionOptions(captureData);

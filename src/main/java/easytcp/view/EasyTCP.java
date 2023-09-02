@@ -11,6 +11,7 @@ import mdlaf.themes.MaterialLiteTheme;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 
 public class EasyTCP extends JFrame {
     public EasyTCP() {
@@ -70,7 +71,10 @@ public class EasyTCP extends JFrame {
         });
 
         menuToolbar.addOpenMenuItemListener(actionEvent -> {
+            fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            var workingDirectory = new File(System.getProperty("user.dir"));
+            fileChooser.setCurrentDirectory(workingDirectory);
             fileChooser.showOpenDialog(this);
             fileChooser.setMultiSelectionEnabled(false);
         });

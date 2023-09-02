@@ -6,6 +6,7 @@ import easytcp.view.menu.help.GeneralHelpScreen;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 public class MenuToolbar {
   private final JMenuBar menuBar;
@@ -57,6 +58,9 @@ public class MenuToolbar {
 
       addItemListener(saveCaptureDiagramMenuItem, i -> {
         saveArrowsDiagramFileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+        var workingDirectory = new File(System.getProperty("user.dir"));
+        saveArrowsDiagramFileChooser.setDialogTitle("Save arrows diagram");
+        saveArrowsDiagramFileChooser.setCurrentDirectory(workingDirectory);
         saveArrowsDiagramFileChooser.showSaveDialog(menuBar);
         saveArrowsDiagramFileChooser.setMultiSelectionEnabled(false);
         saveArrowsDiagramFileChooser.setVisible(true);
@@ -64,6 +68,9 @@ public class MenuToolbar {
 
       addItemListener(savePcapMenuItem, i -> {
         savePcapFileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+        var workingDirectory = new File(System.getProperty("user.dir"));
+        savePcapFileChooser.setCurrentDirectory(workingDirectory);
+        savePcapFileChooser.setDialogTitle("Save capture file");
         savePcapFileChooser.showSaveDialog(menuBar);
         savePcapFileChooser.setMultiSelectionEnabled(false);
         savePcapFileChooser.setVisible(true);

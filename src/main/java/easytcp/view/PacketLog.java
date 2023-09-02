@@ -3,6 +3,7 @@ package easytcp.view;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
+import easytcp.service.PacketTransformerService;
 import easytcp.service.capture.LiveCaptureService;
 import easytcp.service.PacketDisplayService;
 import easytcp.service.capture.PcapFileReaderService;
@@ -102,6 +103,7 @@ public class PacketLog {
    */
   public void newLog() {
     captureData.clear();
+    PacketTransformerService.getPcapCaptureData().clear();
     if (pcapHandle != null && pcapHandle.isOpen()) {
       try {
         pcapHandle.breakLoop();
@@ -119,6 +121,7 @@ public class PacketLog {
       var arrowDiagram = ArrowDiagram.getInstance();
       arrowDiagram.setTcpConnection(null, filtersForm);
       arrowDiagram.repaint();
+      refilterPackets();
       logTextPane.setText("");
       logTextPane.revalidate();
       logTextPane.repaint();

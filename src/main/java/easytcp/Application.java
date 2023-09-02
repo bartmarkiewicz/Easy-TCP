@@ -5,7 +5,7 @@ import easytcp.view.EasyTCP;
 
 import javax.swing.*;
 
-public class main {
+public class Application {
     /*Application entry point
      */
     public static void main(String[] args){
