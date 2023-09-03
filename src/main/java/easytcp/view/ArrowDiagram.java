@@ -70,7 +70,9 @@ public class ArrowDiagram extends ScrollableJPanel {
     }
     this.selectedConnection = tcpConnection;
     //sets the initial status
-    selectedConnection.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
+    if (selectedConnection != null) {
+      selectedConnection.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
+    }
     repaint();
     revalidate();
   }
@@ -101,7 +103,7 @@ public class ArrowDiagram extends ScrollableJPanel {
       g2d.drawString("Client", 5, 20);
       var resolveHostnames = FiltersForm.getInstance().isResolveHostnames();
       g2d.drawString((resolveHostnames
-              ? selectedConnection.getConnectionAddresses().getAddressOne().getAddressString()
+              ? selectedConnection.getConnectionAddresses().getAddressTwo().getAddressString()
               : selectedConnection.getConnectionAddresses().getAddressTwo().getAlphanumericalAddress()) +":%s"
               .formatted(selectedConnection.getConnectionAddresses().getAddressTwo().getPort()) , 5, 40);
       g2d.drawString("Server", rightXPos+5, 20);

@@ -109,7 +109,7 @@ public class TCPConnection {
       (FiltersForm.getInstance().isResolveHostnames()
               ? connectionAddresses.getAddressOne().getAddressString()
               : connectionAddresses.getAddressOne().getAlphanumericalAddress())
-      + ":%s pkts =".formatted(connectionAddresses.getAddressOne().getPort()) + packetContainer.getPackets().size()
+      + ":%s".formatted(connectionAddresses.getAddressOne().getPort())
       + (fullConnection ? " with handshake" : "");
   }
 

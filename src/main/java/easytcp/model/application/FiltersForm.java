@@ -73,6 +73,7 @@ public class FiltersForm {
     this.showAckAndSeqNumbers = true;
     this.showLength = true;
     this.showWindowSize = true;
+    this.showTcpOptions = false;
     this.tcpStrategyThreshold = TcpStrategyDetection.BALANCED;
     this.showGeneralInformation = false;
     this.showTcpFeatures = true;

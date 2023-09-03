@@ -34,6 +34,8 @@ public class OptionsPanel {
   private JCheckBox showHeaderFlags;
   private JCheckBox showWindowSize;
   private JCheckBox showLength;
+  private JCheckBox showTcpOptions;
+
 
   public OptionsPanel(FiltersForm filtersForm, PacketLog packetLog) {
     this.containerPanel = createContainerPanel();
@@ -199,7 +201,7 @@ public class OptionsPanel {
     showLength.addChangeListener((changeEvent) -> this.filtersForm.setShowLength(showLength.isSelected()));
     checkboxContainer2.add(showLength);
 
-    var showTcpOptions = new JCheckBox();
+    showTcpOptions = new JCheckBox();
     showTcpOptions.setText("Tcp options");
     showTcpOptions.setSelected(filtersForm.isShowTcpOptions());
     showTcpOptions.addChangeListener((changeEvent) -> this.filtersForm.setShowTcpOptions(showTcpOptions.isSelected()));
@@ -241,13 +243,18 @@ public class OptionsPanel {
 
   public void restoreFilters() {
     // restores the default filters for the top row
-    ipv4Checkbox.setSelected(filtersForm.isShowIpv4());
-    ipv6Checkbox.setSelected(filtersForm.isShowIpv6());
-    resolveHostnames.setSelected(filtersForm.isResolveHostnames());
-    showWindowSize.setSelected(filtersForm.isShowWindowSize());
-    showLength.setSelected(filtersForm.isShowWindowSize());
-    showHeaderFlags.setSelected(filtersForm.isShowHeaderFlags());
-    showAckAndSequenceNumbers.setSelected(filtersForm.isShowAckAndSeqNumbers());
+    SwingUtilities.invokeLater(() -> {
+      ipv4Checkbox.setSelected(filtersForm.isShowIpv4());
+      ipv6Checkbox.setSelected(filtersForm.isShowIpv6());
+      resolveHostnames.setSelected(filtersForm.isResolveHostnames());
+      showWindowSize.setSelected(filtersForm.isShowWindowSize());
+      showLength.setSelected(filtersForm.isShowWindowSize());
+      showHeaderFlags.setSelected(filtersForm.isShowHeaderFlags());
+      showAckAndSequenceNumbers.setSelected(filtersForm.isShowAckAndSeqNumbers());
+      showTcpOptions.setSelected(filtersForm.isShowTcpOptions());
+      containerPanel.repaint();
+      containerPanel.revalidate();
+    });
   }
 
   //creates the start live capture button

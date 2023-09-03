@@ -32,6 +32,12 @@ public class MiddleRow {
   private final ConnectionDisplayService connectionDisplayService;
   private JTextField hostInput;
   private JTextField portInput;
+  private JCheckBox showTcpFeatures;
+  private JCheckBox showGeneralConnectionInformation;
+  private ButtonGroup radioOptions;
+  private JRadioButton mediumThreshold;
+  private JRadioButton lowThreshold;
+  private JRadioButton highThreshold;
   private DefaultComboBoxModel<TCPConnection> model;
 
   public MiddleRow(FiltersForm filtersForm) {
@@ -142,9 +148,9 @@ public class MiddleRow {
     var layout = new GridLayout();
     layout.setRows(2);
     connectionDescriptionSettingPanel.setLayout(layout);
-    var showTcpFeatures = new JCheckBox("Show detected tcp features");
+    showTcpFeatures = new JCheckBox("Show detected tcp features");
     showTcpFeatures.addChangeListener((i) -> filtersForm.setShowTcpFeatures(showTcpFeatures.isSelected()));
-    var showGeneralConnectionInformation = new JCheckBox("Show general information");
+    showGeneralConnectionInformation = new JCheckBox("Show general information");
     showTcpFeatures.addChangeListener((i) -> filtersForm.setShowGeneralInformation(showGeneralConnectionInformation.isSelected()));
     showGeneralConnectionInformation.setSelected(false);
 
@@ -156,21 +162,21 @@ public class MiddleRow {
   private void addConnectionFeatureSettings(JPanel connectionInformationSettingsPanel, FiltersForm filtersForm) {
     var layout = new BoxLayout(connectionInformationSettingsPanel, BoxLayout.Y_AXIS);
     connectionInformationSettingsPanel.setLayout(layout);
-    var radioOptions = new ButtonGroup();
+    radioOptions = new ButtonGroup();
     var label = new JLabel("Feature detection sensitivity");
     var labelContainer = new JPanel();
     labelContainer.setLayout(new GridLayout());
     labelContainer.add(label);
     connectionInformationSettingsPanel.add(labelContainer);
 
-    var highThreshold = new JRadioButton("Strict");
+    highThreshold = new JRadioButton("Strict");
     highThreshold.addChangeListener((i) -> {
       if (highThreshold.isSelected()) {
         filtersForm.setTcpStrategyThreshold(TcpStrategyDetection.STRICT);
       }
     });
 
-    var mediumThreshold = new JRadioButton("Balanced");
+    mediumThreshold = new JRadioButton("Balanced");
 
     mediumThreshold.addChangeListener((i) -> {
       if (mediumThreshold.isSelected()) {
@@ -178,7 +184,7 @@ public class MiddleRow {
       }
     });
     mediumThreshold.setSelected(true);
-    var lowThreshold = new JRadioButton("Lenient");
+    lowThreshold = new JRadioButton("Lenient");
     lowThreshold.addChangeListener((i) -> {
       if (lowThreshold.isSelected()) {
         filtersForm.setTcpStrategyThreshold(TcpStrategyDetection.LENIENT);
@@ -232,8 +238,19 @@ public class MiddleRow {
     model.setSelectedItem(null);
     portInput.setText("");
     hostInput.setText("");
-    selectedConnectionInfoPane.revalidate();
+    showTcpFeatures.setSelected(FiltersForm.getInstance().isShowTcpFeatures());
+    showGeneralConnectionInformation.setSelected(FiltersForm.getInstance().isShowGeneralInformation());
+    switch (FiltersForm.getInstance().getTcpStrategyThreshold()) {
+      case STRICT -> highThreshold.setSelected(true);
+      case LENIENT -> lowThreshold.setSelected(true);
+      case BALANCED -> mediumThreshold.setSelected(true);
+    }
+    showTcpFeatures.repaint();
+    showTcpFeatures.revalidate();
+    showGeneralConnectionInformation.repaint();
+    showGeneralConnectionInformation.revalidate();
     selectedConnectionInfoPane.repaint();
+    selectedConnectionInfoPane.revalidate();
   }
 
   /* Adds new connections captured to the connection selector
