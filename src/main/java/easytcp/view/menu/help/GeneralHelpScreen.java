@@ -69,7 +69,7 @@ public class GeneralHelpScreen {
       The arrow diagram consists of the client on the left, which represents the network interface the packet \
       capture was started upon. The section on the right represents the server or the host the client initiates a contact with.
       
-      The user must first select a connection and filter or click a packet in the packet capture log after conducting a packet capture session or \
+      The user must first select a connection or click a packet in the packet capture log after conducting a packet capture session or \
       reading a pcap file to see the Arrows Diagram.
       
       On the sides of the arrows diagram we can see relative timestamp (from the first packet captured on the connection).
@@ -99,7 +99,8 @@ public class GeneralHelpScreen {
       
       The checkboxes once ticked -
       1. Resolve hostnames - enables host name resolution when packet capturing or reading a file, \
-      this allows the user to see the names of hosts rather than their numerical IP addresses.
+      this allows the user to see the names of hosts rather than their numerical IP addresses. \
+      Although these often are the host names of data centres rather than application URLs a user might expect.
       2. Header flags, once ticked shows TCP flags on the arrows diagram and on the connection description.
       3. IPv4 - shows or captures packets which use IP protocol version 4.
       4. IPv6 - shows or captures packets which use IP protocol version 6, albeit these packets are pretty uncommon for TCP.
@@ -112,15 +113,14 @@ public class GeneralHelpScreen {
       
       On the right of the checkboxes there is the interface selector field, where the user can select the desired network interface \
       to start capturing packets on. Under the network interface selector, the start capture button begins a live capture of packets on \
-      the selected interface, matching the filters selected by the user.
-      
-      Under the checkboxes on the left in the middle there is a general count of the connections detected and their statuses.
-      
+      the selected interface, matching the filters selected by the user. It must be noted most if not all of your TCP traffic will come \
+      to one or two of your interfaces. Therefore you should select the interface for your Wireless network card or Ethernet.
+            
       In the middle we have the connection selector, once a file has been read or a packet capture is ongoing or finished, \
       the user can select one of the connections between two hosts to display information about it. Additionally it can be used as a filter for the packet log \
       and the packet capture, ensuring only packets on that connection are captured. Under the connection selector we have the \
-      selected connection description this gets populated with the information about the connection matching the filters once the filter button is clicked after selecting \
-      a connection.
+      selected connection description this gets populated with the information about the connection matching the selected connection once \
+      the filter button is clicked after selecting a connection.
       
       On the right in the middle we have the feature detection sensitivity, due to the nature of analysing packets without knowledge \
       of the underlying network and connection configurations, just based on the patterns in a pcap file, it is often uncertain if a \
@@ -131,9 +131,10 @@ public class GeneralHelpScreen {
       or port range written in the format STARTPORT-ENDPORT. There is also the host ip or hostname input, which allows the user to filter results or capture based on \
       a particular hostname or host ip. It must be noted port and host are filters which apply on either a destination port/ip or a source port/ip.
       
-      On the last row of the options panel we have the general capture description which shows how many packets match the filters and how many connections have been detected.
+      On the last row of the options panel we have the general capture description which shows how many packets match the filters and how many connections \
+      have been detected matching the filters.
       
-      The buttons on the last row allow the user to restore the default filters - which show the most vital information, and allow the user
+      The buttons on the last row allow the user to restore the default filters - which show the most vital information, and allow the user \
       to re-filter the output after a capture or file read.
       """);
       optionsDescription.setCaretPosition(0);
@@ -158,10 +159,10 @@ public class GeneralHelpScreen {
       this is followed by their protocol version, followed by the IP address or hostname depending on the filters, first the sender address \
       followed by the receiver. This is then followed by the flags on the TCP connection, the flags are abbreviated to just the first letter, and \
       a dot for the ACK. Then the sequence number and the ack number is displayed. Followed by the window size and  \
-      the options field in the form of a list of bit values, lastly the length of the payload is displayed. 
+      the options field in the form of a list of bit values, lastly the length of the payload is displayed.
       
       The user can click on a packet on the packet log to view the packet on the arrows diagram. This will immediately show the diagram \
-      for that connection and highlight the captured packet in blue. 
+      for that connection and highlight the captured packet in blue.
       """);
       packetLogDescription.setCaretPosition(0);
       var packetLogPicLabel = new JLabel();

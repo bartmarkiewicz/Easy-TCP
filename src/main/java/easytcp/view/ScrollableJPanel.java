@@ -32,7 +32,8 @@ public class ScrollableJPanel extends JPanel implements Scrollable {
     } else {
       currentPosition = visibleRect.y;
     }
-
+    repaint();
+    revalidate();
     if (direction < 0) {
       int newPosition = currentPosition - (currentPosition / maxUnitIncrement) * maxUnitIncrement;
       return (newPosition == 0) ? maxUnitIncrement : newPosition;

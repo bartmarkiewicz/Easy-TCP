@@ -35,6 +35,8 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
     @Test
     void testSaveArrowsDiagram() throws InterruptedException {
         ApplicationStatus.getStatus().setFrameDimension(new Dimension(500, 500));
+        ArrowDiagram.getInstance().repaint();
+        ArrowDiagram.getInstance().revalidate();
         var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
         //opens EasyTCP and then clicks file -> Save arrows diagram
         frame.menuItemWithPath("File", "Save arrows diagram").click();

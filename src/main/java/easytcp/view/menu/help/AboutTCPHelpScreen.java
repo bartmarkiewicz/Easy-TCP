@@ -60,7 +60,7 @@ public class AboutTCPHelpScreen {
       ensure the successful delivery of data.
       
       Each packet consists of a header and its data, on the right you can see the TCP header. A packet is a segment of data
-      that goes through an internet connection, which could be wireless or ethernet.
+      that goes through an internet connection, which could be Wireless or Ethernet.
       
       It is the most commonly used protocol used on the internet, it complements the lower level IP protocol. Due to its popularity  \
       the entire protocol suite is often referred as TCP/IP.
@@ -74,6 +74,19 @@ public class AboutTCPHelpScreen {
       The connection orderly ends with a FIN packet sent from a host, which then receives a reply in the form of a FIN and ACK, \
       this is followed with an ACK from the initial host which started the connection termination. After this final ACK the connection is closed. \
       The TCP connection can also be immediately terminated with a RST flag.
+      
+      There are numerous TCP strategies employed on the connection to solve problems with congestion or latency. \
+      Some of which are detected using EasyTCP, these can be enabled on either the sending host or receiving host. 
+      
+      Nagle's algorithm is a TCP optimisation that makes the sender wait until all data is acknowledged on a connection before sending new data. \
+      It increases efficiency of the network by decreasing the number of packets that must be sent, solves the problem of 'tinygrams' or too many \
+      small packets being sent. 
+      
+      Delayed ack or delayed acknowledgement, delays the sending of an ACK by up to 200 ms to allow time for data to be piggy-backed along with the ACK. \
+      Although this can result in some problems while using both Nagle's and Delayed ack strategies, since both hosts can end up waiting for an ack or data to send. 
+      
+      Slow start ensures that the TCP connection finds the optimal transfer window size of data based on the congestion of the network, it makes the connection \
+      begin with small data before receiving an acknowledgement which is gradually increased up until an optimal amount of data to be sent is found.
       """);
     tcpDescription.setEditable(false);
     tcpDescription.setPreferredSize(new Dimension(600, 500));
@@ -88,7 +101,7 @@ public class AboutTCPHelpScreen {
       BufferedImage myPicture = ImageIO.read(new File("src/main/resources/tcpHeader.png"));
       JLabel picLabel = new JLabel(new ImageIcon(myPicture));
       rightPanel.add(picLabel);
-      var headerHeading = new JLabel("A TCP packet");
+      var headerHeading = new JLabel("A TCP packet                ");
       headerHeading.setHorizontalAlignment(SwingConstants.CENTER);
       var headerDescription = new JTextPane();
       headerDescription.setEditable(false);
@@ -102,13 +115,13 @@ public class AboutTCPHelpScreen {
       the source next expects to receive from the destination
       4. Data offset, 32 bits, specifies the size of the TCP header
       5. Reserved, 6 bits, these bits are reserved for potential future use.
-      6. TCP flags, 6 bits, these signify 6 flags which indicate a particular connection state, they are: 
+      6. TCP flags, 8 bits, these signify 6 flags which indicate a particular type of packet, they are: 
           SYN - initiates a TCP connection
           ACK - indicates that the packet is acknowledging a previously received packet
           PSH - Tells the receiver to pass on the data to the application as soon as possible, 
-          typically disables algorithms such as Nagle
-          RST - Immediately ends a TCP connection
-          URG - Notifies the received to process the packet before processing all other packets.
+          typically disables congestion control algorithms such as Nagle
+          RST - Immediately ends a TCP connection, or indicates the receiving of an unexpected packet
+          URG - Notifies the receiver to process the packet before processing all other packets.
           FIN - Gracefully ends a TCP connection
           Less commonly
           CWR - Congestion window reduced, indicates it has received the ECE flag.
