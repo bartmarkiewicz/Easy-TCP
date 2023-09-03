@@ -18,6 +18,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+/* Test helper util class
+ */
 public class TestUtils {
 
   public static TCPConnection getConnectionWithHandshakeAndFin() {

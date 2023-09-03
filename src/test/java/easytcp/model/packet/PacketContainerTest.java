@@ -29,6 +29,7 @@ class PacketContainerTest {
       new TcpMaximumSegmentSizeOption.Builder().maxSegSize((short) 33).build();
   @BeforeEach
   void setUp() {
+    //creates a packet container with some packets
     underTest = new PacketContainer();
     connection = TestUtils.createTCPConnection(true,
       TestUtils.createAddress("123.123", "fish.com"),

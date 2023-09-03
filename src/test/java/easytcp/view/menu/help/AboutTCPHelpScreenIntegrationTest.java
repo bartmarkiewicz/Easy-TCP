@@ -17,6 +17,7 @@ class AboutTCPHelpScreenIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @BeforeEach
     public void onSetUp() {
+        //starts up the application and sets up a robot (to do the clicking through the screens)
         setUpRobot();
         application(Application.class).start();
     }
@@ -28,15 +29,17 @@ class AboutTCPHelpScreenIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @Test
     void testOpenHelpScreen() {
-        var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
+        //finds the application window
+        var frame = findFrame(EasyTCP.class).withTimeout(4000).using(robot());
 
+        //clicks Help -> About TCP
         frame.menuItemWithPath("Help", "About TCP").click();
         var aboutTcpFrame = findFrame(new GenericTypeMatcher<>(JFrame.class) {
             @Override
             protected boolean isMatching(JFrame component) {
                 return "EasyTCP About TCP".equals(component.getTitle()) && component.isShowing();
             }
-        }).withTimeout(5000).using(robot());
+        }).withTimeout(4000).using(robot());
 
        aboutTcpFrame.requireVisible();
        var closeBt = aboutTcpFrame.button(new GenericTypeMatcher<>(JButton.class) {

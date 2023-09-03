@@ -16,6 +16,7 @@ class ConnectionDisplayServiceTest {
   @ParameterizedTest
   @EnumSource(TcpStrategyDetection.class)
   void getConnectionInformation_whenAllEnabled(TcpStrategyDetection strategyDetection) {
+    //tests selected connection info with all display filters enabled
     var filters = FiltersForm.getInstance();
     filters.setShowLength(true);
     filters.setShowAckAndSeqNumbers(true);
@@ -81,65 +82,34 @@ class ConnectionDisplayServiceTest {
     var fullCon = TestUtils.getConnectionWithNagle();
     fullCon.setConnectionStatus(ConnectionStatus.UNKNOWN);
     var result = connectionDisplayService.getConnectionInformation(fullCon);
-    if(strategyDetection == TcpStrategyDetection.STRICT) {
-      assertThat(result).isEqualTo("""
-        Connection status:\s
-        Packets sent: 4
-        Packets received: 3
-        Host one: fish.com
-        Host two: host.com
-        Port one : 80
-        Port two : 80
-        Bytes sent 80
-        Bytes received 60
-        TCP features on the client\s
-        Nagle's algorithm is enabled\s
-                
-        TCP features on the server\s
-        Nagle's algorithm is enabled\s
-        
-        Client TCP options
-        MSS - 20
-        Window scale - 2
-                
-        Server TCP options
-        MSS - 20
-        Window scale - 1
-                
-        Packet flags sent/received
-        SYN 1/1
-        ACK 3/3
-        """);
-    } else {
-      assertThat(result).isEqualTo("""
-        Connection status:\s
-        Packets sent: 4
-        Packets received: 3
-        Host one: fish.com
-        Host two: host.com
-        Port one : 80
-        Port two : 80
-        Bytes sent 80
-        Bytes received 60
-        TCP features on the client\s
-        Nagle's algorithm is enabled\s
-        
-        TCP features on the server\s
-        Nagle's algorithm is enabled\s
+    assertThat(result).isEqualTo("""
+      Connection status:\s
+      Packets sent: 4
+      Packets received: 3
+      Host one: fish.com
+      Host two: host.com
+      Port one : 80
+      Port two : 80
+      Bytes sent 80
+      Bytes received 60
+      TCP features on the client\s
+      Nagle's algorithm is enabled\s
               
-        Client TCP options
-        MSS - 20
-        Window scale - 2
-        
-        Server TCP options
-        MSS - 20
-        Window scale - 1
-
-        Packet flags sent/received
-        SYN 1/1
-        ACK 3/3
-        """);
-    }
+      TCP features on the server\s
+      Nagle's algorithm is enabled\s
+      
+      Client TCP options
+      MSS - 20
+      Window scale - 2
+              
+      Server TCP options
+      MSS - 20
+      Window scale - 1
+              
+      Packet flags sent/received
+      SYN 1/1
+      ACK 3/3
+      """);
   }
 
   @ParameterizedTest
@@ -195,4 +165,6 @@ class ConnectionDisplayServiceTest {
         """);
     }
   }
+
+  //todo test for slow start
 }

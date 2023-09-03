@@ -1,6 +1,7 @@
 package easytcp.service;
 
 import easytcp.model.TCPFlag;
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.EasyTCPacket;
@@ -92,6 +93,9 @@ public class PacketDisplayService {
   /* Gets the TCP connection status for the packet pkt at the stage where it was sent/received.
    */
   public ConnectionStatus getStatusForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
+    if (!ApplicationStatus.getStatus().isLiveCapturing().get() && pkt.getTcpConnectionStatusAsOfPacket() != null) {
+      return pkt.getTcpConnectionStatusAsOfPacket();
+    }
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
         .findLatestPacketWithSeqNumberLessThan(pkt.getAckNumber()+pkt.getDataPayloadLength(), !pkt.getOutgoingPacket());
@@ -251,12 +255,8 @@ public class PacketDisplayService {
           tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.CLOSED);
           pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.CLOSED);
           return ConnectionStatus.CLOSED;
-        } else if (pkt.getOutgoingPacket()
+        } else if (packetBeingAcked.isPresent() && packetBeingAcked.get().getTcpFlags().get(TCPFlag.SYN)
           && currentPacketFlags.get(TCPFlag.SYN)) {
-          pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.SYN_SENT);
-          tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.SYN_SENT);
-          return ConnectionStatus.SYN_SENT;
-        } else if (currentPacketFlags.get(TCPFlag.SYN)) {
           pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.SYN_RECEIVED);
           tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.SYN_RECEIVED);
           return ConnectionStatus.SYN_RECEIVED;
@@ -265,6 +265,10 @@ public class PacketDisplayService {
           pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.SYN_RECEIVED);
           tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.SYN_RECEIVED);
           return ConnectionStatus.SYN_RECEIVED;
+        } else if (currentPacketFlags.get(TCPFlag.SYN)) {
+          pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.SYN_SENT);
+          tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.SYN_SENT);
+          return ConnectionStatus.SYN_SENT;
         } else if (packetBeingAcked.isPresent()) {
           pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.ESTABLISHED);
           tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.ESTABLISHED);
@@ -371,7 +375,7 @@ public class PacketDisplayService {
         } if(kind.equals(TcpOptionKind.WINDOW_SCALE)) {
           var ws = (TcpWindowScaleOption) opt;
           sb.append("Window scale %s".formatted(ws.getLength()));
-        } else if (!kind.equals(TcpOptionKind.NO_OPERATION)) {
+        } else if (!kind.equals(TcpOptionKind.NO_OPERATION) && !kind.equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE)) {
           sb.append(opt.getKind().name());
         }
         sb.append(" ");

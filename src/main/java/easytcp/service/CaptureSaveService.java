@@ -15,13 +15,12 @@ public class CaptureSaveService {
   }
 
   public void saveCapture(String fileName) {
-    var capturedPackets = PacketTransformerService.getPcapCaptureData();
 
-    try (var handleOpened = Pcaps.openDead(DataLinkType.IEEE802, Integer.MAX_VALUE);
-         var dumper = handleOpened.dumpOpen(fileName + ".pcap")) {
+    var capturedPackets = PacketTransformerService.getPcapCaptureData();
+    try (var handleOpened = Pcaps.openDead(DataLinkType.RAW, Integer.MAX_VALUE);
+         var dumper = handleOpened.dumpOpen(fileName)) {
       for (PcapCaptureData pcapData : capturedPackets) {
         dumper.dump(pcapData.ipPacket());
-        dumper.dump(pcapData.tcpPacket());
       }
     } catch (Exception e) {
       LOGGER.debug("Error saving file");

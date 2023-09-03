@@ -23,7 +23,7 @@ class GeneralHelpScreenIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @Test
     void testOpenHelpScreen() {
-        var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
+        var frame = findFrame(EasyTCP.class).withTimeout(4000).using(robot());
 
         frame.menuItemWithPath("Help", "General").click();
         var generalHelpFrame = findFrame(new GenericTypeMatcher<>(JFrame.class) {
@@ -31,7 +31,7 @@ class GeneralHelpScreenIntegrationTest extends AssertJSwingTestCaseTemplate {
             protected boolean isMatching(JFrame component) {
                 return "Easy TCP General Help".equals(component.getTitle()) && component.isShowing();
             }
-        }).withTimeout(5000).using(robot());
+        }).withTimeout(4000).using(robot());
 
         generalHelpFrame.requireVisible();
         var closeBt = generalHelpFrame.button(new GenericTypeMatcher<>(JButton.class) {

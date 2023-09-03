@@ -59,7 +59,7 @@ public class MenuToolbar {
     });
 
     addItemListener(saveCaptureDiagramMenuItem, i -> {
-      saveArrowsDiagramFileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+      saveArrowsDiagramFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
       var workingDirectory = new File(System.getProperty("user.dir"));
       saveArrowsDiagramFileChooser.setDialogTitle("Save arrows diagram");
       saveArrowsDiagramFileChooser.setCurrentDirectory(workingDirectory);
@@ -69,7 +69,8 @@ public class MenuToolbar {
     });
 
     addItemListener(savePcapMenuItem, i -> {
-      savePcapFileChooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+      savePcapFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
       var workingDirectory = new File(System.getProperty("user.dir"));
       savePcapFileChooser.setCurrentDirectory(workingDirectory);
       savePcapFileChooser.setDialogTitle("Save capture file");

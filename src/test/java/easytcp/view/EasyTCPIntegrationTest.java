@@ -2,6 +2,7 @@ package easytcp.view;
 
 import easytcp.Application;
 import easytcp.model.application.CaptureData;
+import easytcp.service.PacketTransformerService;
 import org.assertj.swing.core.GenericTypeMatcher;
 import org.assertj.swing.testing.AssertJSwingTestCaseTemplate;
 import org.junit.jupiter.api.AfterEach;
@@ -53,29 +54,34 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @Test
     void testSaveCapture() throws InterruptedException {
-        var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
+        var fileToBeSaved = new File("capture");
 
-        frame.menuItemWithPath("File", "Save capture file").click();
-        var saveDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
-            @Override
-            protected boolean isMatching(JFileChooser component) {
-                return component.getDialogType() == JFileChooser.SAVE_DIALOG;
-            }
-        }).requireVisible();
+        try {
+            var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
 
-        var fileToBeSaved = new File("capture.pcap");
-        assertThat(fileToBeSaved.exists()).isFalse();
-        saveDialog.fileNameTextBox().setText("capture");
-        saveDialog.approve();
-        Thread.sleep(1500);
-        assertThat(fileToBeSaved.exists()).isTrue();
-        fileToBeSaved.deleteOnExit();
+            frame.menuItemWithPath("File", "Save capture file").click();
+            var saveDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
+                @Override
+                protected boolean isMatching(JFileChooser component) {
+                    return component.getDialogType() == JFileChooser.SAVE_DIALOG;
+                }
+            }).requireVisible();
+
+            assertThat(fileToBeSaved.exists()).isFalse();
+            saveDialog.fileNameTextBox().setText("capture");
+            saveDialog.approve();
+            Thread.sleep(1500);
+            assertThat(fileToBeSaved.exists()).isTrue();
+        } finally {
+            fileToBeSaved.deleteOnExit();
+        }
     }
 
     @Test
     void testReadPcapFileAndUseFilters() throws InterruptedException {
         var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
-
+        CaptureData.getInstance().clear();
+        PacketTransformerService.getPcapCaptureData().clear();
         //opens a prepared capture file
         frame.menuItemWithPath("File", "Open").click();
         var openFileDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
@@ -92,28 +98,27 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
         //asserting file has been successfully read
 
         frame.label("connection count")
-                .requireText("%s TCP connections\n".formatted(CaptureData.getCaptureData().getTcpConnectionMap().keySet().size()));
+                .requireText("%s TCP connections\n".formatted(CaptureData.getInstance().getTcpConnectionMap().keySet().size()));
         frame.label("packets count")
-                .requireText("%s packets captured".formatted(CaptureData.getCaptureData().getPackets().getPackets().size()));
+                .requireText("%s packets captured".formatted(CaptureData.getInstance().getPackets().getPackets().size()));
         frame.textBox("connectionsInformation")
                 .requireText("""
                              TCP connections
-                             1 status SYN_SENT
-                             25 status ESTABLISHED
-                             2 status LAST_ACK
-                             3 status REJECTED
-                             1 status UNKNOWN
-                              """
+                             32 status ESTABLISHED
+                             1 status LAST_ACK
+                             6 status TIME_WAIT
+                             1 status CLOSED
+                             """
                 );
         //selects a connection in the connection selector
         var connectionSelect = frame.comboBox("connectionSelector");
-        connectionSelect.selectItem(2);
+        connectionSelect.selectItem(0);
         //refilters the packets
         frame.button("filter").click();
         Thread.sleep(500);
         frame.label("connection count")
                 .requireText("1 TCP connections\n");
-        frame.label("packets count")
-                .requireText("78 packets captured");
+        frame.label("packets count") //asserts correct connection
+                .requireText("53 packets captured");
     }
 }

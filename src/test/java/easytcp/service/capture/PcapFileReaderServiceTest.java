@@ -4,7 +4,6 @@ import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
 import easytcp.service.PacketTransformerService;
-import easytcp.service.capture.PcapFileReaderService;
 import easytcp.view.options.OptionsPanel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,7 @@ class PcapFileReaderServiceTest {
 
   @Test
   void readPacketFile_successfullyRead() throws InterruptedException {
-    CaptureData.getCaptureData().clear();
+    CaptureData.getInstance().clear();
     PacketTransformerService.getPcapCaptureData().clear();
 
     var file = new File("src/test/resources/testPcapFile");

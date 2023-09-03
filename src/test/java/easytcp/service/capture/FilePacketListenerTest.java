@@ -35,6 +35,7 @@ class FilePacketListenerTest {
 
   @Test
   void gotPacket() throws Exception{
+    //tests that the listener correctly passes the packets to the transformer service
     var tcpPacket = TestUtils.createPcap4jTcpPacketBuilder();
     var ipPacket = TestUtils.createPcap4Packet(tcpPacket);
     var timestamp = Timestamp.from(Instant.now());

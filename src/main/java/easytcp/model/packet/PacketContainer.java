@@ -50,14 +50,14 @@ public class PacketContainer {
     return new ArrayList<>(packets)
       .stream()
       .filter(other -> !(pkt.getOutgoingPacket().equals(other.getOutgoingPacket()))
-        && other.getTimestamp().getTime() < pkt.getTimestamp().getTime())
+        && other.getTimestamp().before(pkt.getTimestamp()))
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
   public void addPacketToContainer(EasyTCPacket easyTCPacket) {
     synchronized (packets) {
       packets.add(easyTCPacket);
-      packets.sort(Comparator.comparing(pkt -> pkt.getTimestamp().getTime()));
+      packets.sort(Comparator.comparing(EasyTCPacket::getTimestamp));
     }
   }
 

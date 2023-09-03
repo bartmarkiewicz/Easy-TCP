@@ -48,6 +48,7 @@ class LivePacketListenerTest {
 
   @Test
   void gotPacket() throws Exception {
+    //tests if the packets were correctly passed to the transformer service
     var pcap4jTCPacketBuilder = TestUtils.createPcap4jTcpPacketBuilder();
     var pcap4jIpPacket = TestUtils.createPcap4Packet(pcap4jTCPacketBuilder);
     var transformedPacket = new EasyTCPacket();
@@ -57,7 +58,7 @@ class LivePacketListenerTest {
     when(handle.getTimestamp()).thenReturn(mock(Timestamp.class));
     livePacketListener.gotPacket(pcap4jIpPacket);
 
-    assertThat(CaptureData.getCaptureData().getPackets().getPackets())
+    assertThat(CaptureData.getInstance().getPackets().getPackets())
       .containsExactly(transformedPacket);
 
     verify(packetTransformerService).fromPackets(

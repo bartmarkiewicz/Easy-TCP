@@ -43,7 +43,7 @@ public class PcapFileReaderService {
         handle = Pcaps.openOffline(packetFile.getPath(), PcapHandle.TimestampPrecision.MICRO);
       } catch (PcapNativeException e) {
         try {
-          handle = Pcaps.openOffline(packetFile.getPath());
+          handle = Pcaps.openOffline(packetFile.getPath() + ".pcap");
         } catch (PcapNativeException ex) {
           throw new RuntimeException(ex);
         }
@@ -53,14 +53,15 @@ public class PcapFileReaderService {
       appStatus.setMethodOfCapture(CaptureStatus.READING_FROM_FILE);
       appStatus.setLoading(true);
       captureData.clear();
-      try (var finalHandle = handle) {
+      try {
+        final var finalHandle = handle;
         this.isSettingText = new AtomicBoolean();
         isSettingText.set(false);
         var threadPool = Executors.newCachedThreadPool();
         int maxPackets = Integer.MAX_VALUE;
         finalHandle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
         finalHandle.loop(maxPackets, new FilePacketListener(packetTransformerService, finalHandle), threadPool);
-        captureData.clear();
+        Thread.sleep(1000);
         threadPool.shutdown();
         //thread pool will terminate when the whole file has been read
         while (!threadPool.isTerminated()) {
