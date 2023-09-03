@@ -32,6 +32,6 @@ public class LogConfiguration {
     //logs everything from easytcp
     Configurator.setLevel("easytcp", Level.ALL);
     //omits most pcap4j library logs
-//    Configurator.setLevel("org.pcap4j", Level.FATAL);
+    Configurator.setLevel("org.pcap4j", Level.FATAL);
   }
 }
