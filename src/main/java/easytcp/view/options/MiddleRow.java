@@ -14,6 +14,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -53,6 +54,7 @@ public class MiddleRow {
     connectionSelectorPanel.setLayout(new BorderLayout());
     model = new DefaultComboBoxModel<>();
     connectionSelector = new JComboBox<>(model);
+    connectionSelector.setName("connectionSelector");
     addConnectionSelector(connectionSelectorPanel, filtersForm);
     var connectionInfoAndSelectorContainer = new JPanel();
     var borderLayout = new BorderLayout();
@@ -73,6 +75,7 @@ public class MiddleRow {
     firstColPanelLt.setRows(2);
     firstColPanel.setLayout(firstColPanelLt);
     connectionInformationPane = new JTextPane();
+    connectionInformationPane.setName("connectionsInformation");
     packetViewScroll = new JScrollPane(connectionInformationPane);
     connectionInformationPane.setEditable(false);
     connectionInformationPane.setFont(
@@ -205,7 +208,8 @@ public class MiddleRow {
 
     connectionSelector.addItemListener((i) -> {
       if (i.getStateChange() == ItemEvent.SELECTED
-        && (connectionSelector.getSelectedItem() != null && !connectionSelector.getSelectedItem().equals(filtersForm.getSelectedConnection())) ) {
+        && (connectionSelector.getSelectedItem() != null &&
+              !connectionSelector.getSelectedItem().equals(filtersForm.getSelectedConnection()))  ) {
           var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
           filtersForm.setSelectedConnection(selectedItem);
           ArrowDiagram.getInstance().setTcpConnection(selectedItem, filtersForm);
@@ -236,10 +240,15 @@ public class MiddleRow {
         .values())
         .stream()
         .filter(Objects::nonNull)
+        .sorted(Comparator.comparing((TCPConnection con) -> con.getPacketContainer().getPackets().size())
+                .reversed())
         .toList());
-      var ff = FiltersForm.getFiltersForm();
+      var ff = FiltersForm.getInstance();
       model.setSelectedItem(ff.getSelectedConnection());
-      SwingUtilities.invokeLater(() -> ArrowDiagram.getInstance().repaint());
+      SwingUtilities.invokeLater(() -> {
+        ArrowDiagram.getInstance().repaint();
+        ArrowDiagram.getInstance().revalidate();
+      });
     }
   }
 
@@ -262,7 +271,7 @@ public class MiddleRow {
       var connectionDisplayThread = Executors.newSingleThreadExecutor();
       connectionDisplayThread.execute(() -> {
         //getting connection information is a heavy operation, so should be done on a seperate thread
-        var connectionDisplayInformation = connectionDisplayService.getConnectionInformation(FiltersForm.getFiltersForm().getSelectedConnection());
+        var connectionDisplayInformation = connectionDisplayService.getConnectionInformation(FiltersForm.getInstance().getSelectedConnection());
         SwingUtilities.invokeLater(() -> {
           selectedConnectionInfoPane.setText(connectionDisplayInformation);
           selectedConnectionInfoPane.repaint();
@@ -295,6 +304,7 @@ public class MiddleRow {
         selectedConnectionInfoPane.revalidate();
         selectedConnectionInfoPane.repaint();
         ArrowDiagram.getInstance().repaint();
+        ArrowDiagram.getInstance().revalidate();
       }
     });
     connectionSelector.revalidate();

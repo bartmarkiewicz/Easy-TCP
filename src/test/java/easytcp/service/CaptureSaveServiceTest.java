@@ -4,10 +4,7 @@ import easytcp.model.IPprotocol;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.EasyTCPacket;
-import easytcp.model.packet.InternetAddress;
-import easytcp.model.packet.TCPConnection;
+import easytcp.model.packet.*;
 import easytcp.service.capture.PcapFileReaderService;
 import easytcp.view.ArrowDiagram;
 import org.junit.jupiter.api.Test;
@@ -32,7 +29,7 @@ import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class CaptureSaveServiceTest {
-  private CaptureSaveService underTest = new CaptureSaveService();
+  private final CaptureSaveService underTest = new CaptureSaveService();
   @Test
   void saveArrowDiagram() {
     ApplicationStatus.getStatus().setFrameDimension(new Dimension(50, 50));
@@ -70,12 +67,7 @@ class CaptureSaveServiceTest {
       .srcAddr((Inet4Address) srcAddr)
       .version(IpVersion.IPV4)
       .protocol(IpNumber.ACTIVE_NETWORKS)
-      .tos(new IpV4Packet.IpV4Tos() {
-        @Override
-        public byte value() {
-          return 0;
-        }
-      })
+      .tos((IpV4Packet.IpV4Tos) () -> (byte) 0)
       .build();
 
 
@@ -108,16 +100,15 @@ class CaptureSaveServiceTest {
 
     assertThat(captureData.getPackets().getPackets().get(0).getTcpConnection())
       .extracting(TCPConnection::getConnectionStatus,
-        TCPConnection::getHost,
-        TCPConnection::getHostTwo,
+        TCPConnection::getConnectionAddresses,
         i -> i.getPacketContainer().getPackets(),
         TCPConnection::getMaximumSegmentSizeClient,
         TCPConnection::getMaximumSegmentSizeServer,
         TCPConnection::getWindowScaleClient,
         TCPConnection::getWindowScaleServer)
       .containsExactly(ConnectionStatus.UNKNOWN,
-        new InternetAddress(dstAddr.getHostAddress(), "fish.com", dstAddr, 652),
-        new InternetAddress(srcAddr.getHostAddress(), "google.com", srcAddr, 652),
+        new ConnectionAddresses(new InternetAddress(dstAddr.getHostAddress(), "fish.com", dstAddr, 652),
+        new InternetAddress(srcAddr.getHostAddress(), "google.com", srcAddr, 652)),
         List.of(captureData.getPackets().getPackets().get(0)),
         null,
         null,

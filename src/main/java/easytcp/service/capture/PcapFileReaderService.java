@@ -40,7 +40,7 @@ public class PcapFileReaderService {
     executor.execute(() -> {
       PcapHandle handle;
       try {
-        handle = Pcaps.openOffline(packetFile.getPath(), PcapHandle.TimestampPrecision.NANO);
+        handle = Pcaps.openOffline(packetFile.getPath(), PcapHandle.TimestampPrecision.MICRO);
       } catch (PcapNativeException e) {
         try {
           handle = Pcaps.openOffline(packetFile.getPath());
@@ -53,19 +53,18 @@ public class PcapFileReaderService {
       appStatus.setMethodOfCapture(CaptureStatus.READING_FROM_FILE);
       appStatus.setLoading(true);
       captureData.clear();
-      final var finalHandle = handle;
-      this.isSettingText = new AtomicBoolean();
-      isSettingText.set(false);
-      var threadPool = Executors.newCachedThreadPool();
-      try {
+      try (var finalHandle = handle) {
+        this.isSettingText = new AtomicBoolean();
+        isSettingText.set(false);
+        var threadPool = Executors.newCachedThreadPool();
         int maxPackets = Integer.MAX_VALUE;
         finalHandle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
         finalHandle.loop(maxPackets, new FilePacketListener(packetTransformerService, finalHandle), threadPool);
         captureData.clear();
-        threadPool.shutdown();
         while (!threadPool.isTerminated()) {
           Thread.sleep(1000);
         }
+        threadPool.shutdown();
         packetTransformerService.transformCapturedPackets();
         SwingUtilities.invokeLater(() -> {
           LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
@@ -75,9 +74,7 @@ public class PcapFileReaderService {
         LOGGER.debug(e.getMessage());
         LOGGER.debug("Error sniffing packet");
       } finally {
-        threadPool.shutdown();
         appStatus.setLoading(false);
-        finalHandle.close();
       }
     });
     executor.shutdown();

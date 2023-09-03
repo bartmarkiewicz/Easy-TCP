@@ -23,19 +23,21 @@ public class CaptureDescriptionPanel {
     layout.setColumns(1);
     descriptionPanel.setLayout(layout);
     connectionCountLabel = new JLabel();
+    connectionCountLabel.setName("connection count");
     setConnectionCountLabel(captureData);
     descriptionPanel.add(connectionCountLabel);
     packetCountLabel = new JLabel();
+    packetCountLabel.setName("packets count");
     packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets()
-      .getPackets().stream().filter(pkt -> packetDisplayService.isVisible(pkt, FiltersForm.getFiltersForm())).count()));
+      .getPackets().stream().filter(pkt -> packetDisplayService.isVisible(pkt, FiltersForm.getInstance())).count()));
     descriptionPanel.add(packetCountLabel);
   }
 
   public void updateCaptureStats(CaptureData captureData) {
     setConnectionCountLabel(captureData);
     packetCountLabel.setText("%s packets captured".formatted(captureData.getPackets()
-      .getPackets().stream().filter(pkt -> packetDisplayService.isVisible(pkt, FiltersForm.getFiltersForm())).count()));
-    descriptionPanel.revalidate(); //todo make packets captured update with
+      .getPackets().stream().filter(pkt -> packetDisplayService.isVisible(pkt, FiltersForm.getInstance())).count()));
+    descriptionPanel.revalidate();
     descriptionPanel.repaint();
   }
 
@@ -44,16 +46,14 @@ public class CaptureDescriptionPanel {
   }
 
   private void setConnectionCountLabel(CaptureData captureData) {
-    SwingUtilities.invokeLater(() -> {
-      connectionCountLabel.setText("""
-      %s TCP connections
-      """.formatted(captureData.getPackets()
-        .getPackets()
-        .stream()
-        .filter(pkt -> packetDisplayService.isVisible(pkt, FiltersForm.getFiltersForm()))
-        .map(EasyTCPacket::getTcpConnection)
-        .distinct()
-        .count()));
-    });
+    SwingUtilities.invokeLater(() -> connectionCountLabel.setText("""
+    %s TCP connections
+    """.formatted(captureData.getPackets()
+      .getPackets()
+      .stream()
+      .filter(pkt -> packetDisplayService.isVisible(pkt, FiltersForm.getInstance()))
+      .map(EasyTCPacket::getTcpConnection)
+      .distinct()
+      .count())));
   }
 }

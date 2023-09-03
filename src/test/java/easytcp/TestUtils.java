@@ -2,10 +2,7 @@ package easytcp;
 
 import easytcp.model.IPprotocol;
 import easytcp.model.TCPFlag;
-import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.EasyTCPacket;
-import easytcp.model.packet.InternetAddress;
-import easytcp.model.packet.TCPConnection;
+import easytcp.model.packet.*;
 import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.TcpMaximumSegmentSizeOption;
 import org.pcap4j.packet.TcpPacket;
@@ -75,8 +72,7 @@ public class TestUtils {
   public static TCPConnection createTCPConnection(boolean full, InternetAddress hostOne, InternetAddress hostTwo) {
     var connection = new TCPConnection();
     connection.setFullConnection(full);
-    connection.setHost(hostOne);
-    connection.setHostTwo(hostTwo);
+    connection.setConnectionAddresses(new ConnectionAddresses(hostOne, hostTwo));
     return connection;
   }
 
@@ -102,11 +98,11 @@ public class TestUtils {
     packet.setDataPayloadLength(payloadLen);
     packet.setTcpConnection(connection);
     if (outgoing) {
-      packet.setDestinationAddress(connection.getHost());
-      packet.setSourceAddress(connection.getHostTwo());
+      packet.setDestinationAddress(connection.getConnectionAddresses().getAddressOne());
+      packet.setSourceAddress(connection.getConnectionAddresses().getAddressTwo());
     } else {
-      packet.setSourceAddress(connection.getHost());
-      packet.setDestinationAddress(connection.getHostTwo());
+      packet.setSourceAddress(connection.getConnectionAddresses().getAddressOne());
+      packet.setDestinationAddress(connection.getConnectionAddresses().getAddressTwo());
     }
     packet.setHeaderPayloadLength(20);
     packet.setTimestamp(Timestamp.from(Instant.now()));
@@ -312,12 +308,7 @@ public class TestUtils {
       .srcAddr((Inet4Address) srcAddr)
       .version(IpVersion.IPV4)
       .protocol(IpNumber.ACTIVE_NETWORKS)
-      .tos(new IpV4Packet.IpV4Tos() {
-        @Override
-        public byte value() {
-          return 0;
-        }
-      })
+      .tos((IpV4Packet.IpV4Tos) () -> (byte) 0)
       .payloadBuilder(payload)
       .build();
     return pcap4jIpPacket;

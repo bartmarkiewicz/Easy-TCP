@@ -7,10 +7,7 @@ import easytcp.model.TCPFlag;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.EasyTCPacket;
-import easytcp.model.packet.InternetAddress;
-import easytcp.model.packet.TCPConnection;
+import easytcp.model.packet.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.TcpMaximumSegmentSizeOption;
 import org.pcap4j.packet.TcpPacket;
@@ -79,7 +76,7 @@ public class PacketTransformerService {
    * @param filtersForm
    */
   private synchronized void setTcpConnection(EasyTCPacket easyTcpPacket,
-                                             ConcurrentMap<InternetAddress, TCPConnection> tcpConnectionHashMap,
+                                             ConcurrentMap<ConnectionAddresses, TCPConnection> tcpConnectionHashMap,
                                              FiltersForm filtersForm) {
     List<String> interfaceAddresses;
     // extracts the capturing device interface address
@@ -91,13 +88,12 @@ public class PacketTransformerService {
     } else {
       interfaceAddresses = new ArrayList<>();
     }
+
     // when reading a file, interface address is not known from the .pcap file, though usually it begins with 192 or 172
-    if (tcpConnectionHashMap.get(easyTcpPacket.getSourceAddress()) == null
-      && easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+    if (easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
       || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("172")) {
       interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
-    } else if (tcpConnectionHashMap.get(easyTcpPacket.getDestinationAddress()) == null
-      && easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+    } else if (easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
       || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("172")) {
       interfaceAddresses.add(easyTcpPacket.getDestinationAddress().getAddressString());
     } else {
@@ -105,18 +101,13 @@ public class PacketTransformerService {
         easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress()));
     }
 
-    InternetAddress addressOfConnection;
+    ConnectionAddresses addressOfConnection;
     TCPConnection tcpConnection;
 
-    if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAlphanumericalAddress())) {
-      // if dest address is an interface address it uses the src address as a key for the hashmap
-      addressOfConnection = easyTcpPacket.getSourceAddress();
+    if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())) {
+      addressOfConnection = new ConnectionAddresses(easyTcpPacket.getSourceAddress(), easyTcpPacket.getDestinationAddress());
       tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
-      if (tcpConnection.getHost() == null) {
-        LOGGER.debug("Not found tcp connection for {}", addressOfConnection);
-      }
-      tcpConnection.setHost(addressOfConnection);
-      tcpConnection.setHostTwo(easyTcpPacket.getDestinationAddress());
+      tcpConnection.setConnectionAddresses(addressOfConnection);
       easyTcpPacket.setOutgoingPacket(true);
       if (easyTcpPacket.getOutgoingPacket() && easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)) {
         var mssClient = getMssFromPkt(easyTcpPacket);
@@ -125,14 +116,10 @@ public class PacketTransformerService {
         windowScale.ifPresent(tcpConnection::setWindowScaleClient);
       }
     } else {
-      addressOfConnection = easyTcpPacket.getDestinationAddress();
+      addressOfConnection = new ConnectionAddresses(easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress());
       tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
-      if (tcpConnection.getHost() == null) {
-        LOGGER.debug("Not found tcp connection for {}", addressOfConnection);
-      }
       easyTcpPacket.setOutgoingPacket(false);
-      tcpConnection.setHost(addressOfConnection);
-      tcpConnection.setHostTwo(easyTcpPacket.getSourceAddress());
+      tcpConnection.setConnectionAddresses(addressOfConnection);
       if (Boolean.TRUE.equals(!easyTcpPacket.getOutgoingPacket()) && Boolean.TRUE.equals(easyTcpPacket.getTcpFlags().get(TCPFlag.SYN))) {
         var mssServer = getMssFromPkt(easyTcpPacket);
         var windowScale = getWindowScaleFromPkt(easyTcpPacket);
@@ -257,12 +244,19 @@ public class PacketTransformerService {
       }
       case LAST_ACK -> {
         LOGGER.debug("last ack");
-
         if (!latestPacket.getOutgoingPacket()
           && latestPacketFlags.get(TCPFlag.ACK)
           && packetBeingAcked.isPresent()
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
+        } else if (latestPacketFlags.get(TCPFlag.SYN) && !latestPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_SENT);
+        } else if (latestPacketFlags.get(TCPFlag.SYN)
+                && latestPacketFlags.get(TCPFlag.ACK)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.SYN_RECEIVED);
+        } else if (packetBeingAcked.isPresent()
+                && packetBeingAcked.get().getTcpFlags().get(TCPFlag.RST)) {
+          tcpConnection.setConnectionStatus(ConnectionStatus.REJECTED);
         }
       }
       case FIN_WAIT_1 -> {
@@ -370,13 +364,13 @@ public class PacketTransformerService {
   }
 
   public void transformCapturedPackets() {
-    var ff = FiltersForm.getFiltersForm();
+    var ff = FiltersForm.getInstance();
     var captureData = CaptureData.getInstance();
     pcapCaptureData.sort(Comparator.comparing(PcapCaptureData::timestamp));
-    for (PcapCaptureData pcapCaptureDatum : pcapCaptureData) {
+    for (PcapCaptureData pcapCaptureDataItem : pcapCaptureData) {
       captureData.getPackets().addPacketToContainer(
-        fromPackets(pcapCaptureDatum.ipPacket(), pcapCaptureDatum.tcpPacket(),
-          pcapCaptureDatum.timestamp(), captureData, ff));
+        fromPackets(pcapCaptureDataItem.ipPacket(), pcapCaptureDataItem.tcpPacket(),
+          pcapCaptureDataItem.timestamp(), captureData, ff));
     }
   }
 

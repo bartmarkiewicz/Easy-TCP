@@ -30,7 +30,6 @@ public class LiveCaptureService {
   private final PacketTransformerService packetTransformerService;
   private final PacketDisplayService packetDisplayService;
   private AtomicBoolean isSettingText;
-  private LivePacketListener livePacketListener;
 
   public LiveCaptureService(ServiceProvider serviceProvider) {
     this.captureData = CaptureData.getInstance();
@@ -46,7 +45,7 @@ public class LiveCaptureService {
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setLiveCapturing(true);
     appStatus.setMethodOfCapture(CaptureStatus.LIVE_CAPTURE);
-    // begin capture
+    // create capture object
     final PcapHandle handle =
       networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
     LOGGER.debug("Began live capture");

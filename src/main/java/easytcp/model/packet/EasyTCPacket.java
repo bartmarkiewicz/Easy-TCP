@@ -26,6 +26,7 @@ public class EasyTCPacket {
   private List<TcpPacket.TcpOption> tcpOptions;
   private TCPConnection tcpConnection;
   private Boolean outgoingPacket;
+  private ConnectionStatus tcpConnectionStatusAsOfPacket;
 
   public Timestamp getTimestamp() {
     return timestamp;
@@ -164,6 +165,14 @@ public class EasyTCPacket {
 
   public void setOutgoingPacket(Boolean outgoingPacket) {
     this.outgoingPacket = outgoingPacket;
+  }
+
+  public ConnectionStatus getTcpConnectionStatusAsOfPacket() {
+    return tcpConnectionStatusAsOfPacket;
+  }
+
+  public void setTcpConnectionStatusAsOfPacket(ConnectionStatus tcpConnectionStatusAsOfPacket) {
+    this.tcpConnectionStatusAsOfPacket = tcpConnectionStatusAsOfPacket;
   }
 
   @Override

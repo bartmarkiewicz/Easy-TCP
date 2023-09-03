@@ -172,10 +172,6 @@ public class FiltersForm {
     this.showLength = showLength;
   }
 
-  public static FiltersForm getFiltersForm() {
-    return filtersForm;
-  }
-
   public static void setFiltersForm(FiltersForm filtersForm) {
     FiltersForm.filtersForm = filtersForm;
   }

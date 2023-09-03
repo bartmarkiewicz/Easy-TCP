@@ -81,6 +81,7 @@ public class PacketLog {
         //sets the filters on the ArrowDiagram and repaints it on the UI thread.
         ArrowDiagram.getInstance().setFilters(filtersForm);
         ArrowDiagram.getInstance().repaint();
+        ArrowDiagram.getInstance().revalidate();
       });
       this.pcapHandle = liveCaptureService.startCapture(
         networkInterface, filtersForm, logTextPane, optionsPanel);
@@ -120,7 +121,6 @@ public class PacketLog {
       middleRow.addConnectionOptions(captureData);
       var arrowDiagram = ArrowDiagram.getInstance();
       arrowDiagram.setTcpConnection(null, filtersForm);
-      arrowDiagram.repaint();
       refilterPackets();
       logTextPane.setText("");
       logTextPane.revalidate();
@@ -136,6 +136,7 @@ public class PacketLog {
     SwingUtilities.invokeLater(() -> {
       ArrowDiagram.getInstance().setFilters(filtersForm);
       ArrowDiagram.getInstance().repaint();
+      ArrowDiagram.getInstance().revalidate();
       logTextPane.setContentType("text/html");
       if (Strings.isBlank(packetText)) {
         logTextPane.setText("<html> No packets matching your search criteria found, try changing your filters.</html>");
@@ -201,9 +202,10 @@ public class PacketLog {
         selectedPkt.ifPresent(packet ->
           //if packet found, updates the arrow diagram and selects the connection on the UI thread
           SwingUtilities.invokeLater(() -> {
-            ArrowDiagram.getInstance().setSelectedPacket(packet);
             var mr = MiddleRow.getInstance();
             mr.setConnectionInformation(tcpConnectionOfPacket);
+            ArrowDiagram.getInstance().setTcpConnection(tcpConnectionOfPacket, filtersForm);
+            ArrowDiagram.getInstance().setSelectedPacket(packet);
           }));
       } else {
         var packetOpt = this.captureData.getPackets().findPacketWith(
@@ -211,6 +213,7 @@ public class PacketLog {
         packetOpt.ifPresent(packet ->
           //if packet found, updates the arrow diagram and selects the connection on the UI thread
           SwingUtilities.invokeLater(() -> {
+            ArrowDiagram.getInstance().setTcpConnection(packet.getTcpConnection(), filtersForm);
             ArrowDiagram.getInstance().setSelectedPacket(packet);
             var mr = MiddleRow.getInstance();
             mr.setConnectionInformation(packetOpt.get().getTcpConnection());

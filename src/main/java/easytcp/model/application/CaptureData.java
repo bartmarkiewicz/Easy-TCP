@@ -1,9 +1,6 @@
 package easytcp.model.application;
 
-import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.InternetAddress;
-import easytcp.model.packet.PacketContainer;
-import easytcp.model.packet.TCPConnection;
+import easytcp.model.packet.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +15,7 @@ public class CaptureData {
   private static CaptureData captureData;
   private final ConcurrentHashMap<String, String> resolvedHostnames = new ConcurrentHashMap<>();
   private final PacketContainer packets = new PacketContainer();
-  private final ConcurrentHashMap<InternetAddress, TCPConnection> tcpConnectionMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<ConnectionAddresses, TCPConnection> tcpConnectionMap = new ConcurrentHashMap<>();
 
   private CaptureData() {
   }
@@ -56,12 +53,12 @@ public class CaptureData {
     return captureData;
   }
 
-  public ConcurrentMap<InternetAddress, TCPConnection>
-  getTcpConnectionMap() {
+  public ConcurrentMap<ConnectionAddresses, TCPConnection> getTcpConnectionMap() {
     return tcpConnectionMap;
   }
 
   public void clear() {
+    // notably does not clear the resolved hostnames map
     this.packets.clearPackets();
     this.tcpConnectionMap.clear();
   }

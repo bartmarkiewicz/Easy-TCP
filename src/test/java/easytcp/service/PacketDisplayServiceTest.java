@@ -2,12 +2,10 @@ package easytcp.service;
 
 import easytcp.TestUtils;
 import easytcp.model.application.FiltersForm;
-import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.EasyTCPacket;
-import easytcp.model.packet.InternetAddress;
-import easytcp.model.packet.TCPConnection;
+import easytcp.model.packet.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
@@ -50,7 +48,7 @@ class PacketDisplayServiceTest {
       TestUtils.createAddress("12335553", "differentHostname2"));
 
     filtersForm.setSelectedConnection(newCon);
-    pshSentPkt.setSourceAddress(newCon.getHost());
+    pshSentPkt.setSourceAddress(newCon.getConnectionAddresses().getAddressOne());
     pshSentPkt.setTcpConnection(newCon);
     var resultPsh = underTest.isVisible(pshSentPkt, filtersForm);
     var resultSyn = underTest.isVisible(synSentPkt, filtersForm);
@@ -68,7 +66,7 @@ class PacketDisplayServiceTest {
       TestUtils.createAddress("12335553", "differentHostname2"));
 
     filtersForm.setHostSelected("123");
-    pshSentPkt.setSourceAddress(newCon.getHost());
+    pshSentPkt.setSourceAddress(newCon.getConnectionAddresses().getAddressOne());
     pshSentPkt.setTcpConnection(newCon);
     var resultPsh = underTest.isVisible(pshSentPkt, filtersForm);
     var resultSyn = underTest.isVisible(synSentPkt, filtersForm);
@@ -92,19 +90,23 @@ class PacketDisplayServiceTest {
 
   @Test
   void prettyPrintPacket() {
-    var result = underTest.prettyPrintPacket(synSentPkt, FiltersForm.getFiltersForm());
+    var result = underTest.prettyPrintPacket(synSentPkt, FiltersForm.getInstance());
 
     //asserting the string minus the timestamp
-    assertThat(result).contains("""
-      <p> <a href=\"1:0:0:S:InternetAddress{alphanumericalAddress='192', hostName='fish.com', pcap4jAddress=null, port=80}\"> """,
-      """
-      IPv4 333:80 > 192:80: Flags [S], seq 1, ack 0, win 50, options [2], length 0 </a></p>""");
+    assertThat(result).containsIgnoringWhitespaces("""
+                    <p> <a href="1:0:0:S:\
+                    ConnectionAddresses {addressOne=InternetAddress{alphanumericalAddress='192', hostName='fish.com', pcap4jAddress=null, port=80},\
+                     addressTwo=InternetAddress{alphanumericalAddress='333', hostName='host.com', pcap4jAddress=null, port=80}}"> \
+                     2018-11-12""",
+            "IPv4 333:80 > 192:80: Flags [S], seq 1, ack 0, win 50, options [2], length 0 </a></p>");
 
-    var result2 = underTest.prettyPrintPacket(pshSentPkt, FiltersForm.getFiltersForm());
+    var result2 = underTest.prettyPrintPacket(pshSentPkt, FiltersForm.getInstance());
 
     assertThat(result2)
       .contains("""
-          <p> <a href="3:40:2:.P:InternetAddress{alphanumericalAddress='192', hostName='fish.com', pcap4jAddress=null, port=80}"> """,
+          <p> <a href="3:40:2:.P:ConnectionAddresses{addressOne=InternetAddress{alphanumericalAddress='192', hostName='fish.com',\
+           pcap4jAddress=null, port=80}, addressTwo=InternetAddress{alphanumericalAddress='333', hostName='host.com', pcap4jAddress=null, port=80}}">\
+          """,
         """
           IPv4 333:80 > 192:80: Flags [.P], seq 3, ack 2, win 50, options [], length 40 </a></p>""");
   }
@@ -146,7 +148,7 @@ class PacketDisplayServiceTest {
   void getStatusForPacket_stateTraversalThroughFullConnection_serverTerminates() {
     var result = ConnectionStatus.UNKNOWN;
     var serverTerminatesCon = TestUtils.getConnectionWithHandshakeAndFinCloseWait();
-    serverTerminatesCon.setConnectionStatus(ConnectionStatus.UNKNOWN);
+    serverTerminatesCon.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
     var statusOrder = new ArrayList<ConnectionStatus>();
     for(EasyTCPacket pkt: serverTerminatesCon.getPacketContainer().getPackets()) {
       result = underTest.getStatusForPacket(pkt, serverTerminatesCon);
@@ -163,29 +165,29 @@ class PacketDisplayServiceTest {
 
   @Test
   void getTcpFlagsForPacket() {
-    var filters = FiltersForm.getFiltersForm();
+    var filters = FiltersForm.getInstance();
     filters.setShowHeaderFlags(true);
     filters.setShowAckAndSeqNumbers(true);
     filters.setShowLength(true);
-    var result = underTest.getTcpFlagsForPacket(pshSentPkt, FiltersForm.getFiltersForm());
+    var result = underTest.getTcpFlagsForPacket(pshSentPkt, FiltersForm.getInstance());
     assertThat(result).isEqualTo("PSH 3 , ACK 2 Length 40");
-    assertThat(underTest.getTcpFlagsForPacket(synSentPkt, FiltersForm.getFiltersForm()))
+    assertThat(underTest.getTcpFlagsForPacket(synSentPkt, FiltersForm.getInstance()))
       .isEqualTo("SYN 1  Length 0");
 
     filters.setShowHeaderFlags(false);
     filters.setShowAckAndSeqNumbers(false);
     filters.setShowLength(false);
-    var result2 = underTest.getTcpFlagsForPacket(synSentPkt, FiltersForm.getFiltersForm());
+    var result2 = underTest.getTcpFlagsForPacket(synSentPkt, FiltersForm.getInstance());
     assertThat(result2).isEqualTo("");
 
   }
 
   @Test
   void getTcpOptionsForPacket() {
-    var result = underTest.getTcpOptionsForPacket(pshSentPkt, FiltersForm.getFiltersForm());
+    var result = underTest.getTcpOptionsForPacket(pshSentPkt, FiltersForm.getInstance());
     assertThat(result).isEqualTo("Win 50\n");
     FiltersForm.getInstance().setShowTcpOptions(true);
-    var result2 = underTest.getTcpOptionsForPacket(synSentPkt, FiltersForm.getFiltersForm());
+    var result2 = underTest.getTcpOptionsForPacket(synSentPkt, FiltersForm.getInstance());
     assertThat(result2).isEqualTo("Win 50\n<MSS 100 bytes >");
   }
 

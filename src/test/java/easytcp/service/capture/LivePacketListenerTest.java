@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.pcap4j.core.PcapHandle;
 
 import javax.swing.*;
+import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,7 +54,7 @@ class LivePacketListenerTest {
     ApplicationStatus.getStatus().setLiveCapturing(false);
     when(packetTransformerService.fromPackets(any(), any(), any(), any(), any()))
       .thenReturn(transformedPacket);
-
+    when(handle.getTimestamp()).thenReturn(mock(Timestamp.class));
     livePacketListener.gotPacket(pcap4jIpPacket);
 
     assertThat(CaptureData.getCaptureData().getPackets().getPackets())

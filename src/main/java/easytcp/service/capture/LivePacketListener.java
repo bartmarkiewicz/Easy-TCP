@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static easytcp.service.capture.LiveCaptureService.setLogTextPane;

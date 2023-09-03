@@ -126,20 +126,21 @@ public class OptionsPanel {
       })
     );
     var filterBt = new JButton("Filter");
+    filterBt.setName("filter");
     filterBt.setSize(200, 200);
 
     filterBt.addActionListener(event -> {
-      if (!ApplicationStatus.getStatus().isLiveCapturing().get() && !ApplicationStatus.getStatus().isLoading().get()) {
+//      if (!ApplicationStatus.getStatus().isLiveCapturing().get() && !ApplicationStatus.getStatus().isLoading().get()) {
         this.packetLog.refilterPackets();
         middleRow.setConnectionInformation(filtersForm.getSelectedConnection());
         captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
         middleRow.setConnectionStatusLabel(this.packetLog.getCaptureData());
-      } else {
-        JOptionPane.showMessageDialog(
-          captureDescriptionPanel.getDescriptionPanel(),
-          "You cannot change your filter while live capturing packets or loading a file " +
-            "stop your capture or wait for the file to finish loading before trying again");
-      }
+//      } else {
+//        JOptionPane.showMessageDialog(
+//          captureDescriptionPanel.getDescriptionPanel(),
+//          "You cannot change your filter while live capturing packets or loading a file " +
+//            "stop your capture or wait for the file to finish loading before trying again");
+//      }
     }
     );
     row.add(filterBt);
@@ -160,25 +161,19 @@ public class OptionsPanel {
     resolveHostnames = new JCheckBox();
     resolveHostnames.setText("Resolve hostnames");
     resolveHostnames.setSelected(filtersForm.isResolveHostnames());
-    resolveHostnames.addChangeListener((changeEvent) -> {
-      this.filtersForm.setResolveHostnames(resolveHostnames.isSelected());
-    });
+    resolveHostnames.addChangeListener((changeEvent) -> this.filtersForm.setResolveHostnames(resolveHostnames.isSelected()));
     checkboxContainer.add(resolveHostnames);
 
     ipv4Checkbox = new JCheckBox();
     ipv4Checkbox.setText("IPv4");
-    ipv4Checkbox.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowIpv4(ipv4Checkbox.isSelected());
-    });
+    ipv4Checkbox.addChangeListener((changeEvent) -> this.filtersForm.setShowIpv4(ipv4Checkbox.isSelected()));
     ipv4Checkbox.setSelected(filtersForm.isShowIpv4());
     checkboxContainer.add(ipv4Checkbox);
 
     ipv6Checkbox = new JCheckBox();
     ipv6Checkbox.setText("IPv6");
     ipv6Checkbox.setSelected(filtersForm.isShowIpv6());
-    ipv6Checkbox.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowIpv6(ipv6Checkbox.isSelected());
-    });
+    ipv6Checkbox.addChangeListener((changeEvent) -> this.filtersForm.setShowIpv6(ipv6Checkbox.isSelected()));
     checkboxContainer.add(ipv6Checkbox);
 
     var checkboxLayout2 = new GridLayout();
@@ -190,41 +185,31 @@ public class OptionsPanel {
     showAckAndSequenceNumbers = new JCheckBox();
     showAckAndSequenceNumbers.setText("Ack and sequence numbers");
     showAckAndSequenceNumbers.setSelected(filtersForm.isShowAckAndSeqNumbers());
-    showAckAndSequenceNumbers.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowAckAndSeqNumbers(showAckAndSequenceNumbers.isSelected());
-    });
+    showAckAndSequenceNumbers.addChangeListener((changeEvent) -> this.filtersForm.setShowAckAndSeqNumbers(showAckAndSequenceNumbers.isSelected()));
     checkboxContainer.add(showAckAndSequenceNumbers);
 
     showHeaderFlags = new JCheckBox();
     showHeaderFlags.setText("Header flags");
     showHeaderFlags.setSelected(filtersForm.isShowHeaderFlags());
-    showHeaderFlags.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowHeaderFlags(showHeaderFlags.isSelected());
-    });
+    showHeaderFlags.addChangeListener((changeEvent) -> this.filtersForm.setShowHeaderFlags(showHeaderFlags.isSelected()));
     checkboxContainer2.add(showHeaderFlags);
 
     showWindowSize = new JCheckBox();
     showWindowSize.setText("Show window size");
     showWindowSize.setSelected(filtersForm.isShowWindowSize());
-    showWindowSize.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowWindowSize(showWindowSize.isSelected());
-    });
+    showWindowSize.addChangeListener((changeEvent) -> this.filtersForm.setShowWindowSize(showWindowSize.isSelected()));
     checkboxContainer2.add(showWindowSize);
 
     showLength = new JCheckBox();
     showLength.setText("Payload length");
     showLength.setSelected(filtersForm.isShowLength());
-    showLength.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowLength(showLength.isSelected());
-    });
+    showLength.addChangeListener((changeEvent) -> this.filtersForm.setShowLength(showLength.isSelected()));
     checkboxContainer2.add(showLength);
 
     var showTcpOptions = new JCheckBox();
     showTcpOptions.setText("Tcp options");
     showTcpOptions.setSelected(filtersForm.isShowTcpOptions());
-    showTcpOptions.addChangeListener((changeEvent) -> {
-      this.filtersForm.setShowTcpOptions(showTcpOptions.isSelected());
-    });
+    showTcpOptions.addChangeListener((changeEvent) -> this.filtersForm.setShowTcpOptions(showTcpOptions.isSelected()));
     checkboxContainer2.add(showTcpOptions);
 
     try {

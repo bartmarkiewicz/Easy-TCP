@@ -40,10 +40,10 @@ public class ConnectionDisplayService {
         Port two : %s
         """.formatted(packetContainer.getOutgoingPackets().size(),
         packetContainer.getIncomingPackets().size(),
-        tcpConnection.getHost().getAddressString(),
-        tcpConnection.getHostTwo().getAddressString(),
-        tcpConnection.getHost().getPort(),
-        tcpConnection.getHostTwo().getPort()));
+        tcpConnection.getConnectionAddresses().getAddressOne().getAddressString(),
+        tcpConnection.getConnectionAddresses().getAddressTwo().getAddressString(),
+        tcpConnection.getConnectionAddresses().getAddressOne().getPort(),
+        tcpConnection.getConnectionAddresses().getAddressTwo().getPort()));
       sb.append("""
       Bytes sent %s
       Bytes received %s

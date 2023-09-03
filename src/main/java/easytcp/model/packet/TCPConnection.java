@@ -8,8 +8,8 @@ import java.util.Objects;
  */
 public class TCPConnection {
   private ConnectionStatus connectionStatus;
-  private InternetAddress host;
-  private InternetAddress hostTwo;
+  private ConnectionStatus statusAsOfPacketTraversal; //keeps track of current status when looping through packets on the connection
+  private ConnectionAddresses connectionAddresses;
   private PacketContainer packetContainer = new PacketContainer();
   private Long maximumSegmentSizeClient;
   private Long maximumSegmentSizeServer;
@@ -22,8 +22,7 @@ public class TCPConnection {
 
   public TCPConnection(TCPConnection connection) {
     this.connectionStatus = connection.getConnectionStatus();
-    this.host = connection.getHost();
-    this.hostTwo = connection.getHostTwo();
+    this.connectionAddresses = new ConnectionAddresses(connection.getConnectionAddresses());
     this.packetContainer = new PacketContainer(connection.getPacketContainer());
     this.fullConnection = connection.isFullConnection();
     this.maximumSegmentSizeClient = connection.getMaximumSegmentSizeClient();
@@ -38,22 +37,6 @@ public class TCPConnection {
 
   public void setConnectionStatus(ConnectionStatus connectionStatus) {
     this.connectionStatus = connectionStatus;
-  }
-
-  public InternetAddress getHost() {
-    return host;
-  }
-
-  public void setHost(InternetAddress host) {
-    this.host = host;
-  }
-
-  public InternetAddress getHostTwo() {
-    return hostTwo;
-  }
-
-  public void setHostTwo(InternetAddress hostTwo) {
-    this.hostTwo = hostTwo;
   }
 
   public PacketContainer getPacketContainer() {
@@ -104,11 +87,29 @@ public class TCPConnection {
     this.windowScaleServer = windowScaleServer;
   }
 
+  public ConnectionStatus getStatusAsOfPacketTraversal() {
+    return statusAsOfPacketTraversal;
+  }
+
+  public void setStatusAsOfPacketTraversal(ConnectionStatus statusAsOfPacketTraversal) {
+    this.statusAsOfPacketTraversal = statusAsOfPacketTraversal;
+  }
+
+  public ConnectionAddresses getConnectionAddresses() {
+    return connectionAddresses;
+  }
+
+  public void setConnectionAddresses(ConnectionAddresses connectionAddresses) {
+    this.connectionAddresses = connectionAddresses;
+  }
+
   @Override
   public String toString() {
-    return connectionStatus.getDisplayText() + " to " +
-      (FiltersForm.getInstance().isResolveHostnames() ? host.getAddressString() : host.getAlphanumericalAddress())
-      + " pkts =" + packetContainer.getPackets().size()
+    return "From port %s to ".formatted(connectionAddresses.getAddressTwo().getPort()) +
+      (FiltersForm.getInstance().isResolveHostnames()
+              ? connectionAddresses.getAddressOne().getAddressString()
+              : connectionAddresses.getAddressOne().getAlphanumericalAddress())
+      + ":%s pkts =".formatted(connectionAddresses.getAddressOne().getPort()) + packetContainer.getPackets().size()
       + (fullConnection ? " with handshake" : "");
   }
 
@@ -118,12 +119,11 @@ public class TCPConnection {
     if (o == null || getClass() != o.getClass()) return false;
     TCPConnection that = (TCPConnection) o;
     return connectionStatus == that.connectionStatus
-      && Objects.equals(host, that.host)
-      && Objects.equals(hostTwo, that.hostTwo);
+      && Objects.equals(connectionAddresses, that.connectionAddresses);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(connectionStatus, host, hostTwo, packetContainer);
+    return Objects.hash(connectionStatus, connectionAddresses);
   }
 }

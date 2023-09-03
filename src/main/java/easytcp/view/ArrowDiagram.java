@@ -29,7 +29,6 @@ public class ArrowDiagram extends ScrollableJPanel {
   private int rightXLabelPos = rightXPos + 5;
   private int leftXLabelPos = leftXPos - 100;
   private final PacketDisplayService packetDisplayService;
-  private TCPConnection tempConnection;
   private TCPConnection selectedConnection;
 
   private JScrollPane scrollPane;
@@ -62,20 +61,19 @@ public class ArrowDiagram extends ScrollableJPanel {
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
     this.currentHeight = 500;
     this.filtersForm = filtersForm;
-    this.selectedConnection = tcpConnection;
     if (tcpConnection == null) {
-      this.tempConnection = null;
-      scrollPane.getViewport().setViewPosition(new Point(0, 0));
+      this.selectedConnection = null;
+      if (!setViewportToSelectedPkt.get()) {
+        scrollPane.getViewport().setViewPosition(new Point(0, 0));
+      }
       return;
-    } else if (tempConnection != null && !tempConnection.equals(tcpConnection)) {
+    } else if (selectedConnection != null && !selectedConnection.equals(tcpConnection) && !setViewportToSelectedPkt.get()) {
       scrollPane.getViewport().setViewPosition(new Point(0, 0));
     }
-    this.tempConnection = new TCPConnection(tcpConnection); //copies the connection
-    tempConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
-    SwingUtilities.invokeLater(() -> {
-      repaint();
-      revalidate();
-    });
+    this.selectedConnection = tcpConnection;
+    selectedConnection.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
+    repaint();
+    revalidate();
   }
 
   @Override
@@ -91,7 +89,7 @@ public class ArrowDiagram extends ScrollableJPanel {
 
     g2d.setColor(Color.BLACK);
     g2d.setFont(new Font(g2d.getFont().getName(), Font.BOLD, 16));
-    if (tempConnection == null) {
+    if (selectedConnection == null) {
       g2d.drawString("Select a TCP connection to view a diagram", leftXPos + (leftXPos/2), 40);
       g2d.setFont(new Font(g2d.getFont().getName(), Font.BOLD, 12));
 
@@ -99,9 +97,16 @@ public class ArrowDiagram extends ScrollableJPanel {
       g2d.drawString("Connection", leftXPos * 2, 40);
       g2d.setFont(new Font(g2d.getFont().getName(), Font.PLAIN, 12));
       g2d.drawString("Client", 5, 20);
-      g2d.drawString(tempConnection.getHostTwo().getAddressString(), 5, 40);
+      var resolveHostnames = FiltersForm.getInstance().isResolveHostnames();
+      g2d.drawString((resolveHostnames
+              ? selectedConnection.getConnectionAddresses().getAddressOne().getAddressString()
+              : selectedConnection.getConnectionAddresses().getAddressTwo().getAlphanumericalAddress()) +":%s"
+              .formatted(selectedConnection.getConnectionAddresses().getAddressTwo().getPort()) , 5, 40);
       g2d.drawString("Server", rightXPos+5, 20);
-      g2d.drawString(tempConnection.getHost().getAddressString(), rightXPos+5, 40);
+      g2d.drawString((resolveHostnames
+              ? selectedConnection.getConnectionAddresses().getAddressOne().getAddressString()
+              : selectedConnection.getConnectionAddresses().getAddressOne().getAlphanumericalAddress()) + ":%s"
+              .formatted(selectedConnection.getConnectionAddresses().getAddressOne().getPort()), rightXPos+5, 40);
     }
 
     //title bar
@@ -111,7 +116,7 @@ public class ArrowDiagram extends ScrollableJPanel {
     g2d.fillRect(rightXPos, 0, 1, getHeight());
     g2d.fillRect(leftXPos, 0, 1, getHeight());
 
-    if (tempConnection != null) {
+    if (selectedConnection != null) {
       drawArrows(g2d);
     }
     currentVerticalPosition = INITIAL_VERTICAL_POSITION;
@@ -120,7 +125,7 @@ public class ArrowDiagram extends ScrollableJPanel {
   }
 
   private void drawArrows(Graphics2D g2d) {
-    tempConnection.getPacketContainer()
+    selectedConnection.getPacketContainer()
       .getPackets()
       .forEach(pkt -> {
         var leftPoint = new Point();
@@ -136,8 +141,11 @@ public class ArrowDiagram extends ScrollableJPanel {
           currentVerticalPosition = currentVerticalPosition + 70;
           rightPoint.x = rightXPos;
           rightPoint.y = currentVerticalPosition;
-          g2d.drawString(
-            packetDisplayService.getStatusForPacket(pkt, tempConnection).getDisplayText(), leftXLabelPos, currentVerticalPosition-65);
+          var currentStatus = selectedConnection.getStatusAsOfPacketTraversal();
+          var nextStatus = packetDisplayService.getStatusForPacket(pkt, selectedConnection);
+          if (currentStatus != nextStatus) {
+            g2d.drawString(nextStatus.getDisplayText(), leftXLabelPos, currentVerticalPosition - 65);
+          }
           g2d.drawString(packetDisplayService.getSegmentLabel(pkt), leftXLabelPos, currentVerticalPosition-76);
           g2d.drawString(
             packetDisplayService.getConnectionTimestampForPacket(pkt), leftXLabelPos-10, currentVerticalPosition-90);
@@ -166,7 +174,7 @@ public class ArrowDiagram extends ScrollableJPanel {
           currentVerticalPosition = currentVerticalPosition + 70;
           leftPoint.y = currentVerticalPosition;
           rightPoint.x = rightXPos;
-          g2d.drawString(packetDisplayService.getStatusForPacket(pkt, tempConnection).getDisplayText(), rightXLabelPos, currentVerticalPosition-65);
+          g2d.drawString(packetDisplayService.getStatusForPacket(pkt, selectedConnection).getDisplayText(), rightXLabelPos, currentVerticalPosition-65);
           g2d.drawString(packetDisplayService.getSegmentLabel(pkt), rightXLabelPos, currentVerticalPosition-76);
           g2d.drawString(
             packetDisplayService.getConnectionTimestampForPacket(pkt), rightXLabelPos, currentVerticalPosition-90);
@@ -188,23 +196,22 @@ public class ArrowDiagram extends ScrollableJPanel {
           }
           g2d.setFont(tempFont);
         }
-        if (currentVerticalPosition >= currentHeight) {
-          currentHeight += 100;
-          scrollPane.getViewport().setViewPosition(new Point(0, currentHeight+100));
+
+        if (currentVerticalPosition >= currentHeight+100) {
+          currentHeight += 200;
         }
         if(selectedPkt != null
           && selectedPkt.equals(pkt)) {
           selectedPktYPos = currentVerticalPosition - 210;
+          if (setViewportToSelectedPkt.get()) {
+            scrollPane.getViewport().setViewPosition(new Point(0, selectedPktYPos));
+            setViewportToSelectedPkt.set(false);
+          }
+
         }
         g2d.setColor(Color.BLACK);
       });
-    if (setViewportToSelectedPkt.get()) {
-      setViewportToSelectedPkt.set(false);
-      scrollPane.getViewport().setViewPosition(new Point(0, selectedPktYPos));
-    }
-
-    tempConnection = new TCPConnection(selectedConnection);
-    tempConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
+    selectedConnection.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
   }
 
   public void drawArrow(Graphics2D g2d, Point startPoint, Point endPoint) {
@@ -240,7 +247,8 @@ public class ArrowDiagram extends ScrollableJPanel {
 
   public void setSelectedPacket(EasyTCPacket pkt) {
     this.selectedPkt = pkt;
-
+    repaint();
+    revalidate();
     if (pkt != null) {
       var packets = pkt.getTcpConnection().getPacketContainer().getPackets();
       var packetLocY = INITIAL_VERTICAL_POSITION - 70;
@@ -248,13 +256,11 @@ public class ArrowDiagram extends ScrollableJPanel {
         if (currentPacket.equals(selectedPkt)) {
           setViewportToSelectedPkt.set(true);
           this.selectedPktYPos = packetLocY;
+          break;
         }
         packetLocY += 140;
       }
     }
-
-    revalidate();
-    repaint();
   }
 
   public void saveDiagram(String fileName) {

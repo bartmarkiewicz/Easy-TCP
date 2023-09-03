@@ -9,9 +9,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.pcap4j.core.PcapHandle;
 
-import static org.mockito.ArgumentMatchers.any;
+import java.sql.Timestamp;
+import java.time.Instant;
+
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FilePacketListenerTest {
@@ -34,10 +37,11 @@ class FilePacketListenerTest {
   void gotPacket() throws Exception{
     var tcpPacket = TestUtils.createPcap4jTcpPacketBuilder();
     var ipPacket = TestUtils.createPcap4Packet(tcpPacket);
-
+    var timestamp = Timestamp.from(Instant.now());
+    when(handle.getTimestamp()).thenReturn(timestamp);
     filePacketListener.gotPacket(ipPacket);
 
     verify(packetTransformerService)
-      .storePcap4jPackets(eq(ipPacket), eq(tcpPacket.build()), any());
+      .storePcap4jPackets(eq(ipPacket), eq(tcpPacket.build()), eq(timestamp));
   }
 }

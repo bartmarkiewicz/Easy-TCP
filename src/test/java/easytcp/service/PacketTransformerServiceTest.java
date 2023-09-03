@@ -4,10 +4,7 @@ import easytcp.model.IPprotocol;
 import easytcp.model.PcapCaptureData;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.model.packet.ConnectionStatus;
-import easytcp.model.packet.EasyTCPacket;
-import easytcp.model.packet.InternetAddress;
-import easytcp.model.packet.TCPConnection;
+import easytcp.model.packet.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.pcap4j.packet.IpV4Packet;
@@ -54,19 +51,14 @@ class PacketTransformerServiceTest {
       .srcAddr((Inet4Address) srcAddr)
       .version(IpVersion.IPV4)
       .protocol(IpNumber.ACTIVE_NETWORKS)
-      .tos(new IpV4Packet.IpV4Tos() {
-        @Override
-        public byte value() {
-          return 0;
-        }
-      })
+      .tos((IpV4Packet.IpV4Tos) () -> (byte) 0)
       .build();
     CaptureData.getCaptureData().clear();
     PacketTransformerService.getPcapCaptureData().clear();
   }
 
   @Test
-  void fromPackets() throws UnknownHostException {
+  void fromPackets() {
     var result = underTest.fromPackets(pcap4jIpPacket, pcap4jTCPacket,
       Timestamp.valueOf("2018-11-12 13:02:56.82345678"), CaptureData.getInstance(), FiltersForm.getInstance());
 
@@ -83,16 +75,15 @@ class PacketTransformerServiceTest {
 
     assertThat(result.getTcpConnection())
       .extracting(TCPConnection::getConnectionStatus,
-        TCPConnection::getHost,
-        TCPConnection::getHostTwo,
+        TCPConnection::getConnectionAddresses,
         i -> i.getPacketContainer().getPackets(),
         TCPConnection::getMaximumSegmentSizeClient,
         TCPConnection::getMaximumSegmentSizeServer,
         TCPConnection::getWindowScaleClient,
         TCPConnection::getWindowScaleServer)
       .containsExactly(ConnectionStatus.UNKNOWN,
-        new InternetAddress(dstAddr.getHostAddress(), "fish.com", dstAddr, 652),
-        new InternetAddress(srcAddr.getHostAddress(), "google.com", srcAddr, 652),
+        new ConnectionAddresses(new InternetAddress(dstAddr.getHostAddress(), "fish.com", dstAddr, 652),
+        new InternetAddress(srcAddr.getHostAddress(), "google.com", srcAddr, 652)),
         List.of(result),
         null,
         null,
@@ -143,16 +134,15 @@ class PacketTransformerServiceTest {
 
     assertThat(result.getTcpConnectionMap().values())
       .extracting(TCPConnection::getConnectionStatus,
-        TCPConnection::getHost,
-        TCPConnection::getHostTwo,
+        TCPConnection::getConnectionAddresses,
         i -> i.getPacketContainer().getPackets(),
         TCPConnection::getMaximumSegmentSizeClient,
         TCPConnection::getMaximumSegmentSizeServer,
         TCPConnection::getWindowScaleClient,
         TCPConnection::getWindowScaleServer)
       .containsExactly(tuple(ConnectionStatus.UNKNOWN,
-        new InternetAddress(dstAddr.getHostAddress(), "fish.com", dstAddr, 652),
-        new InternetAddress(srcAddr.getHostAddress(), "google.com", srcAddr, 652),
+        new ConnectionAddresses(new InternetAddress(dstAddr.getHostAddress(), "fish.com", dstAddr, 652),
+        new InternetAddress(srcAddr.getHostAddress(), "google.com", srcAddr, 652)),
         List.of(result.getPackets().getPackets().get(0)),
         null,
         null,
