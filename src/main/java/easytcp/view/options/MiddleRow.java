@@ -64,7 +64,7 @@ public class MiddleRow {
     selectedConnectionInfoPane.setText(getDefaultSelectedConnectionText());
     var scrollPane = new JScrollPane(selectedConnectionInfoPane);
     connectionInfoAndSelectorContainer.add(scrollPane, BorderLayout.CENTER);
-    setConnectionStatusLabel(CaptureData.getCaptureData());
+    setConnectionStatusLabel(CaptureData.getInstance());
     return connectionInfoAndSelectorContainer;
   }
 
@@ -199,6 +199,9 @@ public class MiddleRow {
     return middleRowPanel;
   }
 
+
+  /* Sets up the connection selector
+   */
   private void addConnectionSelector(JPanel connectionSelectorPanel, FiltersForm filtersForm) {
     connectionSelector.setFont(new Font(connectionSelector.getFont().getName(), Font.PLAIN, 10));
     connectionSelector.setLightWeightPopupEnabled(false);
@@ -209,11 +212,13 @@ public class MiddleRow {
     connectionSelector.addItemListener((i) -> {
       if (i.getStateChange() == ItemEvent.SELECTED
         && (connectionSelector.getSelectedItem() != null &&
-              !connectionSelector.getSelectedItem().equals(filtersForm.getSelectedConnection()))  ) {
+              !connectionSelector.getSelectedItem().equals(filtersForm.getSelectedConnection()))) {
+        //different connection selected
           var selectedItem = (TCPConnection) connectionSelector.getSelectedItem();
           filtersForm.setSelectedConnection(selectedItem);
           ArrowDiagram.getInstance().setTcpConnection(selectedItem, filtersForm);
       } else {
+        //once the connectionSelector is updated, repaints the arrow diagram
         SwingUtilities.invokeLater(() -> {
           ArrowDiagram.getInstance().revalidate();
           ArrowDiagram.getInstance().repaint();
@@ -231,6 +236,8 @@ public class MiddleRow {
     selectedConnectionInfoPane.repaint();
   }
 
+  /* Adds new connections captured to the connection selector
+   */
   public synchronized void addConnectionOptions(CaptureData captureData) {
     var connections = new ArrayList<>(captureData.getTcpConnectionMap().values());
     if (model.getSize() != connections.size()) {
@@ -246,6 +253,8 @@ public class MiddleRow {
       var ff = FiltersForm.getInstance();
       model.setSelectedItem(ff.getSelectedConnection());
       SwingUtilities.invokeLater(() -> {
+        connectionSelector.repaint();
+        connectionSelector.revalidate();
         ArrowDiagram.getInstance().repaint();
         ArrowDiagram.getInstance().revalidate();
       });
@@ -301,13 +310,13 @@ public class MiddleRow {
     SwingUtilities.invokeLater(() -> {
       if (selectedConnection != null) {
         selectedConnectionInfoPane.setText(connectionDisplayService.getConnectionInformation(selectedConnection));
-        selectedConnectionInfoPane.revalidate();
         selectedConnectionInfoPane.repaint();
+        selectedConnectionInfoPane.revalidate();
         ArrowDiagram.getInstance().repaint();
         ArrowDiagram.getInstance().revalidate();
       }
     });
-    connectionSelector.revalidate();
     connectionSelector.repaint();
+    connectionSelector.revalidate();
   }
 }

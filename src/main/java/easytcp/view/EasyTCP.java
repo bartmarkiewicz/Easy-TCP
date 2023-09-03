@@ -13,6 +13,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 
+/* This represents the main window of the application
+ */
 public class EasyTCP extends JFrame {
     public EasyTCP() {
         super();
@@ -22,6 +24,7 @@ public class EasyTCP extends JFrame {
         screenSize.setSize(screenSize.width - 120, screenSize.height - 120);
         this.setPreferredSize(screenSize);
         try {
+            //sets a material look and feel
             UIManager.setLookAndFeel(new MaterialLookAndFeel(new MaterialLiteTheme()));
         } catch (Exception e) {
             System.out.println("Error setting material styling, defaulting to swing styling.");
@@ -73,6 +76,7 @@ public class EasyTCP extends JFrame {
         menuToolbar.addOpenMenuItemListener(actionEvent -> {
             fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            //make sure the default location in the file chooser is where the app was started.
             var workingDirectory = new File(System.getProperty("user.dir"));
             fileChooser.setCurrentDirectory(workingDirectory);
             fileChooser.showOpenDialog(this);
@@ -80,7 +84,6 @@ public class EasyTCP extends JFrame {
         });
 
         this.setJMenuBar(menuToolbar.getMenuBar());
-
         this.getContentPane().add(packetViewScroll);
         this.setVisible(true);
     }

@@ -61,7 +61,7 @@ public class OptionsPanel {
 
   private MiddleRow createMiddleRow(JPanel container) {
     var mr = new MiddleRow(filtersForm);
-    mr.setConnectionStatusLabel(CaptureData.getCaptureData());
+    mr.setConnectionStatusLabel(CaptureData.getInstance());
 
     var middleRowConstraints = new GridBagConstraints();
     middleRowConstraints.gridx = 0;
@@ -130,17 +130,10 @@ public class OptionsPanel {
     filterBt.setSize(200, 200);
 
     filterBt.addActionListener(event -> {
-//      if (!ApplicationStatus.getStatus().isLiveCapturing().get() && !ApplicationStatus.getStatus().isLoading().get()) {
-        this.packetLog.refilterPackets();
-        middleRow.setConnectionInformation(filtersForm.getSelectedConnection());
-        captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
-        middleRow.setConnectionStatusLabel(this.packetLog.getCaptureData());
-//      } else {
-//        JOptionPane.showMessageDialog(
-//          captureDescriptionPanel.getDescriptionPanel(),
-//          "You cannot change your filter while live capturing packets or loading a file " +
-//            "stop your capture or wait for the file to finish loading before trying again");
-//      }
+      this.packetLog.refilterPackets();
+      middleRow.setConnectionInformation(filtersForm.getSelectedConnection());
+      captureDescriptionPanel.updateCaptureStats(this.packetLog.getCaptureData());
+      middleRow.setConnectionStatusLabel(this.packetLog.getCaptureData());
     }
     );
     row.add(filterBt);
@@ -264,7 +257,7 @@ public class OptionsPanel {
       //gets the network interface from the selector
       var networkInterface = deviceNetworkInterfaceHashMap.get((String) interfaceSelect.getSelectedItem());
       if (networkInterface != null) {
-        //starts live capture ona separate thread, to not hang the UI thread
+        //starts live capture o na separate thread, to not hang the UI thread
         var executor = Executors.newSingleThreadExecutor();
         executor.execute(
           () -> {

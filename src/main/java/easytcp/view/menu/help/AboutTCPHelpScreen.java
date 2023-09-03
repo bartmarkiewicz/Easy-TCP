@@ -10,6 +10,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+/* Represents the 'about TCP' help window
+ */
 public class AboutTCPHelpScreen {
   private static final Logger LOGGER = LoggerFactory.getLogger(AboutTCPHelpScreen.class);
   private final JFrame frame;
@@ -96,7 +98,7 @@ public class AboutTCPHelpScreen {
       The TCP header consists of 20-60 bytes, it is sent alongside every TCP packet. Each TCP packet consists of
       1. Source and Destination ports - 16 bit fields that specify the port the data should be sent to.
       2. Sequence number, 32 bit field which is a counter used to keep track of every byte sent outward by a host.
-      3. Acknowledgment number, 32 bit field which indicates the sequence number 
+      3. Acknowledgment number, 32 bit field which indicates the sequence number
       the source next expects to receive from the destination
       4. Data offset, 32 bits, specifies the size of the TCP header
       5. Reserved, 6 bits, these bits are reserved for potential future use.

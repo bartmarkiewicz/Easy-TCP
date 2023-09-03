@@ -10,6 +10,8 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
+/* Represents the general help screen window
+ */
 public class GeneralHelpScreen {
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneralHelpScreen.class);
   private final JFrame frame;

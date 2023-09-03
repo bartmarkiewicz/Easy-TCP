@@ -13,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
 
 public class PacketDisplayService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketDisplayService.class);
@@ -67,6 +65,11 @@ public class PacketDisplayService {
     return matchesFilter;
   }
 
+  /*
+   *Creates a paragraph HTML element for the packet on the packet log text pane,
+   * encodes the packet information in a link href to allow the hyper link listener to identify the packet clicked.
+   * And returns a string in a tcpdump-like format.
+   */
   public String prettyPrintPacket(EasyTCPacket packet, FiltersForm filtersForm) {
     return "<p> <a href=\"%s:%s:%s:%s:%s\"> %s %s %s:%s > %s:%s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s </a></p>"
       .formatted(packet.getSequenceNumber(), packet.getDataPayloadLength(),
@@ -86,6 +89,8 @@ public class PacketDisplayService {
       );
   }
 
+  /* Gets the TCP connection status for the packet pkt at the stage where it was sent/received.
+   */
   public ConnectionStatus getStatusForPacket(EasyTCPacket pkt, TCPConnection tcpConnection) {
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
@@ -102,6 +107,7 @@ public class PacketDisplayService {
       return ConnectionStatus.REJECTED;
     }
 
+    //TCP connection state transitions
     switch (tcpConnection.getStatusAsOfPacketTraversal()) {
       case CLOSED -> {
         //determine initial connection status
@@ -184,11 +190,9 @@ public class PacketDisplayService {
           && packetBeingAcked.get().getTcpFlags().get(TCPFlag.FIN)) {
           tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.CLOSED);
           pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.CLOSED);
-
           return ConnectionStatus.CLOSED;
         } else if (currentPacketFlags.get(TCPFlag.SYN) && !currentPacketFlags.get(TCPFlag.ACK)) {
           pkt.setTcpConnectionStatusAsOfPacket(ConnectionStatus.SYN_SENT);
-
           tcpConnection.setStatusAsOfPacketTraversal(ConnectionStatus.SYN_SENT);
           return ConnectionStatus.SYN_SENT;
         } else if (currentPacketFlags.get(TCPFlag.SYN)
@@ -284,6 +288,8 @@ public class PacketDisplayService {
     return tcpConnection.getStatusAsOfPacketTraversal();
   }
 
+  /* Generates a string for TCP flags present on the packet
+   */
   public String getTcpFlagsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {
     var flags = pkt.getTcpFlags();
     var sb = new StringBuilder();
@@ -346,6 +352,8 @@ public class PacketDisplayService {
     return sb.toString();
   }
 
+  /* Generates a string for the TCP options present on the packet
+   */
   public String getTcpOptionsForPacket(EasyTCPacket pkt, FiltersForm filtersForm) {
     var options = pkt.getTcpOptions();
     var windowSize = pkt.getWindowSize();
@@ -375,18 +383,20 @@ public class PacketDisplayService {
 
   }
 
+  /* Gets a timestamp string relative to the first segment sent/received on the connection.
+   */
   public String getConnectionTimestampForPacket(EasyTCPacket pkt) {
     var con = pkt.getTcpConnection();
-    var firstPacket = new ArrayList<>(con.getPacketContainer()
-      .getPackets())
-      .stream() //todo pass this to the method
-      .min(Comparator.comparing(EasyTCPacket::getTimestamp)).orElseThrow();
+    var firstPacket = con.getPacketContainer()
+      .getPackets().get(0); // earliest packet should be the first packet in the container
 
     var duration = Duration.between(firstPacket.getTimestamp().toInstant(), pkt.getTimestamp().toInstant());
     var nanos = duration.getNano() / 1e+9;
     return "%f (%.04f)".formatted(nanos, nanos);
   }
 
+  /* Gets the segment number for the packet
+   */
   public String getSegmentLabel(EasyTCPacket pkt) {
     var con = pkt.getTcpConnection();
     var indexOf = con.getPacketContainer()

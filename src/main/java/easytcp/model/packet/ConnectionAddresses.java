@@ -2,6 +2,8 @@ package easytcp.model.packet;
 
 import java.util.Objects;
 
+/*A pair of addresses used to identify a unique TCP connection
+ */
 public class ConnectionAddresses {
     private InternetAddress addressOne;
     private InternetAddress addressTwo;
@@ -26,14 +28,6 @@ public class ConnectionAddresses {
 
     public InternetAddress getAddressTwo() {
         return addressTwo;
-    }
-
-    public void setAddressTwo(InternetAddress addressTwo) {
-        this.addressTwo = addressTwo;
-    }
-
-    public boolean containsAddress(InternetAddress address) {
-        return Objects.equals(address, addressOne) || Objects.equals(address, addressTwo);
     }
 
     @Override

@@ -23,9 +23,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+/* This service is used for live capturing packets
+ */
 public class LiveCaptureService {
   private static final Logger LOGGER = LoggerFactory.getLogger(LiveCaptureService.class);
-  private final static int SNAPSHOT_LENGTH = 65536; // in bytes
+  private final static int SNAPSHOT_LENGTH = 65536;
   private final CaptureData captureData;
   private final PacketTransformerService packetTransformerService;
   private final PacketDisplayService packetDisplayService;
@@ -45,17 +47,20 @@ public class LiveCaptureService {
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setLiveCapturing(true);
     appStatus.setMethodOfCapture(CaptureStatus.LIVE_CAPTURE);
-    // create capture object
+    // create capture handle object
     final PcapHandle handle =
       networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
     LOGGER.debug("Began live capture");
+    //begins the capture on another thread
     var executor = Executors.newSingleThreadExecutor();
     this.isSettingText = new AtomicBoolean();
     isSettingText.set(false);
     executor.execute(() -> {
+      //each packet captured is handled on a separate thread from the cached thread pool
       var threadPool = Executors.newCachedThreadPool();
       try {
         int maxPackets = Integer.MAX_VALUE;
+        //sets the filters on the handle object itself by converting the form to a Bfp expression - so only packets matching the filters will be captured
         handle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
         handle.loop(maxPackets, new LivePacketListener(handle, packetTransformerService, captureData,
           filtersForm, isSettingText, textPane, packetDisplayService, optionsPanel), threadPool);
@@ -63,6 +68,7 @@ public class LiveCaptureService {
         LOGGER.debug(e.getMessage());
         LOGGER.debug("Error sniffing packet");
       } finally {
+        //makes sure the threadpool is shutdown after the work is done so resources can be released
         threadPool.shutdown();
       }
     });
@@ -75,6 +81,7 @@ public class LiveCaptureService {
                                     CaptureData captureData,
                                     PacketDisplayService packetDisplayService,
                                     OptionsPanel optionsPanel) {
+    //sets the packet log text pane, in html format due to the packet hyperlinks
     textPane.setText("<html>" + new ArrayList<>(captureData
       .getPackets().getPackets())
       .stream()
@@ -85,6 +92,7 @@ public class LiveCaptureService {
     textPane.setContentType("text/html");
     textPane.revalidate();
     textPane.repaint();
+    //updates other text based displays
     optionsPanel.getMiddleRow().setConnectionStatusLabel(captureData);
     optionsPanel.getCaptureDescriptionPanel().updateCaptureStats(captureData);
   }

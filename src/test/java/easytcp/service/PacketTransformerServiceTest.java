@@ -53,7 +53,7 @@ class PacketTransformerServiceTest {
       .protocol(IpNumber.ACTIVE_NETWORKS)
       .tos((IpV4Packet.IpV4Tos) () -> (byte) 0)
       .build();
-    CaptureData.getCaptureData().clear();
+    CaptureData.getInstance().clear();
     PacketTransformerService.getPcapCaptureData().clear();
   }
 
@@ -107,7 +107,7 @@ class PacketTransformerServiceTest {
 
     underTest.transformCapturedPackets();
 
-    var result = CaptureData.getCaptureData();
+    var result = CaptureData.getInstance();
 
     assertThat(result.getPackets().getPackets()).hasSize(1);
 

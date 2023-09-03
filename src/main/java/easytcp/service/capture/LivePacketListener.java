@@ -55,7 +55,6 @@ public class LivePacketListener implements PacketListener {
         var timestamp = handle.getTimestamp();
         var easyTCPacket = packetTransformerService.fromPackets(
           ipPacket, tcpPacket, timestamp, captureData, filtersForm);
-        packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, timestamp);
         captureData.getPackets().addPacketToContainer(easyTCPacket);
         if (!isSettingForm.get()) {
           //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates

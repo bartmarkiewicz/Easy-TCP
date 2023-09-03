@@ -49,10 +49,6 @@ public class CaptureData {
     return packets;
   }
 
-  public static CaptureData getCaptureData() {
-    return captureData;
-  }
-
   public ConcurrentMap<ConnectionAddresses, TCPConnection> getTcpConnectionMap() {
     return tcpConnectionMap;
   }

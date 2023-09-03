@@ -12,6 +12,7 @@ public class ResizeListener implements ComponentListener {
     public void componentShown(ComponentEvent e) {}
 
     public void componentResized(ComponentEvent e) {
+        //esnures things are resized as the user resizes the window of the application
         var newSize = e.getComponent().getBounds().getSize();
         ApplicationStatus.getStatus().setFrameDimension(newSize);
     }

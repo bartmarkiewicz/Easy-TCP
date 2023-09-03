@@ -61,10 +61,11 @@ public class PcapFileReaderService {
         finalHandle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
         finalHandle.loop(maxPackets, new FilePacketListener(packetTransformerService, finalHandle), threadPool);
         captureData.clear();
+        threadPool.shutdown();
+        //thread pool will terminate when the whole file has been read
         while (!threadPool.isTerminated()) {
           Thread.sleep(1000);
         }
-        threadPool.shutdown();
         packetTransformerService.transformCapturedPackets();
         SwingUtilities.invokeLater(() -> {
           LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);

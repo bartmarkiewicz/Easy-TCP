@@ -3,6 +3,8 @@ package easytcp.view;
 import javax.swing.*;
 import java.awt.*;
 
+/* A JPanel which can be reliably put inside a scroll pane
+ */
 public class ScrollableJPanel extends JPanel implements Scrollable {
   private int maxUnitIncrement = 3;
   public int COMPONENT_WIDTH = 675;

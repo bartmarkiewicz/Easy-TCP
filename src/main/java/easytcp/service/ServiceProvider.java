@@ -3,6 +3,8 @@ package easytcp.service;
 import easytcp.service.capture.LiveCaptureService;
 import easytcp.service.capture.PcapFileReaderService;
 
+/* A service provider for the different singleton services used throughout the application.
+ */
 public class ServiceProvider {
   private static PacketTransformerService packetTransformerService;
   private static PacketDisplayService packetDisplayService;

@@ -9,6 +9,8 @@ import easytcp.service.ServiceProvider;
 import javax.swing.*;
 import java.awt.*;
 
+/* This is the small capture description panel in the corner of the options panel
+ */
 public class CaptureDescriptionPanel {
   private final JPanel descriptionPanel;
   private final JLabel connectionCountLabel;

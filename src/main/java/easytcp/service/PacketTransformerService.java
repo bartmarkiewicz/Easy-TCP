@@ -29,7 +29,8 @@ public class PacketTransformerService {
   private static AtomicInteger threadsInProgress = new AtomicInteger(0);
   private static final ArrayList<PcapCaptureData> pcapCaptureData = new ArrayList<>();
 
-
+  /* Transforms the Pcap4j objects into an EasyTCP packet, connection and other data
+   */
   public EasyTCPacket fromPackets(IpPacket ipPacket,
                                   TcpPacket tcpPacket,
                                   Timestamp timestamp,
@@ -68,12 +69,9 @@ public class PacketTransformerService {
     return easyTcpPacket;
   }
 
-  /**
+  /*
    * Sets up a tcp connection on the packet and the hashmap, needs to be synchronised due to this being
    * done in parallel, and so the same tcp connection isn't created multiple times.
-   * @param easyTcpPacket
-   * @param tcpConnectionHashMap
-   * @param filtersForm
    */
   private synchronized void setTcpConnection(EasyTCPacket easyTcpPacket,
                                              ConcurrentMap<ConnectionAddresses, TCPConnection> tcpConnectionHashMap,
@@ -104,12 +102,15 @@ public class PacketTransformerService {
     ConnectionAddresses addressOfConnection;
     TCPConnection tcpConnection;
 
+    //determines if its an outgoing or incoming packet
     if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())) {
       addressOfConnection = new ConnectionAddresses(easyTcpPacket.getSourceAddress(), easyTcpPacket.getDestinationAddress());
+      //retrieves an existing connection or creates a new one
       tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
       tcpConnection.setConnectionAddresses(addressOfConnection);
       easyTcpPacket.setOutgoingPacket(true);
-      if (easyTcpPacket.getOutgoingPacket() && easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)) {
+      //sets handshake-specific information on the connection
+      if (easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)) {
         var mssClient = getMssFromPkt(easyTcpPacket);
         var windowScale = getWindowScaleFromPkt(easyTcpPacket);
         mssClient.ifPresent(integer -> tcpConnection.setMaximumSegmentSizeClient((long) integer));
@@ -120,7 +121,7 @@ public class PacketTransformerService {
       tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
       easyTcpPacket.setOutgoingPacket(false);
       tcpConnection.setConnectionAddresses(addressOfConnection);
-      if (Boolean.TRUE.equals(!easyTcpPacket.getOutgoingPacket()) && Boolean.TRUE.equals(easyTcpPacket.getTcpFlags().get(TCPFlag.SYN))) {
+      if (Boolean.TRUE.equals(easyTcpPacket.getTcpFlags().get(TCPFlag.SYN))) {
         var mssServer = getMssFromPkt(easyTcpPacket);
         var windowScale = getWindowScaleFromPkt(easyTcpPacket);
         mssServer.ifPresent(integer -> tcpConnection.setMaximumSegmentSizeServer((long) integer));
@@ -153,6 +154,8 @@ public class PacketTransformerService {
       .findFirst();
   }
 
+  /* Determines the status of the connection as of the latest packet
+   */
   private synchronized void determineStatusOfConnection(
     TCPConnection tcpConnection, EasyTCPacket easyTCPacket) {
 
@@ -167,6 +170,7 @@ public class PacketTransformerService {
     if (!easyTCPacket.equals(latestPacket)) {
       LOGGER.debug("Latest packet is not the current packet unfortunately");
     }
+
     var packetBeingAcked =
       tcpConnection.getPacketContainer()
         .findLatestPacketWithSeqNumberLessThan(latestPacket.getAckNumber(), !latestPacket.getOutgoingPacket());
@@ -312,8 +316,11 @@ public class PacketTransformerService {
     }
   }
 
-  /**
-   * Sets addresses and hostnames for the tcp packet, resolves hostnames if enabled
+  /*
+   * Sets addresses and hostnames for the tcp packet, resolves hostnames
+   * even if the filter option is disabled, host names are still resolved immediately,
+   * otherwise it would be very slow to resolve them after the user toggled the display.
+   * Packet is printed immediately with IP, once the resolved hostname is available, it prints that (if filter is enabled).
    */
   private synchronized void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
                                         TcpPacket.TcpHeader tcpHeader,
@@ -332,7 +339,8 @@ public class PacketTransformerService {
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getDstAddr().getHostName();
         // is added to a hashmap to allow it to retrieve it from there rather than doing another
-        // slow DNS call or cache lookup through pcap4j's .getHostName().
+        // slow DNS call or cache lookup through pcap4j's .getHostName()
+        // when doing another capture and the same address is spotted
         resolvedHostNames.put(String.valueOf(ipHeader.getDstAddr().getHostAddress()), resolvedHostname);
         destinationAddress.setHostName(resolvedHostname);
         threadsInProgress.decrementAndGet();
@@ -358,11 +366,14 @@ public class PacketTransformerService {
       LOGGER.debug("thread count, on easytcp.main thread %s".formatted(threadsInProgress.get()));
     }
   }
-
+  /* Stores pcap4j packets, for later conversion, when file reading.
+  */
   public synchronized void storePcap4jPackets(IpPacket ipPacket, TcpPacket tcpPacket, Timestamp timestamp) {
     pcapCaptureData.add(new PcapCaptureData(tcpPacket, ipPacket, timestamp));
   }
 
+  /*Transforms pcap file packet data sequentially in timestamp order
+   */
   public void transformCapturedPackets() {
     var ff = FiltersForm.getInstance();
     var captureData = CaptureData.getInstance();
