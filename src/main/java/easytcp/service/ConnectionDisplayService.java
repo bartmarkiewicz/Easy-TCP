@@ -237,8 +237,7 @@ public class ConnectionDisplayService {
     var delayedAckPossibility = 0;
     var lastReceivedPkt = packetContainer.findPreviousPacketReceived(pkt);
     if (lastReceivedPkt.isPresent()) {
-      //todo this is probably broken
-      //it should look if there were mutliple data packets before an ack was sent
+      //it should look if there were multiple data packets before an ack was sent
       lastOutgoingPacketHadData = lastReceivedPkt.get().getDataPayloadLength() > 0;
       if (pkt.getTcpFlags().get(TCPFlag.ACK) && pkt.getDataPayloadLength() > 0) {
         if (lastOutgoingPacketHadData) {

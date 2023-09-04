@@ -5,6 +5,7 @@ import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.ConnectionStatus;
 import easytcp.model.packet.EasyTCPacket;
 import easytcp.model.packet.TCPConnection;
+import easytcp.service.ArrowDiagramMouseListener;
 import easytcp.service.PacketDisplayService;
 import easytcp.service.ServiceProvider;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class ArrowDiagram extends ScrollableJPanel {
   private EasyTCPacket selectedPkt;
   private final AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
   private Integer selectedPktYPos = 0;
+  private ArrowDiagramMouseListener arrowDiagramMouseListener;
 
   public static ArrowDiagram getInstance() {
     if (arrowDiagram == null) {
@@ -57,6 +59,9 @@ public class ArrowDiagram extends ScrollableJPanel {
     this.packetDisplayService = ServiceProvider.getInstance().getPacketDisplayService();
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
     currentHeight = 500;
+    this.arrowDiagramMouseListener = new ArrowDiagramMouseListener();
+    arrowDiagramMouseListener.setSelectedConnection(null);
+    this.addMouseListener(arrowDiagramMouseListener);
   }
 
   /* Sets the TCP connection to be drawn
@@ -73,6 +78,7 @@ public class ArrowDiagram extends ScrollableJPanel {
     if (selectedConnection != null) {
       selectedConnection.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
     }
+    arrowDiagramMouseListener.setSelectedConnection(selectedConnection);
     repaint();
     revalidate();
   }
@@ -262,11 +268,18 @@ public class ArrowDiagram extends ScrollableJPanel {
 
   /* This is called once a packet has been clicked in the packet log.
    */
-  public void setSelectedPacket(EasyTCPacket pkt) {
+  public void setSelectedPacket(EasyTCPacket pkt, boolean setViewport) {
+    if (this.selectedPkt != null) {
+      this.selectedPkt.setSelectedPacket(false);
+    }
     this.selectedPkt = pkt;
+    if (pkt != null) {
+      this.selectedPkt.setSelectedPacket(true);
+    }
     repaint();
     revalidate();
-    if (pkt != null) {
+
+    if (pkt != null && setViewport) {
       var packets = pkt.getTcpConnection().getPacketContainer().getPackets();
       var packetLocY = INITIAL_VERTICAL_POSITION - 70;
       //gets the y position of the selected packet

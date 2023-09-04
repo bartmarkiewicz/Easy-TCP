@@ -58,7 +58,7 @@ public class EasyTCP extends JFrame {
         this.getContentPane().add(firstRow);
 
         var packetViewScroll = new JScrollPane(packetLogger.getPacketTextPane());
-
+        packetLogger.setScrollPane(packetViewScroll);
         packetViewScroll.setVerticalScrollBarPolicy(JScrollPane. VERTICAL_SCROLLBAR_AS_NEEDED);
 
         var menuToolbar = new MenuToolbar();

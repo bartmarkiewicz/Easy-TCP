@@ -72,8 +72,10 @@ public class PacketDisplayService {
    * And returns a string in a tcpdump-like format.
    */
   public String prettyPrintPacket(EasyTCPacket packet, FiltersForm filtersForm) {
-    return "<p> <a href=\"%s:%s:%s:%s:%s\"> %s %s %s:%s > %s:%s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s </a></p>"
-      .formatted(packet.getSequenceNumber(), packet.getDataPayloadLength(),
+    return "<p>%s <a href=\"%s:%s:%s:%s:%s\"> %s %s %s:%s > %s:%s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s </a>%s</p>"
+      .formatted(
+  packet.getSelectedPacket() ? "<span>" : "",
+        packet.getSequenceNumber(), packet.getDataPayloadLength(),
         packet.getAckNumber(), packet.getTcpFlagsDisplayable(), packet.getTcpConnection().getConnectionAddresses(),
         packet.getTimestamp().toString(),
         packet.getiPprotocol().getDisplayName(),
@@ -86,7 +88,8 @@ public class PacketDisplayService {
         packet.getAckNumber(),
         packet.getWindowSize(),
         packet.getTcpOptionsDisplayable(),
-        packet.getDataPayloadLength()
+        packet.getDataPayloadLength(),
+        packet.getSelectedPacket() ? "</span>" : ""
       );
   }
 

@@ -3,11 +3,11 @@ package easytcp.view;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.model.application.FiltersForm;
-import easytcp.service.PacketTransformerService;
-import easytcp.service.capture.LiveCaptureService;
 import easytcp.service.PacketDisplayService;
-import easytcp.service.capture.PcapFileReaderService;
+import easytcp.service.PacketTransformerService;
 import easytcp.service.ServiceProvider;
+import easytcp.service.capture.LiveCaptureService;
+import easytcp.service.capture.PcapFileReaderService;
 import easytcp.view.options.MiddleRow;
 import easytcp.view.options.OptionsPanel;
 import org.apache.logging.log4j.util.Strings;
@@ -20,8 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.DefaultCaret;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
+import java.awt.*;
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -33,6 +35,7 @@ import static easytcp.service.capture.LiveCaptureService.setLogTextPane;
 public class PacketLog {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketLog.class);
+  private static PacketLog packetLog;
   private final FiltersForm filtersForm;
   private final JTextPane logTextPane;
   private final PcapFileReaderService pcapFileReaderService;
@@ -41,6 +44,7 @@ public class PacketLog {
   private PcapHandle pcapHandle;
   private final CaptureData captureData;
   private final ApplicationStatus appStatus;
+  private JScrollPane scrollPane;
 
   public PacketLog(FiltersForm filtersForm, ServiceProvider serviceProvider) {
     this.filtersForm = filtersForm;
@@ -50,6 +54,7 @@ public class PacketLog {
     this.pcapFileReaderService = serviceProvider.getPcapFileReaderService();
     this.packetDisplayService = serviceProvider.getPacketDisplayService();
     this.liveCaptureService = serviceProvider.getLiveCaptureService();
+    packetLog = this;
   }
 
   /* Reads the selected pcap file
@@ -137,6 +142,7 @@ public class PacketLog {
       ArrowDiagram.getInstance().setFilters(filtersForm);
       ArrowDiagram.getInstance().repaint();
       ArrowDiagram.getInstance().revalidate();
+      ((DefaultCaret) packetLog.getPacketTextPane().getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
       logTextPane.setContentType("text/html");
       if (Strings.isBlank(packetText)) {
         logTextPane.setText("<html> No packets matching your search criteria found, try changing your filters.</html>");
@@ -145,6 +151,39 @@ public class PacketLog {
       }
       logTextPane.repaint();
       logTextPane.revalidate();
+      ((DefaultCaret) packetLog.getPacketTextPane().getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+    });
+  }
+
+  //packet can be null
+  public void refreshPacketLog(boolean setViewport) {
+    var caret = (DefaultCaret) logTextPane.getCaret();
+    var packetText = getPacketText();
+    SwingUtilities.invokeLater(() -> {
+      caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
+      logTextPane.setContentType("text/html");
+      if (Strings.isBlank(packetText)) {
+        logTextPane.setText("<html> No packets matching your search criteria found, try changing your filters.</html>");
+      } else {
+        logTextPane.setText(packetText);
+      }
+
+      if (setViewport) {
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        int i = 0;
+        //scrolls to the selected packet
+        for (String line : logTextPane.getText().split("<p>")) {
+          if (!Strings.isBlank(line) && line.contains("<span>")) {
+            if (i < 5) {
+              scrollPane.getViewport().setViewPosition(new Point(0, 0));
+            } else {
+              scrollPane.getViewport().setViewPosition(new Point(0, i * 30));
+            }
+            break;
+          }
+          i++;
+        }
+      }
     });
   }
 
@@ -205,7 +244,8 @@ public class PacketLog {
             var mr = MiddleRow.getInstance();
             mr.setConnectionInformation(tcpConnectionOfPacket);
             ArrowDiagram.getInstance().setTcpConnection(tcpConnectionOfPacket, filtersForm);
-            ArrowDiagram.getInstance().setSelectedPacket(packet);
+            ArrowDiagram.getInstance().setSelectedPacket(packet, true);
+            refreshPacketLog(false);
           }));
       } else {
         var packetOpt = this.captureData.getPackets().findPacketWith(
@@ -214,9 +254,10 @@ public class PacketLog {
           //if packet found, updates the arrow diagram and selects the connection on the UI thread
           SwingUtilities.invokeLater(() -> {
             ArrowDiagram.getInstance().setTcpConnection(packet.getTcpConnection(), filtersForm);
-            ArrowDiagram.getInstance().setSelectedPacket(packet);
+            ArrowDiagram.getInstance().setSelectedPacket(packet, true);
             var mr = MiddleRow.getInstance();
             mr.setConnectionInformation(packetOpt.get().getTcpConnection());
+            refreshPacketLog(false);
           }));
       }
     }
@@ -230,8 +271,9 @@ public class PacketLog {
     var defaultStyle = hed.getStyleSheet();
     var style = new StyleSheet();
     style.addStyleSheet(defaultStyle);
-    style.addRule("body {font-family:\"Monospaced\"; font-size:9px;}");
+    style.addRule("body {font-family:\"Monospaced\"; font-size:10px;}");
     style.addRule("a {color:#000000; text-decoration: none;}");
+    style.addRule("span {color:#0000ff; text-decoration: none;}");
     //Ensures capture log packets are correctly read as html and edits the default hyperlink styling.
     hed.setStyleSheet(style);
     textPane.setEditorKit(hed);
@@ -240,4 +282,11 @@ public class PacketLog {
     return textPane;
   }
 
+  public static PacketLog getPacketLog() {
+    return packetLog;
+  }
+
+  public void setScrollPane(JScrollPane packetViewScroll) {
+    this.scrollPane = packetViewScroll;
+  }
 }

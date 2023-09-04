@@ -26,6 +26,7 @@ public class EasyTCPacket {
   private List<TcpPacket.TcpOption> tcpOptions;
   private TCPConnection tcpConnection;
   private Boolean outgoingPacket;
+  private boolean selectedPacket;
   private ConnectionStatus tcpConnectionStatusAsOfPacket;
 
   public Timestamp getTimestamp() {
@@ -188,5 +189,11 @@ public class EasyTCPacket {
     return Objects.hash(timestamp, iPprotocol, sourceAddress, destinationAddress, sequenceNumber, ackNumber, windowSize, dataPayloadLength, headerPayloadLength, tcpFlags, tcpOptions, tcpConnection, outgoingPacket);
   }
 
+  public void setSelectedPacket(boolean selected) {
+    this.selectedPacket = selected;
+  }
 
+  public boolean getSelectedPacket() {
+    return selectedPacket;
+  }
 }
