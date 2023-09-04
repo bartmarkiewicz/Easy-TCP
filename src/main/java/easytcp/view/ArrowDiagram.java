@@ -59,7 +59,7 @@ public class ArrowDiagram extends ScrollableJPanel {
     this.packetDisplayService = ServiceProvider.getInstance().getPacketDisplayService();
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
     currentHeight = 500;
-    this.arrowDiagramMouseListener = new ArrowDiagramMouseListener();
+    this.arrowDiagramMouseListener = new ArrowDiagramMouseListener(this, PacketLog.getPacketLog());
     arrowDiagramMouseListener.setSelectedConnection(null);
     this.addMouseListener(arrowDiagramMouseListener);
   }

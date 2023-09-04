@@ -1,7 +1,6 @@
 package easytcp.view;
 
 import easytcp.Application;
-import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.service.PacketTransformerService;
 import org.assertj.swing.core.GenericTypeMatcher;
@@ -11,8 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-
-import java.awt.*;
 import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,35 +27,6 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
     @AfterEach
     void tearDown() {
         cleanUp();
-    }
-
-    @Test
-    void testSaveArrowsDiagram() throws InterruptedException {
-        ApplicationStatus.getStatus().setFrameDimension(new Dimension(500, 500));
-        ArrowDiagram.getInstance().repaint();
-        ArrowDiagram.getInstance().revalidate();
-        var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
-        //opens EasyTCP and then clicks file -> Save arrows diagram
-        frame.menuItemWithPath("File", "Save arrows diagram").click();
-        var saveDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
-            @Override
-            protected boolean isMatching(JFileChooser component) {
-                return component.getDialogType() == JFileChooser.SAVE_DIALOG;
-            }
-        }).requireVisible();
-
-        //asserts the file is created by easy TCP after saving the dialog
-        var fileToBeSaved = new File("abc.png");
-        try {
-            assertThat(fileToBeSaved.exists()).isFalse();
-            saveDialog.fileNameTextBox().setText("abc");
-            Thread.sleep(1000);
-            saveDialog.approve();
-            Thread.sleep(1500);
-            assertThat(fileToBeSaved.exists()).isTrue();
-        } finally {
-            fileToBeSaved.deleteOnExit();
-        }
     }
 
     @Test
@@ -87,7 +55,7 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
     }
 
     @Test
-    void testReadPcapFileAndUseFilters() throws InterruptedException {
+    void testReadPcapFileAndUseFilters_thenSaveArrowsDiagram() throws InterruptedException {
         var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
         CaptureData.getInstance().clear();
         PacketTransformerService.getPcapCaptureData().clear();
@@ -129,5 +97,31 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
                 .requireText("1 TCP connections\n");
         frame.label("packets count") //asserts correct connection
                 .requireText("53 packets captured");
+
+        //then save arrows diagram
+        frame.menuItemWithPath("File", "Save arrows diagram").click();
+
+        var saveDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
+            @Override
+            protected boolean isMatching(JFileChooser component) {
+                return component.getDialogType() == JFileChooser.SAVE_DIALOG;
+            }
+        }).requireVisible();
+        ArrowDiagram.getInstance().repaint();
+        ArrowDiagram.getInstance().revalidate();
+        Thread.sleep(500);
+
+        //asserts the file is created by easy TCP after saving the dialog
+        var fileToBeSaved = new File("abc.png");
+        try {
+            assertThat(fileToBeSaved.exists()).isFalse();
+            saveDialog.fileNameTextBox().setText("abc");
+            Thread.sleep(1000);
+            saveDialog.approve();
+            Thread.sleep(1500);
+            assertThat(fileToBeSaved.exists()).isTrue();
+        } finally {
+            fileToBeSaved.deleteOnExit();
+        }
     }
 }

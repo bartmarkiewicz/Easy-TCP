@@ -48,6 +48,7 @@ class CaptureSaveServiceTest {
   @Test
   void saveCapture_thenRead() throws Exception {
     var fishFile = new File("fish");
+    fishFile.delete();
     CaptureData.getInstance().clear();
     PacketTransformerService.getPcapCaptureData().clear();
     var packetTransformerService = new PacketTransformerService();

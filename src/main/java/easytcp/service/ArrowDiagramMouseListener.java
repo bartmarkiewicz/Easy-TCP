@@ -14,22 +14,30 @@ public class ArrowDiagramMouseListener implements MouseListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArrowDiagramMouseListener.class);
     private TCPConnection selectedConnection;
     private EasyTCPacket selectedPacket;
+    private final ArrowDiagram arrowDiagram;
+    private final PacketLog packetLog;
 
     public TCPConnection getSelectedConnection() {
         return selectedConnection;
+    }
+
+    public ArrowDiagramMouseListener(ArrowDiagram arrowDiagram, PacketLog packetLog) {
+        this.arrowDiagram = arrowDiagram;
+        this.packetLog = packetLog;
     }
 
     public void setSelectedConnection(TCPConnection selectedConnection) {
         this.selectedConnection = selectedConnection;
     }
 
+    public EasyTCPacket getSelectedPacket() {
+        return selectedPacket;
+    }
+
     @Override
     public void mouseClicked(MouseEvent e) {
-        //use getX and getY
-
-        LOGGER.debug("Mouse click detected position -x %s y- %s".formatted(e.getX(), e.getY()));
         if (e.getY() < 60 || selectedConnection == null) {
-            //clicked above the arrow diagram, or did not have a connection selected
+            //clicked above the arrows diagram, or did not have a connection selected
             return;
         }
 
@@ -41,13 +49,12 @@ public class ArrowDiagramMouseListener implements MouseListener {
             }
             this.selectedPacket = selectedConnection.getPacketContainer().getPackets().get(positionInList);
             this.selectedPacket.setSelectedPacket(true);
-            ArrowDiagram.getInstance().setSelectedPacket(selectedPacket, false);
-            PacketLog.getPacketLog().refreshPacketLog(true);
+            arrowDiagram.setSelectedPacket(selectedPacket, false);
+            packetLog.refreshPacketLog(true);
         }
 
-        LOGGER.debug("Mouse click detected position on screen -x %s y- %s, packet segment %s"
-                .formatted(e.getXOnScreen(), e.getYOnScreen(), positionInList));
-
+        LOGGER.debug("Mouse click detected position x %s y %s, packet segment %s"
+                .formatted(e.getX(), e.getY(), positionInList));
     }
 
     @Override
