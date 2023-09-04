@@ -67,7 +67,7 @@ class PacketLogTest {
         var mockFile = new File("testReadFile");
         var optionsPanel = mock(OptionsPanel.class);
         ApplicationStatus.getStatus().setLoading(loadingOrLiveCapture);
-        ApplicationStatus.getStatus().setLiveCapturing(loadingOrLiveCapture);
+        ApplicationStatus.getStatus().setLiveCapturing(!loadingOrLiveCapture);
         //needs to be done on a seperate thread due to the JOptionPane appearing
         var executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> packetLog.readSelectedFile(mockFile, optionsPanel));

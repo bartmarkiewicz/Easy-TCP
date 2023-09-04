@@ -44,6 +44,7 @@ class LivePacketListenerTest {
   void setUp() {
     livePacketListener = new LivePacketListener(handle, packetTransformerService, CaptureData.getInstance(), filtersForm,
       isSettingForm, textPane, packetDisplayService, optionsPanel);
+    CaptureData.getInstance().clear();
   }
 
   @Test

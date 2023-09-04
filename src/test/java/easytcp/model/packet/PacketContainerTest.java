@@ -2,6 +2,7 @@ package easytcp.model.packet;
 
 import easytcp.TestUtils;
 import easytcp.model.TCPFlag;
+import easytcp.model.application.CaptureData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.pcap4j.packet.TcpMaximumSegmentSizeOption;
@@ -30,6 +31,7 @@ class PacketContainerTest {
   @BeforeEach
   void setUp() {
     //creates a packet container with some packets
+    CaptureData.getInstance().clear();
     underTest = new PacketContainer();
     connection = TestUtils.createTCPConnection(true,
       TestUtils.createAddress("123.123", "fish.com"),
@@ -82,17 +84,22 @@ class PacketContainerTest {
 
   @Test
   void addPacketToContainer_assertSorted() {
-    var newPktEarlierThanOthers = TestUtils.createEasyTcpDataPacket(connection, true, 1L, 1L, 20, List.of(TCPFlag.FIN));
-    newPktEarlierThanOthers.setTimestamp(Timestamp.from(Instant.now().minus(400, ChronoUnit.MILLIS)));
-    underTest.addPacketToContainer(newPktEarlierThanOthers);;
+    var newPktEarlierThanOthers = TestUtils.createEasyTcpDataPacket(
+        connection, true, 1L, 1L, 20, List.of(TCPFlag.FIN));
+    newPktEarlierThanOthers.setTimestamp(
+        Timestamp.from(Instant.now().minus(4000, ChronoUnit.MILLIS)));
 
+    underTest.addPacketToContainer(newPktEarlierThanOthers);
+
+    //asserts order
     assertThat(underTest.getPackets())
-      .contains(newPktEarlierThanOthers,
-        synSentPacket,
-        synReceivedPacket,
-        pshPcktSent,
-        pshPcktReceived);
-    assertThat(underTest.getPackets().get(0)).isEqualTo(newPktEarlierThanOthers);
+        .containsExactly(
+            newPktEarlierThanOthers,
+            synSentPacket,
+            synReceivedPacket,
+            pshPcktReceived,
+            pshPcktSent
+    );
   }
 
   @Test

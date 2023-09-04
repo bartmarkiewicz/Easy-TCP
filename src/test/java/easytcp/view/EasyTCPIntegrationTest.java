@@ -1,6 +1,7 @@
 package easytcp.view;
 
 import easytcp.Application;
+import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
 import easytcp.service.PacketTransformerService;
 import org.assertj.swing.core.GenericTypeMatcher;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,8 +22,11 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @BeforeEach
     public void onSetUp() {
+        CaptureData.getInstance().clear();
+        PacketTransformerService.getPcapCaptureData().clear();
         setUpRobot();
         application(Application.class).start();
+
     }
 
     @AfterEach
@@ -55,10 +60,10 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
     }
 
     @Test
-    void testReadPcapFileAndUseFilters_thenSaveArrowsDiagram() throws InterruptedException {
-        var frame = findFrame(EasyTCP.class).withTimeout(5500).using(robot());
-        CaptureData.getInstance().clear();
-        PacketTransformerService.getPcapCaptureData().clear();
+    void testReadPcapFileAndUseFilters_andSaveDiagram() throws InterruptedException {
+        var frame = findFrame(EasyTCP.class).withTimeout(4000).using(robot());
+        ApplicationStatus.getStatus().setFrameDimension(new Dimension(1300, 1300));
+
         //opens a prepared capture file
         frame.menuItemWithPath("File", "Open").click();
         var openFileDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
@@ -70,10 +75,9 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
         openFileDialog.selectFile(new File("src/test/resources/testPcapFile"));
         openFileDialog.approveButton().click();
 
-        Thread.sleep(8000); // wait for the file to load
+        Thread.sleep(6000); // wait for the file to load
 
         //asserting file has been successfully read
-
         frame.label("connection count")
                 .requireText("%s TCP connections\n".formatted(CaptureData.getInstance().getTcpConnectionMap().keySet().size()));
         frame.label("packets count")
