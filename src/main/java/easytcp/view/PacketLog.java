@@ -282,7 +282,12 @@ public class PacketLog {
     return textPane;
   }
 
-  public static PacketLog getPacketLog() {
+  public static PacketLog getPacketLog(FiltersForm filtersForm, ServiceProvider serviceProvider) {
+    if (packetLog != null) {
+      return packetLog;
+    } else {
+      packetLog = new PacketLog(filtersForm, serviceProvider);
+    }
     return packetLog;
   }
 

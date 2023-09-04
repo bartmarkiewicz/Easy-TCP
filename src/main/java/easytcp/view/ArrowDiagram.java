@@ -41,6 +41,7 @@ public class ArrowDiagram extends ScrollableJPanel {
   private final AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
   private Integer selectedPktYPos = 0;
   private ArrowDiagramMouseListener arrowDiagramMouseListener;
+  private PacketLog packetLog;
 
   public static ArrowDiagram getInstance() {
     if (arrowDiagram == null) {
@@ -59,7 +60,8 @@ public class ArrowDiagram extends ScrollableJPanel {
     this.packetDisplayService = ServiceProvider.getInstance().getPacketDisplayService();
     this.currentVerticalPosition = INITIAL_VERTICAL_POSITION; //initial position of the start of the arrow
     currentHeight = 500;
-    this.arrowDiagramMouseListener = new ArrowDiagramMouseListener(this, PacketLog.getPacketLog());
+    this.arrowDiagramMouseListener = new ArrowDiagramMouseListener(this, PacketLog.getPacketLog(
+        FiltersForm.getInstance(), ServiceProvider.getInstance()));
     arrowDiagramMouseListener.setSelectedConnection(null);
     this.addMouseListener(arrowDiagramMouseListener);
   }

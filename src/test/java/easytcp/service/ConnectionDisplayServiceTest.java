@@ -165,6 +165,4 @@ class ConnectionDisplayServiceTest {
         """);
     }
   }
-
-  //todo test for slow start
 }

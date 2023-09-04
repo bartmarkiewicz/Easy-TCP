@@ -50,7 +50,7 @@ public class EasyTCP extends JFrame {
         arrowDiagram.repaint();
         arrowDiagram.revalidate();
         var filtersForm = FiltersForm.getInstance();
-        var packetLogger = new PacketLog(filtersForm, ServiceProvider.getInstance());
+        var packetLogger = PacketLog.getPacketLog(filtersForm, ServiceProvider.getInstance());
 
         var optionsPanel = new OptionsPanel(filtersForm, packetLogger);
         firstRow.add(optionsPanel.getPanel());

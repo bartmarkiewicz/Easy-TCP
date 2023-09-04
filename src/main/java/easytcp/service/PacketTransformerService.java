@@ -91,7 +91,8 @@ public class PacketTransformerService {
     if (easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
       || easyTcpPacket.getSourceAddress().getAlphanumericalAddress().startsWith("172")) {
       interfaceAddresses.add(easyTcpPacket.getSourceAddress().getAddressString());
-    } else if (easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
+    }
+    if (easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("192") //private address ranges
       || easyTcpPacket.getDestinationAddress().getAlphanumericalAddress().startsWith("172")) {
       interfaceAddresses.add(easyTcpPacket.getDestinationAddress().getAddressString());
     } else {
@@ -99,34 +100,50 @@ public class PacketTransformerService {
         easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress()));
     }
 
-    ConnectionAddresses addressOfConnection;
-    TCPConnection tcpConnection;
+    var addressOfConnection = new ConnectionAddresses(easyTcpPacket.getSourceAddress(), easyTcpPacket.getDestinationAddress());
+    //retrieves an existing connection or creates a new one
+    final var tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
+
 
     //determines if its an outgoing or incoming packet
-    if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())) {
+    //this checks if both addresses are suspected of being client interface addresses
+    if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())
+        && interfaceAddresses.contains(easyTcpPacket.getSourceAddress().getAddressString())) {
+      if (tcpConnection.getPacketContainer().getOutgoingPackets().size() > 0) {
+        if (!tcpConnection.getPacketContainer().getOutgoingPackets().get(0).getSourceAddress()
+            .equals(easyTcpPacket.getSourceAddress())) {
+          easyTcpPacket.setOutgoingPacket(
+              tcpConnection.getPacketContainer().getOutgoingPackets().get(0).getOutgoingPacket());
+        }
+      } else if (tcpConnection.getPacketContainer().getIncomingPackets().size() > 0) {
+        if (!tcpConnection.getPacketContainer().getIncomingPackets().get(0).getDestinationAddress()
+            .equals(easyTcpPacket.getSourceAddress())) {
+          easyTcpPacket.setOutgoingPacket(
+              tcpConnection.getPacketContainer().getIncomingPackets().get(0).getOutgoingPacket());
+        }
+      }
+    } else if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())) {
       addressOfConnection = new ConnectionAddresses(easyTcpPacket.getSourceAddress(), easyTcpPacket.getDestinationAddress());
       //retrieves an existing connection or creates a new one
-      tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
       tcpConnection.setConnectionAddresses(addressOfConnection);
       easyTcpPacket.setOutgoingPacket(true);
-      //sets handshake-specific information on the connection
-      if (easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)) {
-        var mssClient = getMssFromPkt(easyTcpPacket);
-        var windowScale = getWindowScaleFromPkt(easyTcpPacket);
-        mssClient.ifPresent(integer -> tcpConnection.setMaximumSegmentSizeClient((long) integer));
-        windowScale.ifPresent(tcpConnection::setWindowScaleClient);
-      }
     } else {
       addressOfConnection = new ConnectionAddresses(easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress());
-      tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
       easyTcpPacket.setOutgoingPacket(false);
       tcpConnection.setConnectionAddresses(addressOfConnection);
-      if (Boolean.TRUE.equals(easyTcpPacket.getTcpFlags().get(TCPFlag.SYN))) {
-        var mssServer = getMssFromPkt(easyTcpPacket);
-        var windowScale = getWindowScaleFromPkt(easyTcpPacket);
-        mssServer.ifPresent(integer -> tcpConnection.setMaximumSegmentSizeServer((long) integer));
-        windowScale.ifPresent(tcpConnection::setWindowScaleClient);
-      }
+    }
+
+    //sets handshake-specific information on the connection
+    if (easyTcpPacket.getTcpFlags().get(TCPFlag.SYN) && easyTcpPacket.getOutgoingPacket()) {
+      var mssClient = getMssFromPkt(easyTcpPacket);
+      var windowScale = getWindowScaleFromPkt(easyTcpPacket);
+      mssClient.ifPresent(integer -> tcpConnection.setMaximumSegmentSizeClient((long) integer));
+      windowScale.ifPresent(tcpConnection::setWindowScaleClient);
+    } else if (easyTcpPacket.getTcpFlags().get(TCPFlag.SYN)) {
+      var mssServer = getMssFromPkt(easyTcpPacket);
+      var windowScale = getWindowScaleFromPkt(easyTcpPacket);
+      mssServer.ifPresent(integer -> tcpConnection.setMaximumSegmentSizeServer((long) integer));
+      windowScale.ifPresent(tcpConnection::setWindowScaleServer);
     }
 
     //stores the packet in the tcp connection

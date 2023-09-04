@@ -3,6 +3,7 @@ package easytcp.view;
 import easytcp.Application;
 import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
+import easytcp.model.application.FiltersForm;
 import easytcp.service.PacketTransformerService;
 import org.assertj.swing.core.GenericTypeMatcher;
 import org.assertj.swing.testing.AssertJSwingTestCaseTemplate;
@@ -22,11 +23,11 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @BeforeEach
     public void onSetUp() {
-        CaptureData.getInstance().clear();
-        PacketTransformerService.getPcapCaptureData().clear();
         setUpRobot();
         application(Application.class).start();
-
+        CaptureData.getInstance().clear();
+        FiltersForm.getInstance().restoreDefaults();
+        PacketTransformerService.getPcapCaptureData().clear();
     }
 
     @AfterEach

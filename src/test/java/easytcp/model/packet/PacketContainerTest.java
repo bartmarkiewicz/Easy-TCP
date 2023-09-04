@@ -87,7 +87,7 @@ class PacketContainerTest {
     var newPktEarlierThanOthers = TestUtils.createEasyTcpDataPacket(
         connection, true, 1L, 1L, 20, List.of(TCPFlag.FIN));
     newPktEarlierThanOthers.setTimestamp(
-        Timestamp.from(Instant.now().minus(4000, ChronoUnit.MILLIS)));
+        Timestamp.from(Instant.now().minus(4000, ChronoUnit.DAYS)));
 
     underTest.addPacketToContainer(newPktEarlierThanOthers);
 

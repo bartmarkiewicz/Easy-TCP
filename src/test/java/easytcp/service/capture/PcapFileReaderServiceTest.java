@@ -23,7 +23,7 @@ class PcapFileReaderServiceTest {
   void readPacketFile_successfullyRead() throws InterruptedException {
     CaptureData.getInstance().clear();
     PacketTransformerService.getPcapCaptureData().clear();
-
+    FiltersForm.getInstance().restoreDefaults();
     var file = new File("src/test/resources/testPcapFile");
     var filters = FiltersForm.getInstance();
     var txtPane = mock(JTextPane.class);

@@ -173,10 +173,6 @@ public class FiltersForm {
     this.showLength = showLength;
   }
 
-  public static void setFiltersForm(FiltersForm filtersForm) {
-    FiltersForm.filtersForm = filtersForm;
-  }
-
   public boolean isShowTcpOptions() {
     return showTcpOptions;
   }
