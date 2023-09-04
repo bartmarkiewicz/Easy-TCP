@@ -104,32 +104,29 @@ public class PacketTransformerService {
     //retrieves an existing connection or creates a new one
     final var tcpConnection = tcpConnectionHashMap.getOrDefault(addressOfConnection, new TCPConnection());
 
+    tcpConnection.setConnectionAddresses(addressOfConnection);
 
     //determines if its an outgoing or incoming packet
     //this checks if both addresses are suspected of being client interface addresses
     if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())
         && interfaceAddresses.contains(easyTcpPacket.getSourceAddress().getAddressString())) {
-      if (tcpConnection.getPacketContainer().getOutgoingPackets().size() > 0) {
-        if (!tcpConnection.getPacketContainer().getOutgoingPackets().get(0).getSourceAddress()
-            .equals(easyTcpPacket.getSourceAddress())) {
-          easyTcpPacket.setOutgoingPacket(
-              tcpConnection.getPacketContainer().getOutgoingPackets().get(0).getOutgoingPacket());
+      if (tcpConnection.getPacketContainer().getPackets().size() > 0) {
+        if (tcpConnection.getPacketContainer().getPackets().get(0).getDestinationAddress().equals(easyTcpPacket.getDestinationAddress())) {
+          easyTcpPacket.setOutgoingPacket(tcpConnection.getPacketContainer().getPackets().get(0).getOutgoingPacket());
+        } else {
+          easyTcpPacket.setOutgoingPacket(!tcpConnection.getPacketContainer().getPackets().get(0).getOutgoingPacket());
         }
-      } else if (tcpConnection.getPacketContainer().getIncomingPackets().size() > 0) {
-        if (!tcpConnection.getPacketContainer().getIncomingPackets().get(0).getDestinationAddress()
-            .equals(easyTcpPacket.getSourceAddress())) {
-          easyTcpPacket.setOutgoingPacket(
-              tcpConnection.getPacketContainer().getIncomingPackets().get(0).getOutgoingPacket());
-        }
+      } else {
+        easyTcpPacket.setOutgoingPacket(true);
       }
     } else if (interfaceAddresses.contains(easyTcpPacket.getDestinationAddress().getAddressString())) {
       addressOfConnection = new ConnectionAddresses(easyTcpPacket.getSourceAddress(), easyTcpPacket.getDestinationAddress());
       //retrieves an existing connection or creates a new one
       tcpConnection.setConnectionAddresses(addressOfConnection);
-      easyTcpPacket.setOutgoingPacket(true);
+      easyTcpPacket.setOutgoingPacket(false);
     } else {
       addressOfConnection = new ConnectionAddresses(easyTcpPacket.getDestinationAddress(), easyTcpPacket.getSourceAddress());
-      easyTcpPacket.setOutgoingPacket(false);
+      easyTcpPacket.setOutgoingPacket(true);
       tcpConnection.setConnectionAddresses(addressOfConnection);
     }
 

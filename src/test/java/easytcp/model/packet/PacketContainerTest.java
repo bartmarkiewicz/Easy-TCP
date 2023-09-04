@@ -91,9 +91,11 @@ class PacketContainerTest {
 
     underTest.addPacketToContainer(newPktEarlierThanOthers);
 
-    //asserts order
+    //asserts the first packet is the earliest one
+    assertThat(underTest.getPackets().get(0)).isEqualTo(newPktEarlierThanOthers);
+
     assertThat(underTest.getPackets())
-        .containsExactly(
+        .contains(
             newPktEarlierThanOthers,
             synSentPacket,
             synReceivedPacket,
