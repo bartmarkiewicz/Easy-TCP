@@ -271,6 +271,7 @@ public class PacketLog {
     var defaultStyle = hed.getStyleSheet();
     var style = new StyleSheet();
     style.addStyleSheet(defaultStyle);
+    //adds css to the packet log text
     style.addRule("body {font-family:\"Monospaced\"; font-size:10px;}");
     style.addRule("a {color:#000000; text-decoration: none;}");
     style.addRule("span {color:#0000ff; text-decoration: none;}");

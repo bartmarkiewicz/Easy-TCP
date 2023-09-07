@@ -7,6 +7,7 @@ import easytcp.model.application.FiltersForm;
 import easytcp.model.packet.*;
 import easytcp.service.capture.PcapFileReaderService;
 import easytcp.view.ArrowDiagram;
+import easytcp.view.options.OptionsPanel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +27,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CaptureSaveServiceTest {
@@ -82,8 +84,9 @@ class CaptureSaveServiceTest {
     assertThat(fishFile.exists()).isTrue();
 
     var packetReader = new PcapFileReaderService(packetTransformerService);
-
-    var captureData = packetReader.readPacketFile(fishFile, FiltersForm.getInstance(), new JTextPane(), mock());
+    var optionsPanel = mock(OptionsPanel.class);
+    when(optionsPanel.getMiddleRow()).thenReturn(mock());
+    var captureData = packetReader.readPacketFile(fishFile, FiltersForm.getInstance(), new JTextPane(), optionsPanel);
     Thread.sleep(500);
 
     while (ApplicationStatus.getStatus().isLoading().get()) {
@@ -95,12 +98,11 @@ class CaptureSaveServiceTest {
             .extracting(
                     EasyTCPacket::getAckNumber,
                     EasyTCPacket::getSequenceNumber,
-                    EasyTCPacket::getOutgoingPacket,
                     EasyTCPacket::getiPprotocol,
                     EasyTCPacket::getDataPayloadLength,
                     EasyTCPacket::getTcpFlagsDisplayable,
                     EasyTCPacket::getHeaderPayloadLength)
-            .containsExactly(55L, 100L, false, IPprotocol.IPV4, 0, ".P", 20);
+            .containsExactly(55L, 100L, IPprotocol.IPV4, 0, ".P", 20);
 
     assertThat(captureData.getPackets().getPackets().get(0).getTcpConnection())
             .extracting(TCPConnection::getConnectionStatus,

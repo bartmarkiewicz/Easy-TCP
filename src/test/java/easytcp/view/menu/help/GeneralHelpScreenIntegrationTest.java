@@ -4,6 +4,7 @@ import easytcp.Application;
 import easytcp.view.EasyTCP;
 import org.assertj.swing.core.GenericTypeMatcher;
 import org.assertj.swing.testing.AssertJSwingTestCaseTemplate;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,12 @@ class GeneralHelpScreenIntegrationTest extends AssertJSwingTestCaseTemplate {
         setUpRobot();
         application(Application.class).start();
     }
+
+    @AfterEach
+    public void tearDown() {
+        cleanUp();
+    }
+
 
     @Test
     void testOpenHelpScreen() {

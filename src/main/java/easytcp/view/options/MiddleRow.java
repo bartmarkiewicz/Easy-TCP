@@ -86,7 +86,6 @@ public class MiddleRow {
     connectionInformationPane.setEditable(false);
     connectionInformationPane.setFont(
       new Font(connectionInformationPane.getFont().getName(), Font.PLAIN, 11));
-    packetViewScroll.setAutoscrolls(false);
     var connectionDescriptionSettingPanel = getConnectionDescriptionSettingPanel(filtersForm);
     firstColPanel.add(connectionDescriptionSettingPanel);
     firstColPanel.add(packetViewScroll);

@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static easytcp.service.capture.LiveCaptureService.setLogTextPane;
 
+//Listener which handles a packet arriving at an interface when live capturing
 public class LivePacketListener implements PacketListener {
   private static final Logger LOGGER = LoggerFactory.getLogger(LivePacketListener.class);
   private final PcapHandle handle;
@@ -48,18 +49,23 @@ public class LivePacketListener implements PacketListener {
 
   @Override
   public void gotPacket(Packet packet) {
+    //extracts IP and TCP information from the raw packet.
     var ipPacket = packet.get(IpPacket.class);
     if (ipPacket != null) {
       var tcpPacket = ipPacket.get(TcpPacket.class);
       if (tcpPacket != null) {
         var timestamp = handle.getTimestamp();
+        //transforms the pcap4j library packets
         var easyTCPacket = packetTransformerService.fromPackets(
           ipPacket, tcpPacket, timestamp, captureData, filtersForm);
+        //stores the packets in their pcap4j format - allowing for later saving if needed.
         packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, timestamp);
+        //Adds transformed packet to a container
         captureData.getPackets().addPacketToContainer(easyTCPacket);
         if (!isSettingForm.get()) {
           //ensures the text is being set only once at the same time, preventing the UI from freezing up from constant updates
           isSettingForm.set(true);
+          //invoked on the swing UI thread
           SwingUtilities.invokeLater(() -> {
             setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
             var arrowDiagram = ArrowDiagram.getInstance();

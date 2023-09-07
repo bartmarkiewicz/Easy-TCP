@@ -21,7 +21,7 @@ public class ConnectionDisplayService {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionDisplayService.class);
 
 
-  /*Gets information about the provided connection based on the filters provided
+  /*Gets general information about the provided connection based on the display filters provided
    */
   public String getConnectionInformation(TCPConnection tcpConnection) {
     var sb = new StringBuilder();
@@ -40,10 +40,10 @@ public class ConnectionDisplayService {
         Port two : %s
         """.formatted(packetContainer.getOutgoingPackets().size(),
         packetContainer.getIncomingPackets().size(),
-        tcpConnection.getConnectionAddresses().getAddressOne().getAddressString(),
-        tcpConnection.getConnectionAddresses().getAddressTwo().getAddressString(),
-        tcpConnection.getConnectionAddresses().getAddressOne().getPort(),
-        tcpConnection.getConnectionAddresses().getAddressTwo().getPort()));
+        tcpConnection.getConnectionAddresses().addressOne().getAddressString(),
+        tcpConnection.getConnectionAddresses().addressTwo().getAddressString(),
+        tcpConnection.getConnectionAddresses().addressOne().getPort(),
+        tcpConnection.getConnectionAddresses().addressTwo().getPort()));
       sb.append("""
       Bytes sent %s
       Bytes received %s
@@ -79,7 +79,8 @@ public class ConnectionDisplayService {
     return sb.toString();
   }
 
-  /* Attempts to detect various tcp strategies or features on the connection
+  /* Attempts to detect various tcp strategies or features on the connection,
+  and adds the text to the string builder used on the connection display panel
    */
   private void appendTcpStrategiesFound(StringBuilder sb,
                                         TCPConnection tcpConnection,
@@ -156,14 +157,16 @@ public class ConnectionDisplayService {
     var percentDetectionThreshold = tcpStrategyDetection.getPercentOfPackets();
     var detectedTcpFeatures = 0;
     var onThe = sentOrReceivedPkts.get(0).getOutgoingPacket() ? "client" : "server";
-    //checks the number of nagle possibilities against the percentage of the packets without the PSH flag - which disables nagle
-    //and checks if it is within the percent detection threshold
+    //checks the number of nagle possibilities against the percentage of the packets without the PSH flag
+    // - which disables nagle and delayed ack
+    // and checks if it is within the percent detection threshold
     if (nagleThreshold > 0
       && naglePossibility > (packetContainer.getAllPacketsWithoutFlag(TCPFlag.PSH, isClient).size() * percentDetectionThreshold)) {
       detectedTcpFeatures++;
       sb.append("TCP features on the %s \n".formatted(onThe));
       sb.append("Nagle's algorithm is enabled \n");
     }
+
     if (delayedAckPossibility > (packetContainer.getAllPacketsWithoutFlag(TCPFlag.PSH, isClient).size() * percentDetectionThreshold)) {
       detectedTcpFeatures++;
       if (detectedTcpFeatures == 1) {
@@ -193,16 +196,15 @@ public class ConnectionDisplayService {
         consecutivePacketsSent++;
         var previousSendingWindow = currentSendingWindowSize;
         currentSendingWindowSize += pkt.getDataPayloadLength();
+        //checks for increasing window size, which is the payload sent before receiving an acknowledgement
         if (consecutivePacketsSent > 1
           && currentSendingWindowSize > previousSendingWindow * tcpStrategyDetection.getSlowStartThreshold()
           && currentSendingWindowSize > 0
           && previousSendingWindow > 0) {
-          slowStartPossibilitySending++;
+          slowStartPossibilitySending+=2; //gets incremented by 2 since this won't be detected on every packet
           LOGGER.debug("Window size increased from {} to {} on outgoing, likely slow start",
             previousSendingWindow, currentSendingWindowSize);
         }
-        LOGGER.debug("Window size increased from {} to {} on incoming, NOT LIKELY slow start",
-                previousSendingWindow, currentSendingWindowSize);
       } else {
         currentSendingWindowSize = 0;
         consecutivePacketsRcvd++;
@@ -213,17 +215,16 @@ public class ConnectionDisplayService {
           && currentReceivingWindowSize > previousReceivingWindow * tcpStrategyDetection.getSlowStartThreshold()
           && currentReceivingWindowSize > 0
           && previousReceivingWindow > 0) {
-          slowStartPossibilityReceiving++;
+          slowStartPossibilityReceiving+=2;
           LOGGER.debug("Window size increased from {} to {} on incoming, likely slow start",
             previousReceivingWindow, currentReceivingWindowSize);
         }
-        LOGGER.debug("Window size increased from {} to {} on incoming, NOT LIKELY slow start",
-                previousReceivingWindow, currentReceivingWindowSize);
       }
     }
     return List.of(slowStartPossibilitySending, slowStartPossibilityReceiving);
   }
 
+  //detects delayed ack behaviour for a packet
   private List<Integer> detectDelayedAckOnPacket(EasyTCPacket pkt,
                                                  PacketContainer packetContainer,
                                                  Integer ackCounter,
@@ -256,6 +257,7 @@ public class ConnectionDisplayService {
       && Duration.between(packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
       .toMillis() >= delayedAckTimeoutThreshold) {
       //checks if the delay before sending an ack is greater than the timeout threshold
+      //Basically checks if the ack was delayed
       delayedAckPossibility++;
       LOGGER.debug("Delayed ack possibility + 1 duration - between ack and packet {}", Duration.between(
           packetBeingAcked.get().getTimestamp().toInstant(), pkt.getTimestamp().toInstant())
@@ -266,7 +268,7 @@ public class ConnectionDisplayService {
   }
 
   /*
-   * Checks for signs of nagle on the packet 'pkt'
+   * Checks for signs of nagle on a packet
    */
   private int detectNagleOnPacket(EasyTCPacket pkt,
                                   PacketContainer packetContainer,
@@ -310,7 +312,7 @@ public class ConnectionDisplayService {
       LOGGER.debug("No ack for previous packet so is not nagling here");
     } else {
       //if current packet is being sent after the ack for the previous packet
-      if (pkt.getTimestamp().getTime() > acksForPreviousPacket.get(0).getTimestamp().getTime()) {
+      if (pkt.getTimestamp().after(acksForPreviousPacket.get(0).getTimestamp())) {
         naglePossiblity++;
         LOGGER.debug("current packet checked timestamp {}, ack for previous outgoing packet timestamp {}",
           pkt.getTimestamp(), acksForPreviousPacket.get(0).getTimestamp());
@@ -323,7 +325,7 @@ public class ConnectionDisplayService {
 
   private int checkIfPayloadNearMss(EasyTCPacket pkt, double nagleThreshold, int naglePossiblity, int windowSize) {
     if (windowSize >= pkt.getDataPayloadLength()
-      && pkt.getDataPayloadLength() >= nagleThreshold) { //if sending near MSS
+      && pkt.getDataPayloadLength() >= nagleThreshold) { //if sending near MSS, likely nagle enabled
       LOGGER.debug("Possibly nagle enabled on outgoing connection payload - {}, threshold {}, {} win size",
         pkt.getDataPayloadLength(), nagleThreshold, pkt.getWindowSize());
       naglePossiblity++;
@@ -331,6 +333,7 @@ public class ConnectionDisplayService {
     return naglePossiblity;
   }
 
+  //Appends tcp connection options to the string builder used on the selected connection display panel
   private void appendTcpConnectionOptions(StringBuilder sb, TCPConnection connection, boolean outgoingCon) {
     var uniqueOptionsOnConnection = connection.getPacketContainer().getUniqueTcpOptions(outgoingCon);
     var counter = 0;
@@ -340,9 +343,8 @@ public class ConnectionDisplayService {
         if (counter <= 1) {
           sb.append("TCP options on the %s".formatted(outgoingCon ? "Client" : "Server"));
         }
-        sb.append("Selective acknowledgement (SACK) permitted\n");
+        sb.append("SACK permitted\n");
       } else if (opt.valueAsString().equals(TcpOptionKind.WINDOW_SCALE.valueAsString())) {
-
         if (outgoingCon && connection.getWindowScaleClient() != null) {
           counter++;
           if (counter <= 1) {
@@ -371,12 +373,6 @@ public class ConnectionDisplayService {
           }
           sb.append("MSS - %s\n".formatted(connection.getMaximumSegmentSizeServer()));
         }
-      } else if (!opt.valueAsString().equals(TcpOptionKind.SACK.valueAsString())) {
-        counter++;
-        if (counter <= 1) {
-          sb.append("%s TCP options\n".formatted(outgoingCon ? "Client" : "Server"));
-        }
-        sb.append("%s".formatted(opt.valueAsString()));
       }
     }
     if (counter > 0) {
@@ -384,6 +380,7 @@ public class ConnectionDisplayService {
     }
   }
 
+  //Appends tcp flag counts onto the connection display string builder
   private void appendFlagString(StringBuilder sb, TCPFlag flag, Map<Boolean, List<EasyTCPacket>> flagMap) {
     if (!flagMap.get(true).isEmpty() || !flagMap.get(false).isEmpty()) {
       sb.append("%s %s/%s\n".formatted(flag.name(), flagMap.get(true).size(), flagMap.get(false).size()));

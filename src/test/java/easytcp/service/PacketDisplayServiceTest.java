@@ -48,7 +48,7 @@ class PacketDisplayServiceTest {
       TestUtils.createAddress("12335553", "differentHostname2"));
 
     filtersForm.setSelectedConnection(newCon);
-    pshSentPkt.setSourceAddress(newCon.getConnectionAddresses().getAddressOne());
+    pshSentPkt.setSourceAddress(newCon.getConnectionAddresses().addressOne());
     pshSentPkt.setTcpConnection(newCon);
     var resultPsh = underTest.isVisible(pshSentPkt, filtersForm);
     var resultSyn = underTest.isVisible(synSentPkt, filtersForm);
@@ -66,7 +66,7 @@ class PacketDisplayServiceTest {
       TestUtils.createAddress("12335553", "differentHostname2"));
 
     filtersForm.setHostSelected("123");
-    pshSentPkt.setSourceAddress(newCon.getConnectionAddresses().getAddressOne());
+    pshSentPkt.setSourceAddress(newCon.getConnectionAddresses().addressOne());
     pshSentPkt.setTcpConnection(newCon);
     var resultPsh = underTest.isVisible(pshSentPkt, filtersForm);
     var resultSyn = underTest.isVisible(synSentPkt, filtersForm);

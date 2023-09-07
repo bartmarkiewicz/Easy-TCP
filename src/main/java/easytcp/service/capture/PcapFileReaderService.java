@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+//Service used for reading packet capture files
 public class PcapFileReaderService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PcapFileReaderService.class);
   private final PacketTransformerService packetTransformerService;
@@ -36,7 +37,9 @@ public class PcapFileReaderService {
   public CaptureData readPacketFile(File packetFile, FiltersForm filtersForm,
                                     JTextPane textPane, OptionsPanel optionsPanel) {
     var executor = Executors.newSingleThreadExecutor();
-    captureData.clear();
+    captureData.clear(); //clears captured data
+
+    //opens file on a new thread, to not freeze the UI.
     executor.execute(() -> {
       PcapHandle handle;
       try {
@@ -52,22 +55,25 @@ public class PcapFileReaderService {
       var appStatus = ApplicationStatus.getStatus();
       appStatus.setMethodOfCapture(CaptureStatus.READING_FROM_FILE);
       appStatus.setLoading(true);
-      captureData.clear();
       try {
-        final var finalHandle = handle;
         this.isSettingText = new AtomicBoolean();
         isSettingText.set(false);
+        //each packet read from the file is read on a thread from the thread pool.
         var threadPool = Executors.newCachedThreadPool();
         int maxPackets = Integer.MAX_VALUE;
-        finalHandle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
-        finalHandle.loop(maxPackets, new FilePacketListener(packetTransformerService, finalHandle), threadPool);
-        Thread.sleep(1000);
+        handle.setFilter(filtersForm.toBfpExpression(), BpfProgram.BpfCompileMode.OPTIMIZE);
+        handle.loop(maxPackets, new FilePacketListener(packetTransformerService, handle), threadPool);
+        //ensures the thread pool is shut down, to save resources
+        Thread.sleep(2000);
         threadPool.shutdown();
         //thread pool will terminate when the whole file has been read
         while (!threadPool.isTerminated()) {
           Thread.sleep(1000);
         }
+        //once the thread-pool is terminated, we know the file has been entirely read,
+        // we can then transform the captured pcap4j packets
         packetTransformerService.transformCapturedPackets();
+        //updates the text displays on the UI thread
         SwingUtilities.invokeLater(() -> {
           LiveCaptureService.setLogTextPane(filtersForm, textPane, captureData, packetDisplayService, optionsPanel);
           isSettingText.set(false);

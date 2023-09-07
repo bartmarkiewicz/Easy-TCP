@@ -25,6 +25,7 @@ public class FilePacketListener implements PacketListener {
     if (ipPacket != null) {
       var tcpPacket = ipPacket.get(TcpPacket.class);
       if (tcpPacket != null) {
+        //stores each packet to be transformed later
         packetTransformerService.storePcap4jPackets(ipPacket, tcpPacket, pcapHandle.getTimestamp());
       }
     }

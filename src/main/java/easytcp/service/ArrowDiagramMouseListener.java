@@ -10,16 +10,13 @@ import org.slf4j.LoggerFactory;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+//Listens to mouse clicks on the arrows diagram
 public class ArrowDiagramMouseListener implements MouseListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArrowDiagramMouseListener.class);
     private TCPConnection selectedConnection;
     private EasyTCPacket selectedPacket;
     private final ArrowDiagram arrowDiagram;
     private final PacketLog packetLog;
-
-    public TCPConnection getSelectedConnection() {
-        return selectedConnection;
-    }
 
     public ArrowDiagramMouseListener(ArrowDiagram arrowDiagram, PacketLog packetLog) {
         this.arrowDiagram = arrowDiagram;
@@ -41,12 +38,14 @@ public class ArrowDiagramMouseListener implements MouseListener {
             return;
         }
 
-        //Each packet height on the arrow diagram is 140px
+        //Each packet height on the arrows diagram is 140px
         var positionInList = (int) Math.ceil(e.getY()/140f) - 1;
         if (selectedConnection.getPacketContainer().getPackets().size() > positionInList) {
             if (this.selectedPacket != null) {
+                //unselects the previously selected packet
                 this.selectedPacket.setSelectedPacket(false);
             }
+            //
             this.selectedPacket = selectedConnection.getPacketContainer().getPackets().get(positionInList);
             this.selectedPacket.setSelectedPacket(true);
             arrowDiagram.setSelectedPacket(selectedPacket, false);

@@ -71,7 +71,7 @@ class PacketTransformerServiceTest {
         EasyTCPacket::getDataPayloadLength,
         EasyTCPacket::getTcpFlagsDisplayable,
         EasyTCPacket::getHeaderPayloadLength)
-      .containsExactly(55L, 100L, false, IPprotocol.IPV4, 0, ".P", 20);
+      .containsExactly(55L, 100L, true, IPprotocol.IPV4, 0, ".P", 20);
 
     assertThat(result.getTcpConnection())
       .extracting(TCPConnection::getConnectionStatus,
@@ -130,7 +130,7 @@ class PacketTransformerServiceTest {
         EasyTCPacket::getDataPayloadLength,
         EasyTCPacket::getTcpFlagsDisplayable,
         EasyTCPacket::getHeaderPayloadLength)
-      .containsExactly(55L, 100L, false, IPprotocol.IPV4, 0, ".P", 20);
+      .containsExactly(55L, 100L, true, IPprotocol.IPV4, 0, ".P", 20);
 
     assertThat(result.getTcpConnectionMap().values())
       .extracting(TCPConnection::getConnectionStatus,

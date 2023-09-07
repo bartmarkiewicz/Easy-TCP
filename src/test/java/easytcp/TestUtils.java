@@ -100,11 +100,11 @@ public class TestUtils {
     packet.setDataPayloadLength(payloadLen);
     packet.setTcpConnection(connection);
     if (outgoing) {
-      packet.setDestinationAddress(connection.getConnectionAddresses().getAddressOne());
-      packet.setSourceAddress(connection.getConnectionAddresses().getAddressTwo());
+      packet.setDestinationAddress(connection.getConnectionAddresses().addressOne());
+      packet.setSourceAddress(connection.getConnectionAddresses().addressTwo());
     } else {
-      packet.setSourceAddress(connection.getConnectionAddresses().getAddressOne());
-      packet.setDestinationAddress(connection.getConnectionAddresses().getAddressTwo());
+      packet.setSourceAddress(connection.getConnectionAddresses().addressOne());
+      packet.setDestinationAddress(connection.getConnectionAddresses().addressTwo());
     }
     packet.setHeaderPayloadLength(20);
     packet.setTimestamp(Timestamp.from(Instant.now()));

@@ -41,7 +41,6 @@ public class ArrowDiagram extends ScrollableJPanel {
   private final AtomicBoolean setViewportToSelectedPkt = new AtomicBoolean(false);
   private Integer selectedPktYPos = 0;
   private ArrowDiagramMouseListener arrowDiagramMouseListener;
-  private PacketLog packetLog;
 
   public static ArrowDiagram getInstance() {
     if (arrowDiagram == null) {
@@ -111,14 +110,14 @@ public class ArrowDiagram extends ScrollableJPanel {
       g2d.drawString("Client", 5, 20);
       var resolveHostnames = FiltersForm.getInstance().isResolveHostnames();
       g2d.drawString((resolveHostnames
-              ? selectedConnection.getConnectionAddresses().getAddressTwo().getAddressString()
-              : selectedConnection.getConnectionAddresses().getAddressTwo().getAlphanumericalAddress()) +":%s"
-              .formatted(selectedConnection.getConnectionAddresses().getAddressTwo().getPort()) , 5, 40);
+              ? selectedConnection.getConnectionAddresses().addressTwo().getAddressString()
+              : selectedConnection.getConnectionAddresses().addressTwo().getAlphanumericalAddress()) +":%s"
+              .formatted(selectedConnection.getConnectionAddresses().addressTwo().getPort()) , 5, 40);
       g2d.drawString("Server", rightXPos+5, 20);
       g2d.drawString((resolveHostnames
-              ? selectedConnection.getConnectionAddresses().getAddressOne().getAddressString()
-              : selectedConnection.getConnectionAddresses().getAddressOne().getAlphanumericalAddress()) + ":%s"
-              .formatted(selectedConnection.getConnectionAddresses().getAddressOne().getPort()), rightXPos+5, 40);
+              ? selectedConnection.getConnectionAddresses().addressOne().getAddressString()
+              : selectedConnection.getConnectionAddresses().addressOne().getAlphanumericalAddress()) + ":%s"
+              .formatted(selectedConnection.getConnectionAddresses().addressOne().getPort()), rightXPos+5, 40);
     }
 
     //title bar
@@ -145,6 +144,10 @@ public class ArrowDiagram extends ScrollableJPanel {
     selectedConnection.getPacketContainer()
       .getPackets()
       .forEach(pkt -> {
+        if (!packetDisplayService.isVisible(pkt, FiltersForm.getInstance())) {
+          return;
+        }
+
         var leftPoint = new Point();
         var rightPoint = new Point();
         if (selectedPkt != null
@@ -220,7 +223,7 @@ public class ArrowDiagram extends ScrollableJPanel {
           g2d.setFont(tempFont);
         }
 
-        if (currentVerticalPosition >= currentHeight+100) {
+        if (currentVerticalPosition >= currentHeight) {
           currentHeight += 200;
           //once arrows start being drawn outside of the visible area, increases height of the scroll panel
         }
@@ -239,7 +242,7 @@ public class ArrowDiagram extends ScrollableJPanel {
     selectedConnection.setStatusAsOfPacketTraversal(ConnectionStatus.UNKNOWN);
   }
 
-  /* Draws the an arrow between two points.
+  /* Draws an arrow between two points.
    */
   public void drawArrow(Graphics2D g2d, Point startPoint, Point endPoint) {
     int arrowSize = 16;

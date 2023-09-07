@@ -99,6 +99,7 @@ public class FiltersForm {
     //Transforms the filter values into a BPF expression
     //Omits connection, which is only a post-capture filter
     var filterBuilder = new StringBuilder();
+    //the application only captures TCP traffic
     filterBuilder.append("(tcp");
     if (isShowIpv4() && isShowIpv6()) {
       filterBuilder.append(" and (ip or ip6))");
@@ -116,6 +117,7 @@ public class FiltersForm {
     if (!Strings.isBlank(getPortRangeSelected())) {
       var temp = getPortRangeSelected().replace(" ", "");
       if (temp.contains("-")) {
+        //accepts port ranges eg '80-500'
         filterBuilder.append(" and (portrange %s)".formatted(temp));
       } else {
         filterBuilder.append(" and (dst port %s or src port %s)"

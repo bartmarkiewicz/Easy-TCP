@@ -27,6 +27,7 @@ public class PacketContainer {
       .toList();
   }
 
+  //Gets the unique options found inside the packet container
   public List<TcpOptionKind> getUniqueTcpOptions(boolean outgoingPacket) {
     var tempArr = outgoingPacket ? new ArrayList<>(getOutgoingPackets()) : new ArrayList<>(getIncomingPackets());
 
@@ -39,6 +40,7 @@ public class PacketContainer {
       .toList();
   }
 
+  //Finds a packet with a sequence number less than the given number, on an outgoing or incoming packet.
   public Optional<EasyTCPacket> findLatestPacketWithSeqNumberLessThan(Long ackNumber, boolean outgoing) {
     return new ArrayList<>(packets)
       .stream()
@@ -46,6 +48,7 @@ public class PacketContainer {
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
+  //Finds the previously received packet
   public Optional<EasyTCPacket> findPreviousPacketReceived(EasyTCPacket pkt) {
     return new ArrayList<>(packets)
       .stream()
@@ -54,6 +57,7 @@ public class PacketContainer {
       .max(Comparator.comparing(EasyTCPacket::getTimestamp));
   }
 
+  //Adds the packet to the container while ensuring its sorted by timestamp and prevents concurrency issues.
   public void addPacketToContainer(EasyTCPacket easyTCPacket) {
     synchronized (packets) {
       packets.add(easyTCPacket);
@@ -105,6 +109,7 @@ public class PacketContainer {
       .sum();
   }
 
+  //Finds a packet matching the arguments provided to the method in the packet container
   public Optional<EasyTCPacket> findPacketWith(Long seq, Long ack, Integer payloadLen, String tcpFlagsDisplayable) {
     return new ArrayList<>(packets)
       .stream()

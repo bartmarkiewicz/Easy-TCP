@@ -22,7 +22,7 @@ public class TCPConnection {
 
   public TCPConnection(TCPConnection connection) {
     this.connectionStatus = connection.getConnectionStatus();
-    this.connectionAddresses = new ConnectionAddresses(connection.getConnectionAddresses());
+    this.connectionAddresses = connection.getConnectionAddresses();
     this.packetContainer = new PacketContainer(connection.getPacketContainer());
     this.fullConnection = connection.isFullConnection();
     this.maximumSegmentSizeClient = connection.getMaximumSegmentSizeClient();
@@ -105,11 +105,11 @@ public class TCPConnection {
 
   @Override
   public String toString() {
-    return "From port %s to ".formatted(connectionAddresses.getAddressTwo().getPort()) +
+    return "From port %s to ".formatted(connectionAddresses.addressTwo().getPort()) +
       (FiltersForm.getInstance().isResolveHostnames()
-              ? connectionAddresses.getAddressOne().getAddressString()
-              : connectionAddresses.getAddressOne().getAlphanumericalAddress())
-      + ":%s".formatted(connectionAddresses.getAddressOne().getPort())
+              ? connectionAddresses.addressOne().getAddressString()
+              : connectionAddresses.addressOne().getAlphanumericalAddress())
+      + ":%s".formatted(connectionAddresses.addressOne().getPort())
       + (fullConnection ? " with handshake" : "");
   }
 
@@ -118,7 +118,7 @@ public class TCPConnection {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     TCPConnection that = (TCPConnection) o;
-    return connectionStatus == that.connectionStatus
+    return connectionStatus == that.connectionStatus // ensures connections are equal when status and addresses match
       && Objects.equals(connectionAddresses, that.connectionAddresses);
   }
 

@@ -47,7 +47,7 @@ public class LiveCaptureService {
     var appStatus = ApplicationStatus.getStatus();
     appStatus.setLiveCapturing(true);
     appStatus.setMethodOfCapture(CaptureStatus.LIVE_CAPTURE);
-    // create capture handle object
+    // creates capture handle object on the selected interface
     final PcapHandle handle =
       networkInterface.openLive(SNAPSHOT_LENGTH, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
     LOGGER.debug("Began live capture");

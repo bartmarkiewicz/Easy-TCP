@@ -376,10 +376,11 @@ public class PacketDisplayService {
         if (kind.equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE)) {
           var mss = (TcpMaximumSegmentSizeOption) opt;
           sb.append("MSS %s bytes".formatted(mss.getMaxSegSize()));
-        } if(kind.equals(TcpOptionKind.WINDOW_SCALE)) {
+        } else if(kind.equals(TcpOptionKind.WINDOW_SCALE)) {
           var ws = (TcpWindowScaleOption) opt;
           sb.append("Window scale %s".formatted(ws.getLength()));
-        } else if (!kind.equals(TcpOptionKind.NO_OPERATION) && !kind.equals(TcpOptionKind.MAXIMUM_SEGMENT_SIZE)) {
+        } else if (!kind.equals(TcpOptionKind.NO_OPERATION)
+            && !kind.equals(TcpOptionKind.END_OF_OPTION_LIST)) {
           sb.append(opt.getKind().name());
         }
         sb.append(" ");
@@ -399,7 +400,8 @@ public class PacketDisplayService {
       .getPackets().get(0); // earliest packet should be the first packet in the container
 
     var duration = Duration.between(firstPacket.getTimestamp().toInstant(), pkt.getTimestamp().toInstant());
-    var nanos = duration.getNano() / 1e+9;
+    var nanos = duration.getSeconds() + (duration.getNano() / 1e+9);
+
     return "%f (%.04f)".formatted(nanos, nanos);
   }
 

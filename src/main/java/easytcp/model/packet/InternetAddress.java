@@ -38,6 +38,7 @@ public class InternetAddress {
   }
 
   public String getAddressString() {
+    //gets hostname if available, else gets the numeric address
     return !Strings.isEmpty(hostName) ? hostName : alphanumericalAddress;
   }
 

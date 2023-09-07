@@ -138,6 +138,7 @@ public class EasyTCPacket {
   }
 
   public String getTcpFlagsDisplayable() {
+    //Prints flags eg 'P.'
     return tcpFlags.entrySet()
       .stream()
       .filter(Map.Entry::getValue)
@@ -147,6 +148,7 @@ public class EasyTCPacket {
   }
 
   public String getTcpOptionsDisplayable() {
+    //shows prints options eg [1, 5, 1]
     return tcpOptions.stream()
       .map(option -> option.getKind().valueAsString())
       .collect(Collectors.joining(", "));

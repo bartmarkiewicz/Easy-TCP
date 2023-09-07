@@ -149,6 +149,7 @@ public class PacketTransformerService {
     tcpConnectionHashMap.put(addressOfConnection, tcpConnection);
     //adds the connection reference to the packet itself
     easyTcpPacket.setTcpConnection(tcpConnection);
+    //determines the current status of connection following the adding of this packet
     determineStatusOfConnection(tcpConnection, easyTcpPacket);
   }
 
@@ -193,6 +194,10 @@ public class PacketTransformerService {
     //default status is unknown
     if (tcpConnection.getConnectionStatus() == null) {
       tcpConnection.setConnectionStatus(ConnectionStatus.UNKNOWN);
+    } else if (tcpConnection.getConnectionStatus() == ConnectionStatus.TIME_WAIT) {
+      //time to wait for closing a connection cannot be determined, so the connection is closed on the arrival of another packet
+      //then it goes through the state transition
+      tcpConnection.setConnectionStatus(ConnectionStatus.CLOSED);
     }
 
     //state transitions are done through this switch based on current tcp connection status
@@ -336,10 +341,8 @@ public class PacketTransformerService {
    * otherwise it would be very slow to resolve them after the user toggled the display.
    * Packet is printed immediately with IP, once the resolved hostname is available, it prints that (if filter is enabled).
    */
-  private synchronized void setAddressesAndHostnames(IpPacket.IpHeader ipHeader,
-                                        TcpPacket.TcpHeader tcpHeader,
-                                        EasyTCPacket packet,
-                                        ConcurrentMap<String, String> resolvedHostNames) {
+  private synchronized void setAddressesAndHostnames(
+      IpPacket.IpHeader ipHeader, TcpPacket.TcpHeader tcpHeader, EasyTCPacket packet, ConcurrentMap<String, String> resolvedHostNames) {
 
     var destHostName = resolvedHostNames.get(String.valueOf(ipHeader.getDstAddr().getHostAddress()));
     var destinationAddress = new InternetAddress(
@@ -367,7 +370,6 @@ public class PacketTransformerService {
     packet.setSourceAddress(sourceAddress);
     if (srcHostName == null) {
       var executor = Executors.newSingleThreadExecutor();
-
       executor.execute(() -> {
         threadsInProgress.incrementAndGet();
         var resolvedHostname = ipHeader.getSrcAddr().getHostName();
@@ -377,7 +379,6 @@ public class PacketTransformerService {
         LOGGER.debug("thread count %s".formatted(threadsInProgress.get()));
       });
       executor.shutdown();
-      LOGGER.debug("thread count, on easytcp.main thread %s".formatted(threadsInProgress.get()));
     }
   }
   /* Stores pcap4j packets, for later conversion, when file reading.

@@ -77,6 +77,7 @@ public class EasyTCP extends JFrame {
 
         menuToolbar.addOpenMenuItemListener(actionEvent -> {
             fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
+            fileChooser.setDialogTitle("Open capture file");
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             //make sure the default location in the file chooser is where the app was started.
             var workingDirectory = new File(System.getProperty("user.dir"));

@@ -1,10 +1,7 @@
 package easytcp.view;
 
 import easytcp.Application;
-import easytcp.model.application.ApplicationStatus;
 import easytcp.model.application.CaptureData;
-import easytcp.model.application.FiltersForm;
-import easytcp.service.PacketTransformerService;
 import org.assertj.swing.core.GenericTypeMatcher;
 import org.assertj.swing.testing.AssertJSwingTestCaseTemplate;
 import org.junit.jupiter.api.AfterEach;
@@ -12,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-import java.awt.*;
 import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,9 +21,6 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
     public void onSetUp() {
         setUpRobot();
         application(Application.class).start();
-        CaptureData.getInstance().clear();
-        FiltersForm.getInstance().restoreDefaults();
-        PacketTransformerService.getPcapCaptureData().clear();
     }
 
     @AfterEach
@@ -63,8 +56,6 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
     @Test
     void testReadPcapFileAndUseFilters_andSaveDiagram() throws InterruptedException {
         var frame = findFrame(EasyTCP.class).withTimeout(4000).using(robot());
-        ApplicationStatus.getStatus().setFrameDimension(new Dimension(1300, 1300));
-
         //opens a prepared capture file
         frame.menuItemWithPath("File", "Open").click();
         var openFileDialog = frame.fileChooser(new GenericTypeMatcher<>(JFileChooser.class) {
@@ -87,9 +78,8 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
                 .requireText("""
                              TCP connections
                              32 status ESTABLISHED
-                             1 status LAST_ACK
-                             6 status TIME_WAIT
-                             1 status CLOSED
+                             1 status FIN_WAIT_2
+                             7 status CLOSED
                              """
                 );
         //selects a connection in the connection selector
@@ -112,8 +102,6 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
                 return component.getDialogType() == JFileChooser.SAVE_DIALOG;
             }
         }).requireVisible();
-        ArrowDiagram.getInstance().repaint();
-        ArrowDiagram.getInstance().revalidate();
         Thread.sleep(500);
 
         //asserts the file is created by easy TCP after saving the dialog
