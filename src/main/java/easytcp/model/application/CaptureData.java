@@ -34,6 +34,7 @@ public class CaptureData {
   }
 
   public List<TCPConnection> getTcpConnectionsWithStatus(Set<ConnectionStatus> statusSet) {
+    //gets tcp connections with a particular status
     return new ArrayList<>(tcpConnectionMap.values())
       .stream()
       .filter(tcpConnection ->

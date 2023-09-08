@@ -174,10 +174,10 @@ public class ArrowDiagram extends ScrollableJPanel {
 
           drawArrow(g2d, leftPoint, rightPoint);
           currentVerticalPosition = currentVerticalPosition + 70;
-          var midpoint = midpoint(leftPoint, rightPoint);
+          var midpoint = midpoint(leftPoint, rightPoint); //middle of the arrow
           g2d.setFont(new Font(g2d.getFont().getFontName(), Font.PLAIN, 11));
           var lineLabel = packetDisplayService.getTcpFlagsForPacket(pkt, filtersForm);
-          //rotates the text
+          //rotates the text, to place it on the arrow
           var affineTransform = new AffineTransform();
           affineTransform.rotate(0.15);
           var defaultFont = g2d.getFont();
@@ -191,7 +191,7 @@ public class ArrowDiagram extends ScrollableJPanel {
             g2d.drawString(tcpOptionsAndWinSize, midpoint.x - 150, midpoint.y);
           }
           g2d.drawString(lineLabel, midpoint.x-80, midpoint.y-20);
-          //resets the font to default, so its not rotated anymore
+          //resets the font back to default, so its not rotated anymore
           g2d.setFont(defaultFont);
         } else {
           //similarly to above for incoming packet, right to left arrow

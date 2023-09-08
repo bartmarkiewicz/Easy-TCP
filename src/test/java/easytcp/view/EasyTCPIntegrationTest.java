@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.swing.finder.WindowFinder.findFrame;
 import static org.assertj.swing.launcher.ApplicationLauncher.application;
 
+//Tests the primary functionality of the application
 class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @BeforeEach
@@ -30,6 +31,7 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @Test
     void testSaveCapture() throws InterruptedException {
+        //tests saving an empty file
         var fileToBeSaved = new File("capture");
 
         try {
@@ -55,6 +57,7 @@ class EasyTCPIntegrationTest extends AssertJSwingTestCaseTemplate {
 
     @Test
     void testReadPcapFileAndUseFilters_andSaveDiagram() throws InterruptedException {
+        //tests reading a pcap file, filtering and then saving a diagram
         var frame = findFrame(EasyTCP.class).withTimeout(4000).using(robot());
         //opens a prepared capture file
         frame.menuItemWithPath("File", "Open").click();

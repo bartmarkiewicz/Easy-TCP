@@ -150,7 +150,7 @@ public class MiddleRow {
     showTcpFeatures = new JCheckBox("Show detected tcp features");
     showTcpFeatures.addChangeListener((i) -> filtersForm.setShowTcpFeatures(showTcpFeatures.isSelected()));
     showGeneralConnectionInformation = new JCheckBox("Show general information");
-    showTcpFeatures.addChangeListener((i) -> filtersForm.setShowGeneralInformation(showGeneralConnectionInformation.isSelected()));
+    showGeneralConnectionInformation.addChangeListener((i) -> filtersForm.setShowGeneralInformation(showGeneralConnectionInformation.isSelected()));
     showGeneralConnectionInformation.setSelected(false);
 
     showTcpFeatures.setSelected(true);

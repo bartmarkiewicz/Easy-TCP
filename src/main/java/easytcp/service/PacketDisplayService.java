@@ -18,6 +18,7 @@ import java.time.Duration;
 public class PacketDisplayService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PacketDisplayService.class);
 
+  //checks if packet matches filters
   public boolean isVisible(EasyTCPacket packet, FiltersForm filtersForm) {
     var matchesFilter = true;
 
@@ -49,11 +50,13 @@ public class PacketDisplayService {
       var srcPort = packet.getSourceAddress().getPort();
       try {
         if (twoPorts.length == 2) {
+          //allows for port ranges eg 80-150, which includes all ports from 80 to 150
           var minPort = Integer.parseInt(twoPorts[0]);
           var maxPort = Integer.parseInt(twoPorts[1]);
           matchesFilter = (dstPort <= maxPort && dstPort >= minPort)
             || (srcPort <= maxPort && srcPort >= minPort);
         } else if (twoPorts.length == 1) {
+          //single port number, on destination or source.
           var selectedPort = Integer.parseInt(twoPorts[0]);
           matchesFilter = (dstPort == selectedPort)
             || (srcPort == selectedPort);
@@ -74,12 +77,14 @@ public class PacketDisplayService {
   public String prettyPrintPacket(EasyTCPacket packet, FiltersForm filtersForm) {
     return "<p>%s <a href=\"%s:%s:%s:%s:%s\"> %s %s %s:%s > %s:%s: Flags [%s], seq %s, ack %s, win %s, options [%s], length %s </a>%s</p>"
       .formatted(
+        //inserts a styled span when a packet had been selected, making the packet text blue on the packet log
         packet.getSelectedPacket() ? "<span>" : "",
         packet.getSequenceNumber(),
         packet.getDataPayloadLength(),
         packet.getAckNumber(), packet.getTcpFlagsDisplayable(), packet.getTcpConnection().getConnectionAddresses(),
         packet.getTimestamp().toString(),
         packet.getiPprotocol().getDisplayName(),
+        //gets hostname if the display filter is toggled and available or just numeric address
         filtersForm.isResolveHostnames() ? packet.getSourceAddress().getAddressString() : packet.getSourceAddress().getAlphanumericalAddress(),
         packet.getSourceAddress().getPort(),
         filtersForm.isResolveHostnames() ?  packet.getDestinationAddress().getAddressString() : packet.getDestinationAddress().getAlphanumericalAddress(),
@@ -90,6 +95,7 @@ public class PacketDisplayService {
         packet.getWindowSize(),
         packet.getTcpOptionsDisplayable(),
         packet.getDataPayloadLength(),
+        //closes inserted span
         packet.getSelectedPacket() ? "</span>" : ""
       );
   }
@@ -115,7 +121,7 @@ public class PacketDisplayService {
       return ConnectionStatus.REJECTED;
     }
 
-    //TCP connection state transitions
+    //TCP connection state transitions, similar to the ones on the PacketTransformerService
     switch (tcpConnection.getStatusAsOfPacketTraversal()) {
       case CLOSED -> {
         //determine initial connection status
@@ -292,7 +298,7 @@ public class PacketDisplayService {
         }
       }
     }
-
+    //returns the same status if no transition has been made
     return tcpConnection.getStatusAsOfPacketTraversal();
   }
 
@@ -353,7 +359,7 @@ public class PacketDisplayService {
       sb.append(" %s".formatted(pkt.getAckNumber()));
     }
 
-    if (filtersForm.isShowLength()) {
+    if (filtersForm.isShowLength()) { //shows length on the arrows when enabled
       sb.append(" Length %s".formatted(pkt.getDataPayloadLength()));
     }
 
@@ -366,10 +372,10 @@ public class PacketDisplayService {
     var options = pkt.getTcpOptions();
     var windowSize = pkt.getWindowSize();
     var sb = new StringBuilder();
-    if (filtersForm.isShowWindowSize()) {
+    if (filtersForm.isShowWindowSize()) { //if window size is enabled, it displays it
       sb.append("Win %s\n".formatted(windowSize));
     }
-    if (filtersForm.isShowTcpOptions()) {
+    if (filtersForm.isShowTcpOptions()) { //shows TCP options on the arrow
       sb.append("<");
       options.forEach(opt -> {
         var kind = opt.getKind();

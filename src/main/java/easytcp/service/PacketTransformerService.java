@@ -201,6 +201,7 @@ public class PacketTransformerService {
     }
 
     //state transitions are done through this switch based on current tcp connection status
+    //it determines if the status had been changed based on the latest packet and sets it if so
     switch (tcpConnection.getConnectionStatus()) {
       case CLOSED -> {
         if (latestPacketFlags.get(TCPFlag.SYN)) {

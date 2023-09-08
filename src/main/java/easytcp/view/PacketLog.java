@@ -121,6 +121,7 @@ public class PacketLog {
     }
     filtersForm.restoreDefaults();
     SwingUtilities.invokeLater(() -> {
+      //clears frontend components
       var middleRow = MiddleRow.getInstance();
       middleRow.resetConnectionInformation();
       middleRow.addConnectionOptions(captureData);
