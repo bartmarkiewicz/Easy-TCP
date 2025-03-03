@@ -6,7 +6,7 @@ A Java Swing application used for TCP packet capture, visualisation and analysis
 - Viewing of a PCAP (packet capture) file
 - Live capturing of packets and their features
 - Easy filtering and splitting by particular TCP connection and provides information about individual connections
-- Arrow diagram, clicking on a packet shows arrow diagram.
+- Arrow diagram, clicking on a packet shows and highlights it on the raw packet scrollbar output. Works in reverse.
 ![image](https://github.com/user-attachments/assets/56b92e68-5a11-40b8-b886-dcf80777b00d)
 - Detecting of TCP features such as nagle, slow start, delayed acknowledgement
 - Arrow diagram exports as images
@@ -16,6 +16,7 @@ A Java Swing application used for TCP packet capture, visualisation and analysis
 - Could check native client TCP settings to get at least accurate TCP settings for the client
 - Limited unit and integration tests
 - Only captures and looks at TCP packets - albeit expanding the protocol suite should be relatively easy
+- There are some performance concerns on weaker devices. 
 
 # Installation Guide
 - Download and install latest [Npcap](https://npcap.com/) with default settings and at least [Java 17](https://adoptium.net/en-GB/temurin/releases/)
